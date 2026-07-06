@@ -1,0 +1,26 @@
+﻿import "@/App.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import Landing from "@/pages/Landing";
+import Templates from "@/pages/Templates";
+import Editor from "@/pages/Editor";
+import SharedView from "@/pages/SharedView";
+
+function App() {
+  return (
+    <div className="App">
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/editor" element={<Editor />} />
+          <Route path="/r/:shareId" element={<SharedView />} />
+        </Routes>
+      </BrowserRouter>
+      <Toaster position="bottom-right" richColors />
+    </div>
+  );
+}
+
+export default App;
+

@@ -1,0 +1,120 @@
+﻿import React from "react";
+
+const ACCENT = "#0055FF";
+
+export default function StartupVibe({ data }) {
+  const { personal, experience, education, skills, projects, certifications, languages } = data;
+  return (
+    <div className="a4-page p-12 font-body text-[13px] text-zinc-800 leading-relaxed">
+      <header className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="font-heading text-4xl font-black tracking-tight text-zinc-900">{personal.fullName || "Your Name"}</h1>
+          <div className="mt-1 text-zinc-600">{personal.title}</div>
+        </div>
+        <div className="text-right text-[12px] text-zinc-700 space-y-0.5">
+          {personal.email && <div>{personal.email}</div>}
+          {personal.phone && <div>{personal.phone}</div>}
+          {personal.location && <div>{personal.location}</div>}
+          {personal.website && <div style={{ color: ACCENT }}>{personal.website}</div>}
+          {personal.linkedin && <div style={{ color: ACCENT }}>{personal.linkedin}</div>}
+        </div>
+      </header>
+
+      {personal.summary && (
+        <section className="mb-6 p-4 bg-zinc-50 border-l-4" style={{ borderColor: ACCENT }}>
+          <p className="text-zinc-800">{personal.summary}</p>
+        </section>
+      )}
+
+      <div className="grid grid-cols-3 gap-8">
+        <div className="col-span-2 space-y-5">
+          {experience?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3 flex items-center gap-2">
+                <span className="w-2 h-2" style={{ background: ACCENT }} /> Experience
+              </h2>
+              <div className="space-y-4">
+                {experience.map((e, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between items-baseline">
+                      <div className="font-semibold text-zinc-900">{e.role}</div>
+                      <div className="text-[11.5px] text-zinc-500">{e.startDate} - {e.endDate}</div>
+                    </div>
+                    <div className="text-zinc-700" style={{ color: ACCENT }}>{e.company}<span className="text-zinc-500"> {e.location && `| ${e.location}`}</span></div>
+                    {e.bullets?.length > 0 && (
+                      <ul className="list-disc ml-5 mt-1 space-y-1 text-zinc-700">
+                        {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {projects?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3 flex items-center gap-2">
+                <span className="w-2 h-2" style={{ background: ACCENT }} /> Projects
+              </h2>
+              {projects.map((p, i) => (
+                <div key={i} className="mb-2">
+                  <div className="font-semibold text-zinc-900">{p.name} {p.link && <span className="text-[12px]" style={{ color: ACCENT }}>{p.link}</span>}</div>
+                  <div className="text-zinc-700">{p.description}</div>
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+
+        <aside className="col-span-1 space-y-5">
+          {skills?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3">Skills</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {skills.map((s, i) => (
+                  <span key={i} className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: `${ACCENT}12`, color: ACCENT }}>{s}</span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {education?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3">Education</h2>
+              {education.map((ed, i) => (
+                <div key={i} className="mb-2">
+                  <div className="font-semibold text-zinc-900">{ed.school}</div>
+                  <div className="text-zinc-700 text-[12px]">{ed.degree}{ed.field ? `, ${ed.field}` : ""}</div>
+                  <div className="text-[11.5px] text-zinc-500">{ed.startDate} - {ed.endDate}</div>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {certifications?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3">Certifications</h2>
+              {certifications.map((c, i) => (
+                <div key={i} className="text-zinc-700 text-[12.5px] mb-1">
+                  <div className="font-semibold text-zinc-900">{c.name}</div>
+                  <div className="text-[11.5px] text-zinc-500">{c.issuer} | {c.date}</div>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {languages?.length > 0 && (
+            <section>
+              <h2 className="font-heading text-lg font-bold mb-3">Languages</h2>
+              {languages.map((l, i) => (
+                <div key={i} className="text-zinc-700 text-[12.5px]">{l.name} <span className="text-zinc-500">- {l.level}</span></div>
+              ))}
+            </section>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+

@@ -1,0 +1,11 @@
+﻿export const TEMPLATES = [
+  { id: "modern-minimal", name: "Modern Minimal", vibe: "Minimal", description: "Single column, generous whitespace, sans-serif clarity." },
+  { id: "editorial", name: "Editorial", vibe: "Elegant", description: "Two-column with serif headings and elegant dividers." },
+  { id: "bold-creative", name: "Bold Creative", vibe: "Bold", description: "High contrast with a striking dark sidebar." },
+  { id: "timeline", name: "Timeline", vibe: "Structured", description: "Chronological experience with vertical connectors." },
+  { id: "tech-compact", name: "Tech Compact", vibe: "Tech", description: "Dense, monospaced accents. Perfect for developers." },
+  { id: "classic-corporate", name: "Classic Corporate", vibe: "Classic", description: "Traditional, ATS-friendly with horizontal rules." },
+  { id: "startup-vibe", name: "Startup Vibe", vibe: "Modern", description: "Accent-color highlights and pill skill tags." },
+  { id: "academic", name: "Academic CV", vibe: "Formal", description: "Structured for publications and research lists." },
+];
+

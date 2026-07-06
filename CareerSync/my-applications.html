@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareerSync - My Applications</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --primary: #5B3DF5;
+            --text: #0f172a;
+            --muted: #475569;
+            --line: #e2e8f0;
+            --card: #ffffff;
+            --bg: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .wrap {
+            width: min(1080px, 92vw);
+            margin: 24px auto;
+        }
+
+        .head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 26px;
+            font-family: Poppins, sans-serif;
+        }
+
+        .back {
+            color: #fff;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--primary), #4f8cff);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .table-wrap {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 860px;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--line);
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f8fafc;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 800;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+        }
+
+        .empty {
+            padding: 30px;
+            color: var(--muted);
+            text-align: center;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="head">
+            <h1 class="title">My Applications</h1>
+            <a class="back" href="/index.html">Back to Home</a>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Application ID</th>
+                        <th>Company</th>
+                        <th>Position</th>
+                        <th>Application Date</th>
+                        <th>Current Status</th>
+                        <th>Resume Submitted</th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+            <div class="empty" id="empty">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const KEYS = {
+            userProfile: 'careersync_user_profile'
+        };
+
+        function getProfile() {
+            try {
+                const session = sessionStorage.getItem(KEYS.userProfile);
+                if (session) return JSON.parse(session);
+                const local = localStorage.getItem(KEYS.userProfile);
+                if (local) return JSON.parse(local);
+            } catch {
+                return {};
+            }
+            return {};
+        }
+
+        function statusClass(status) {
+            if (status === 'Selected') return 'status';
+            if (status === 'Rejected') return 'status';
+            if (status === 'Interview Scheduled') return 'status';
+            if (status === 'Under Review') return 'status';
+            return 'status';
+        }
+
+        async function loadRows() {
+            const profile = getProfile();
+            const rows = document.getElementById('rows');
+            const empty = document.getElementById('empty');
+            if (!rows || !empty) return;
+
+            if (!profile.email) {
+                empty.textContent = 'Login required to view applications.';
+                return;
+            }
+
+            const response = await fetch(`/api/applications?email=${encodeURIComponent(profile.email)}`);
+            const data = await response.json();
+            const applications = data.applications || [];
+
+            rows.innerHTML = '';
+            if (!applications.length) {
+                empty.textContent = 'No applications found yet.';
+                return;
+            }
+
+            empty.style.display = 'none';
+            applications.forEach(item => {
+                const tr = document.createElement('tr');
+                const date = new Date(item.applicationDate).toLocaleDateString();
+                tr.innerHTML = `
+          <td>${item.applicationId}</td>
+          <td>${item.appliedCompany}</td>
+          <td>${item.appliedPosition}</td>
+          <td>${date}</td>
+          <td><span class="${statusClass(item.status)}">${item.status}</span></td>
+          <td>${item.resume?.filename || '-'}</td>
+        `;
+                rows.appendChild(tr);
+            });
+        }
+
+        loadRows();
+    </script>
+</body>
+
+</html>
