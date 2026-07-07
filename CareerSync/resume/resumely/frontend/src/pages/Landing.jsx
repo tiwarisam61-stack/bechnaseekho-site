@@ -16,26 +16,29 @@ const featTiles = [
 
 export default function Landing() {
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(91,61,245,0.12),_transparent_45%),linear-gradient(135deg,_#f8faff_0%,_#ffffff_100%)]">
       <Nav />
 
       {/* HERO */}
-      <section className="border-b border-zinc-200">
+      <section className="border-b border-violet-100/80">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-20 lg:py-28 grid lg:grid-cols-12 gap-10 lg:gap-16 items-end">
           <div className="lg:col-span-7">
-            <p className="overline text-zinc-500" data-testid="hero-overline">Resumely | Est. 2026</p>
-            <h1 className="mt-4 font-heading text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-zinc-900" data-testid="hero-title">
-              Build a resume<br />people actually<br />
-              <span className="italic font-serif-editorial font-medium">read.</span>
+            <div className="brand-pill inline-flex items-center gap-2" data-testid="hero-overline">
+              <span className="h-2.5 w-2.5 rounded-full bg-violet-600" />
+              CareerSync Resume Builder
+            </div>
+            <h1 className="mt-5 font-heading text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-zinc-900" data-testid="hero-title">
+              Build a resume<br />that gets<br />
+              <span className="text-violet-600">noticed.</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg text-zinc-600 leading-relaxed" data-testid="hero-subtitle">
-              Choose from eight typography-obsessed templates, fill your details once, and export a print-ready PDF or share a live link. No sign-up.
+              Pick a polished template, fill your details once, and export a print-ready PDF or share a live link. Everything is designed to feel like part of CareerSync.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/templates"
                 data-testid="hero-cta-primary"
-                className="inline-flex items-center bg-black text-white px-6 py-3 text-sm font-semibold rounded-sm hover:bg-zinc-800 transition-colors group"
+                className="inline-flex items-center bg-[linear-gradient(135deg,_#5B3DF5,_#7B61FF)] text-white px-6 py-3 text-sm font-semibold rounded-full shadow-[0_12px_30px_rgba(91,61,245,0.22)] hover:translate-y-[-1px] transition-all group"
               >
                 Browse templates
                 <ArrowRight size={16} strokeWidth={1.5} className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -43,23 +46,23 @@ export default function Landing() {
               <Link
                 to="/editor"
                 data-testid="hero-cta-secondary"
-                className="inline-flex items-center border border-zinc-300 px-6 py-3 text-sm font-semibold rounded-sm hover:bg-zinc-50 transition-colors"
+                className="inline-flex items-center border border-violet-200 bg-white/80 px-6 py-3 text-sm font-semibold rounded-full hover:bg-violet-50 transition-colors"
               >
                 Start blank
               </Link>
             </div>
-            <div className="mt-8 flex items-center gap-5 text-xs text-zinc-500">
-              <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-emerald-500" /> No login required</div>
-              <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-emerald-500" /> A4 print ready</div>
-              <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-emerald-500" /> Free forever</div>
+            <div className="mt-8 flex flex-wrap items-center gap-5 text-xs text-zinc-500">
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /> No login required</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /> ATS-friendly layouts</div>
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Free forever</div>
             </div>
           </div>
 
           <div className="lg:col-span-5 relative">
             <div className="relative">
-              <div className="absolute -top-6 -left-6 w-32 h-32 border border-zinc-900 -z-0" />
-              <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-zinc-900 -z-0" />
-              <div className="relative z-10 origin-top-left" style={{ transform: "scale(0.42) rotate(-2deg)", transformOrigin: "top right", height: 480 }}>
+              <div className="absolute -top-6 -left-6 h-32 w-32 -z-0 rounded-[2rem] border border-violet-200 bg-violet-50" />
+              <div className="absolute -bottom-6 -right-6 h-24 w-24 -z-0 rounded-full bg-[linear-gradient(135deg,_#5B3DF5,_#7B61FF)]" />
+              <div className="relative z-10 origin-top-left rounded-[2rem] border border-violet-100 bg-white/90 p-3 shadow-[0_20px_60px_rgba(91,61,245,0.12)]" style={{ transform: "scale(0.42) rotate(-2deg)", transformOrigin: "top right", height: 480 }}>
                 {renderTemplate("editorial", sampleResume)}
               </div>
             </div>
@@ -144,7 +147,7 @@ export default function Landing() {
 
       <footer className="border-t border-zinc-800 bg-black text-zinc-500 text-xs">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-6 flex justify-between">
-          <span>(c) {new Date().getFullYear()} Resumely - Made with type & tea.</span>
+          <span>(c) {new Date().getFullYear()} CareerSync Resume Builder</span>
           <span>v1.0</span>
         </div>
       </footer>

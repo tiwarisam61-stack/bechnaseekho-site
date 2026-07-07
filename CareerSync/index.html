@@ -259,6 +259,488 @@
             transform: translateY(-2px)
         }
 
+        .post-job-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(18px);
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .post-job-modal.active {
+            display: flex;
+        }
+
+
+        .post-job-shell {
+            width: min(1180px, 100%);
+            max-height: calc(100vh - 40px);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 251, 255, 0.98));
+            border: 1px solid rgba(91, 61, 245, 0.08);
+            border-radius: 26px;
+            box-shadow: 0 30px 90px rgba(15, 23, 42, 0.16);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform: translateY(18px) scale(.995);
+            opacity: 0;
+            transition: transform .42s cubic-bezier(.2, .9, .2, 1), opacity .42s ease;
+        }
+
+        .post-job-modal.active .post-job-shell {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .post-job-header {
+            padding: 28px 34px 18px;
+            border-bottom: 1px solid rgba(18, 23, 38, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            position: relative;
+            z-index: 4;
+        }
+
+        .post-job-header-decor {
+            position: absolute;
+            right: 110px;
+            top: -32px;
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, rgba(91, 61, 245, 0.12), rgba(79, 140, 255, 0.07));
+            border-radius: 50%;
+            filter: blur(18px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .post-job-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .post-job-subtitle {
+            color: var(--text-2);
+            font-size: 14px;
+        }
+
+        .post-job-close {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(91, 61, 245, 0.08);
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .post-job-progress {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 12px 28px 18px;
+        }
+
+        .post-job-step {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 18px;
+            color: var(--text-2);
+            font-size: 13px;
+            font-weight: 700;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 255, 0.98));
+            box-shadow: 0 6px 18px rgba(91, 61, 245, 0.04);
+            border: 1px solid rgba(91, 61, 245, 0.05);
+        }
+
+        .post-job-step.active {
+            background: linear-gradient(90deg, rgba(91, 61, 245, 0.12), rgba(79, 140, 255, 0.08));
+            color: var(--primary);
+            border-color: rgba(91, 61, 245, 0.12);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(91, 61, 245, 0.12);
+        }
+
+        .post-job-step.done {
+            color: #0f766e;
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.18);
+        }
+
+        .post-job-body {
+            padding: 6px 28px 24px;
+            overflow: auto;
+        }
+
+        .post-job-body-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .post-job-preview {
+            background: linear-gradient(135deg, rgba(91, 61, 245, 0.06), rgba(79, 140, 255, 0.03));
+            border: 1px solid rgba(91, 61, 245, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 14px 40px rgba(15, 23, 42, 0.07);
+            min-height: 120px;
+            display: block;
+            width: 100%;
+        }
+
+        .preview-logo {
+            width: 84px;
+            height: 84px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 1px solid rgba(91, 61, 245, 0.06);
+        }
+
+        .preview-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .preview-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .preview-sub {
+            font-size: 13px;
+            color: var(--text-2);
+            margin-bottom: 10px;
+        }
+
+        .preview-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .preview-chip {
+            background: rgba(91, 61, 245, 0.06);
+            color: var(--primary);
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .preview-boost {
+            margin-top: 14px;
+            display: block;
+            text-align: center;
+        }
+
+        .post-job-section {
+            display: none;
+        }
+
+        .post-job-section.active {
+            display: block;
+        }
+
+        .post-job-section.success {
+            display: none;
+        }
+
+        .post-job-section.success.active {
+            display: block;
+        }
+
+        .post-job-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .post-job-field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .post-job-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .post-job-field label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .post-job-field input,
+        .post-job-field select,
+        .post-job-field textarea {
+            border: 1px solid var(--border);
+            background: #fbfcff;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--text);
+            width: 100%;
+        }
+
+        .post-job-field textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .post-job-field input:focus,
+        .post-job-field select:focus,
+        .post-job-field textarea:focus {
+            outline: none;
+            border-color: rgba(91, 61, 245, 0.35);
+            box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.08);
+        }
+
+        .upload-dropzone {
+            border: 1.5px dashed rgba(91, 61, 245, 0.28);
+            border-radius: 18px;
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--text-2);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 246, 255, 0.96));
+            position: relative;
+        }
+
+        .upload-dropzone strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .upload-dropzone input[type=file] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .post-job-field input,
+        .post-job-field select,
+        .post-job-field textarea {
+            border: 1px solid rgba(91, 61, 245, 0.12);
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(91, 61, 245, 0.03);
+        }
+
+        .post-job-field input:focus,
+        .post-job-field select:focus,
+        .post-job-field textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 8px 30px rgba(91, 61, 245, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .benefit-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .benefit-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 13px;
+            color: var(--text-2);
+        }
+
+        .benefit-chip input {
+            width: auto;
+            accent-color: var(--primary);
+        }
+
+        .company-size-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .company-size-row select {
+            min-width: 160px;
+            padding-right: 8px;
+        }
+
+        .company-size-custom {
+            display: none;
+            width: 120px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 14px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fbfcff;
+        }
+
+        .toggle-row input {
+            width: auto;
+            accent-color: var(--primary);
+        }
+
+        .review-card {
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ffffff, #f8faff);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .review-card h4 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 18px;
+            color: var(--text-2);
+            font-size: 14px;
+        }
+
+        .review-grid strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .post-job-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 28px 20px;
+            border-top: 1px solid rgba(18, 23, 38, 0.03);
+            gap: 12px;
+            flex-wrap: wrap;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .success-state {
+            text-align: center;
+            padding: 24px 8px 8px;
+        }
+
+        .success-icon {
+            width: 78px;
+            height: 78px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(91, 61, 245, 0.12));
+            color: #0f766e;
+            font-size: 34px;
+        }
+
+        .success-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .success-copy {
+            color: var(--text-2);
+            max-width: 680px;
+            margin: 0 auto 18px;
+        }
+
+        .success-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .success-pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(91, 61, 245, 0.08);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .post-job-footer .btn-primary {
+            background: linear-gradient(135deg, #5B3DF5, #7B61FF);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 999px;
+            box-shadow: 0 12px 30px rgba(91, 61, 245, 0.18);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .post-job-footer .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 40px rgba(91, 61, 245, 0.22);
+        }
+
+        @media (max-width: 900px) {
+
+            .post-job-form-grid,
+            .review-grid,
+            .post-job-progress {
+                grid-template-columns: 1fr;
+            }
+
+            .post-job-progress {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
         .btn .ripple {
             position: absolute;
             border-radius: 50%;
@@ -10010,7 +10492,7 @@
 
                     <!-- Feature Card 1 -->
                     <div class="bento-card" style="--bc-grad:linear-gradient(135deg,#0ea5e9,#6366f1);"
-                        onclick="handleAction('Resume Builder')">
+                        onclick="handleAction('Build My Resume')">
                         <div class="bc-icon"><i class="fa-solid fa-file-lines"></i></div>
                         <div class="bc-title">AI Resume Builder</div>
                         <p class="bc-desc">Build an ATS-optimized resume in minutes with 50+ premium templates. Get an
@@ -10084,8 +10566,8 @@
             </div>
         </section>
 
-        <!-- RESUME UPLOAD -->
-        <section class="section resume-section" id="resume">
+        <!-- RESUMELY SECTION -->
+        <section class="section resume-section" id="resumly">
             <div class="container">
                 <div class="resume-inner">
                     <div class="resume-content" data-aos="fade-right">
@@ -10478,6 +10960,8 @@
                         <p class="cta-sub">Reach thousands of verified, job-ready candidates across Delhi NCR and pan
                             India. AI-powered candidate matching saves you hours of screening.</p>
                         <div class="cta-btns">
+                            <button class="btn btn-ghost" onclick="handleAction('Post a Job')"><i
+                                    class="fa-solid fa-briefcase"></i> Post a Job</button>
                             <button class="btn btn-ghost" onclick="handleAction('Contact Team')"><i
                                     class="fa-solid fa-phone"></i> Contact Team</button>
                         </div>
@@ -10854,7 +11338,8 @@
             userProfile: 'careersync_user_profile',
             notifications: 'careersync_notifications',
             popupDismissed: 'careersync_login_popup_dismissed',
-            popupDismissCount: 'careersync_login_popup_dismiss_count'
+            popupDismissCount: 'careersync_login_popup_dismiss_count',
+            pendingAction: 'careersync_pending_action'
         };
 
         const CS_NOTIFICATION_TEMPLATES = [
@@ -10939,6 +11424,15 @@
                 return Array.isArray(parsed) ? parsed : [];
             } catch {
                 return [];
+            }
+        }
+
+        function resumePendingAction() {
+            const action = sessionStorage.getItem(CS_KEYS.pendingAction);
+            if (!action) return;
+            sessionStorage.removeItem(CS_KEYS.pendingAction);
+            if (action === 'post_job') {
+                openPostJobModal();
             }
         }
 
@@ -11090,6 +11584,20 @@
                 switchToSignup();
                 return false;
             }
+            if (label === 'Resume Builder' || label === 'Build My Resume') {
+                openResumlySection();
+                return false;
+            }
+            if (label === 'Post a Job') {
+                if (!isUserLoggedIn()) {
+                    sessionStorage.setItem(CS_KEYS.pendingAction, 'post_job');
+                    openAuthPage();
+                    switchToLogin();
+                    return false;
+                }
+                openPostJobModal();
+                return false;
+            }
             if (label === 'Notifications') {
                 openNotificationsPanel();
                 return false;
@@ -11109,6 +11617,303 @@
                 return false;
             }
             showToast(msg, icon); return false;
+        }
+
+        function openResumlySection() {
+            const target = document.getElementById('resumly') || document.getElementById('resume');
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function openPostJobModal() {
+            const modal = document.getElementById('postJobModal');
+            if (!modal) return;
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            initPostJobFlow();
+            if (typeof window !== 'undefined') {
+                window.setTimeout(() => {
+                    const firstField = document.querySelector('#postJobModal input[name="companyName"]');
+                    firstField?.focus();
+                }, 120);
+            }
+        }
+
+        function closePostJobModal() {
+            const modal = document.getElementById('postJobModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        function initPostJobFlow() {
+            const modal = document.getElementById('postJobModal');
+            const form = document.getElementById('postJobForm');
+            if (!modal || !form || modal.dataset.initialized === '1') return;
+            modal.dataset.initialized = '1';
+
+            const steps = Array.from(document.querySelectorAll('.post-job-step'));
+            const stepSections = Array.from(document.querySelectorAll('.post-job-section'));
+            const stepLabels = document.querySelectorAll('[data-step-label]');
+            const reviewPanel = document.getElementById('postJobReviewSummary');
+            const successScreen = document.getElementById('postJobSuccessScreen');
+            const currentStepView = document.getElementById('postJobCurrentStep');
+            let currentStep = 1;
+            const storageKey = 'careersync_post_job_draft_v1';
+
+            function setStep(step) {
+                currentStep = Math.max(1, Math.min(4, step));
+                steps.forEach((stepEl, index) => {
+                    const stepNumber = index + 1;
+                    stepEl.classList.toggle('active', stepNumber === currentStep);
+                    stepEl.classList.toggle('done', stepNumber < currentStep);
+                });
+                stepSections.forEach(section => {
+                    const sectionStep = Number(section.dataset.step || 0);
+                    section.classList.toggle('active', sectionStep === currentStep);
+                });
+                stepLabels.forEach(label => {
+                    label.textContent = `Step ${currentStep}`;
+                });
+                if (currentStepView) currentStepView.textContent = currentStep;
+                if (successScreen) successScreen.classList.remove('active');
+                updateReview();
+            }
+
+            function readFormData() {
+                const values = {};
+                const fields = form.querySelectorAll('[name]');
+                fields.forEach(field => {
+                    const name = field.name;
+                    if (!name) return;
+                    if (field.type === 'checkbox') {
+                        if (!values[name]) values[name] = [];
+                        if (field.checked) values[name].push(field.value);
+                    } else if (field.type === 'radio') {
+                        if (field.checked) values[name] = field.value;
+                    } else {
+                        values[name] = field.value;
+                    }
+                });
+                return values;
+            }
+
+            function saveDraft() {
+                const payload = readFormData();
+                localStorage.setItem(storageKey, JSON.stringify(payload));
+            }
+
+            function restoreDraft() {
+                try {
+                    const raw = localStorage.getItem(storageKey);
+                    if (!raw) return;
+                    const draft = JSON.parse(raw);
+                    const fields = form.querySelectorAll('[name]');
+                    fields.forEach(field => {
+                        const name = field.name;
+                        if (!name || !(name in draft)) return;
+                        if (field.type === 'checkbox') {
+                            const values = Array.isArray(draft[name]) ? draft[name] : [draft[name]];
+                            field.checked = values.includes(field.value);
+                        } else if (field.type === 'radio') {
+                            field.checked = String(field.value) === String(draft[name]);
+                        } else {
+                            field.value = draft[name] || '';
+                        }
+                    });
+                } catch {
+                    localStorage.removeItem(storageKey);
+                }
+            }
+
+            function updateReview() {
+                const values = readFormData();
+                if (!reviewPanel) return;
+                const companyName = values.companyName || 'Your company';
+                const title = values.jobTitle || 'Your role';
+                const salary = values.salaryMin || values.salaryMax ? `${values.salaryCurrency || 'INR'} ${values.salaryMin || ''}${values.salaryMax ? ` - ${values.salaryMax}` : ''}`.trim() : 'To be disclosed';
+                const location = [values.city, values.state, values.country].filter(Boolean).join(', ') || 'Location to be confirmed';
+                const experience = values.experienceRequired || 'Flexible';
+                const employmentType = values.employmentType || 'Full-Time';
+                const companySizeDisplay = values.companySizeCustom || values.companySize || '';
+                reviewPanel.innerHTML = `
+                    <h4>Preview</h4>
+                    <div class="review-grid">
+                        <div><strong>Company</strong>${escapeHtml(companyName)}</div>
+                        <div><strong>Role</strong>${escapeHtml(title)}</div>
+                        ${companySizeDisplay ? `<div><strong>Company Size</strong>${escapeHtml(companySizeDisplay)}</div>` : ''}
+                        <div><strong>Salary</strong>${escapeHtml(salary)}</div>
+                        <div><strong>Location</strong>${escapeHtml(location)}</div>
+                        <div><strong>Experience</strong>${escapeHtml(experience)}</div>
+                        <div><strong>Employment</strong>${escapeHtml(employmentType)}</div>
+                    </div>`;
+            }
+
+            function showSuccessState(payload) {
+                if (!successScreen) return;
+                const summary = document.getElementById('postJobSuccessSummary');
+                const title = payload.title || 'Your job posting';
+                const company = payload.company || 'Your company';
+                const pillList = [company, title, 'Visible on Careersync in seconds'];
+                if (summary) {
+                    summary.innerHTML = `
+                        <div class="success-title">Your job has been published successfully!</div>
+                        <p class="success-copy">${escapeHtml(company)} is now live with ${escapeHtml(title)}. Candidates can discover and apply to it instantly.</p>
+                        <div class="success-pills">
+                            ${pillList.map(item => `<span class="success-pill">${escapeHtml(item)}</span>`).join('')}
+                        </div>`;
+                }
+                stepSections.forEach(section => section.classList.remove('active'));
+                successScreen.classList.add('active');
+                const footer = document.getElementById('postJobFooter');
+                if (footer) footer.innerHTML = '<button type="button" class="btn btn-primary" onclick="closePostJobModal()">Close</button><button type="button" class="btn btn-outline" onclick="openPostJobModal()">Post Another Job</button>';
+            }
+
+            document.getElementById('postJobCloseBtn')?.addEventListener('click', closePostJobModal);
+            document.getElementById('postJobOverlay')?.addEventListener('click', event => {
+                if (event.target.id === 'postJobOverlay') closePostJobModal();
+            });
+            document.getElementById('postJobNextBtn')?.addEventListener('click', () => setStep(currentStep + 1));
+            document.getElementById('postJobBackBtn')?.addEventListener('click', () => setStep(currentStep - 1));
+            document.getElementById('postJobSaveDraftBtn')?.addEventListener('click', () => {
+                saveDraft();
+                showToast('Draft saved locally.', 'fa-solid fa-floppy-disk');
+            });
+            document.getElementById('postJobSubmitBtn')?.addEventListener('click', async () => {
+                const publishBtn = document.getElementById('postJobSubmitBtn');
+                const submitLabel = document.getElementById('postJobSubmitLabel');
+                const values = readFormData();
+                if (!values.companyName || !values.recruiterName || !values.recruiterEmail || !values.jobTitle || !values.employmentType || !values.jobDescription) {
+                    showToast('Please complete the required fields before publishing.', 'fa-solid fa-triangle-exclamation');
+                    setStep(1);
+                    return;
+                }
+                const payload = new FormData(form);
+                const logoInput = document.getElementById('companyLogoInput');
+                if (logoInput?.files?.[0]) payload.set('companyLogo', logoInput.files[0]);
+                publishBtn.disabled = true;
+                if (submitLabel) submitLabel.textContent = 'Publishing...';
+                try {
+                    const response = await fetch('/api/jobs', {
+                        method: 'POST',
+                        body: payload
+                    });
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Unable to publish this job right now.');
+                    }
+                    localStorage.removeItem(storageKey);
+                    showSuccessState({
+                        company: values.companyName,
+                        title: values.jobTitle
+                    });
+                    showToast('Job published and added to CareerSync listings.', 'fa-solid fa-circle-check');
+                } catch (error) {
+                    showToast(error.message || 'Unable to publish this job right now.', 'fa-solid fa-triangle-exclamation');
+                } finally {
+                    publishBtn.disabled = false;
+                    if (submitLabel) submitLabel.textContent = 'Publish Job';
+                }
+            });
+
+            form.addEventListener('input', () => {
+                saveDraft();
+                updateReview();
+            });
+            form.addEventListener('change', () => {
+                saveDraft();
+                updateReview();
+            });
+
+            // Company size custom input toggle
+            const companySizeSelect = document.getElementById('companySize');
+            const companySizeCustom = document.getElementById('companySizeCustom');
+            function toggleCompanySizeCustom() {
+                if (!companySizeSelect || !companySizeCustom) return;
+                if (companySizeSelect.value === 'Custom') {
+                    companySizeCustom.style.display = 'inline-block';
+                    companySizeCustom.focus();
+                } else {
+                    companySizeCustom.style.display = 'none';
+                    companySizeCustom.value = '';
+                }
+            }
+            companySizeSelect?.addEventListener('change', () => {
+                toggleCompanySizeCustom();
+                saveDraft();
+                updateReview();
+            });
+            // ensure visibility when restoring draft
+            (function ensureCompanySizeOnLoad() {
+                try { toggleCompanySizeCustom(); } catch (e) { /* ignore */ }
+            })();
+
+            // Live preview update and logo drag & drop
+            const previewCompany = document.getElementById('previewCompany');
+            const previewRole = document.getElementById('previewRole');
+            const previewDescription = document.getElementById('previewDescription');
+            const previewLocation = document.getElementById('previewLocation');
+            const previewSalary = document.getElementById('previewSalary');
+            const previewExperience = document.getElementById('previewExperience');
+            const previewLogoImg = document.getElementById('previewLogoImg');
+            const previewLogoFallback = document.getElementById('previewLogoFallback');
+            const logoInput = document.getElementById('companyLogoInput');
+            const dropzone = logoInput?.closest('.upload-dropzone');
+
+            function updateLivePreview() {
+                const v = readFormData();
+                previewCompany.textContent = v.companyName || 'Your company';
+                previewRole.textContent = v.jobTitle || 'Job title preview';
+                previewDescription.textContent = v.companyDescription || 'Short company description and highlights appear here as you type.';
+                previewLocation.textContent = [v.city, v.state, v.country].filter(Boolean).join(', ') || 'Location';
+                previewSalary.textContent = (v.salaryMin || v.salaryMax) ? `${v.salaryCurrency || 'INR'} ${v.salaryMin || ''}${v.salaryMax ? ` - ${v.salaryMax}` : ''}` : 'Salary';
+                previewExperience.textContent = v.experienceRequired || 'Experience';
+                // company size override display
+                const size = v.companySizeCustom || v.companySize || '';
+                if (size) {
+                    const sizeEl = document.getElementById('previewSize');
+                    if (!sizeEl) {
+                        const el = document.createElement('div'); el.className = 'preview-chip'; el.id = 'previewSize'; el.textContent = size; document.getElementById('previewMeta').appendChild(el);
+                    } else { sizeEl.textContent = size; }
+                } else {
+                    const sizeEl = document.getElementById('previewSize'); if (sizeEl) sizeEl.remove();
+                }
+            }
+
+            function applyLogoPreview(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    previewLogoImg.src = reader.result;
+                    previewLogoImg.style.display = 'block';
+                    previewLogoFallback.style.display = 'none';
+                    if (dropzone) dropzone.style.backgroundImage = `url(${reader.result})`;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            logoInput?.addEventListener('change', (e) => {
+                const f = e.target.files?.[0];
+                if (f) applyLogoPreview(f);
+            });
+
+            if (dropzone) {
+                dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'rgba(91,61,245,0.6)'; dropzone.style.boxShadow = '0 6px 20px rgba(91,61,245,0.06)'; });
+                dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = ''; dropzone.style.boxShadow = ''; });
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault(); dropzone.style.borderColor = ''; dropzone.style.boxShadow = ''; const f = e.dataTransfer.files?.[0]; if (f) { logoInput.files = e.dataTransfer.files; applyLogoPreview(f); }
+                });
+            }
+
+            // update preview on form changes
+            form.addEventListener('input', updateLivePreview);
+            form.addEventListener('change', updateLivePreview);
+
+            restoreDraft();
+            setStep(1);
+            updateReview();
         }
 
         document.addEventListener('click', event => {
@@ -12007,185 +12812,519 @@
         }
     </script>
 
-    <!-- Requirements & Terms & Conditions Modal -->
-    <div class="rtc-modal" id="rtcModal">
-        <div class="rtc-modal-content">
-            <div class="rtc-header">
-                <div class="rtc-header-content">
-                    <h2>Requirements & Terms</h2>
-                    <p id="rtcCompanyName">Company Requirements & Conditions</p>
+    <div class="post-job-modal" id="postJobModal" aria-hidden="true">
+        <div class="post-job-shell" id="postJobOverlay" role="dialog" aria-modal="true" aria-labelledby="postJobTitle">
+            <div class="post-job-header">
+                <div>
+                    <div class="post-job-title" id="postJobTitle">Post a Job</div>
+                    <div class="post-job-subtitle">Create a polished hiring post and publish it instantly to CareerSync.
+                    </div>
                 </div>
-                <button class="rtc-close" onclick="closeRTCModal()">
+                <div class="post-job-header-decor" aria-hidden="true"></div>
+                <button class="post-job-close" id="postJobCloseBtn" type="button" aria-label="Close post job form">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="rtc-body">
-                <!-- Left Column: Requirements -->
-                <div class="rtc-section">
-                    <div class="rtc-section-title">
-                        <i class="fa-solid fa-briefcase"></i>
-                        Job Requirements
-                    </div>
+            <div class="post-job-progress">
+                <div class="post-job-step active"><span>1</span><span>Company Info</span></div>
+                <div class="post-job-step"><span>2</span><span>Job Details</span></div>
+                <div class="post-job-step"><span>3</span><span>Candidate Preferences</span></div>
+                <div class="post-job-step"><span>4</span><span>Review & Publish</span></div>
+            </div>
 
-                    <div class="req-card">
-                        <h4><span class="req-card-icon">🗣️</span> Good Communication Skills</h4>
-                        <p>Excellent verbal and written communication abilities required to interact with clients and
-                            team members effectively.</p>
-                    </div>
+            <div class="post-job-body">
+                <div class="post-job-body-grid">
+                    <form id="postJobForm" class="post-job-form">
+                        <div class="post-job-section active" data-step="1">
+                            <div class="post-job-form-grid">
+                                <div class="post-job-field full">
+                                    <label for="companyLogoInput">Company Logo</label>
+                                    <div class="upload-dropzone">
+                                        <strong>Upload Company Logo</strong>
+                                        <span>PNG, JPG, or SVG up to 2MB</span>
+                                        <input id="companyLogoInput" name="companyLogo" type="file" accept="image/*"
+                                            style="margin-top:10px;" />
+                                    </div>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="companyName">Company Name *</label>
+                                    <input id="companyName" name="companyName" type="text"
+                                        placeholder="e.g. CareerSync Labs" required />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="recruiterName">HR / Recruiter Name *</label>
+                                    <input id="recruiterName" name="recruiterName" type="text"
+                                        placeholder="e.g. Riya Sharma" required />
+                                </div>
 
-                    <div class="req-card">
-                        <h4><span class="req-card-icon">😊</span> Positive Attitude</h4>
-                        <p>Maintain a positive and professional demeanor in all interactions. Be enthusiastic about your
-                            work and company goals.</p>
-                    </div>
+                                <div class="post-job-field">
+                                    <label for="recruiterEmail">Official Email Address *</label>
+                                    <input id="recruiterEmail" name="recruiterEmail" type="email"
+                                        placeholder="hr@company.com" required />
+                                </div>
 
-                    <div class="req-card">
-                        <h4><span class="req-card-icon"><i class="fa-solid fa-phone-volume"></i></span> Basic Calling &
-                            Follow-Up Skills</h4>
-                        <p>Ability to make professional calls and conduct effective follow-ups with clients.
-                            Customer-centric approach essential.</p>
-                    </div>
+                                <div class="post-job-field">
+                                    <label for="companyWebsite">Company Website</label>
+                                    <input id="companyWebsite" name="companyWebsite" type="url"
+                                        placeholder="https://company.com" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="industry">Industry</label>
+                                    <select id="industry" name="industry">
+                                        <option value="IT">IT</option>
+                                        <option value="Software">Software</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Manufacturing">Manufacturing</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Others">Others</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="companySize">Company Size</label>
+                                    <div class="company-size-row">
+                                        <select id="companySize" name="companySize">
+                                            <option value="1-10">1-10</option>
+                                            <option value="11-50">11-50</option>
+                                            <option value="51-200">51-200</option>
+                                            <option value="201-500">201-500</option>
+                                            <option value="500+">500+</option>
+                                            <option value="Custom">Custom (enter exact number)</option>
+                                        </select>
+                                        <input id="companySizeCustom" name="companySizeCustom" type="number" min="1"
+                                            placeholder="e.g. 123" class="company-size-custom"
+                                            aria-label="Custom company size" />
+                                    </div>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="companyDescription">Company Description</label>
+                                    <textarea id="companyDescription" name="companyDescription"
+                                        placeholder="Tell candidates what makes your company a great place to work."></textarea>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="country">Country</label>
+                                    <input id="country" name="country" type="text" placeholder="India" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="state">State</label>
+                                    <input id="state" name="state" type="text" placeholder="Haryana" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="city">City</label>
+                                    <input id="city" name="city" type="text" placeholder="Gurugram" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="pinCode">PIN Code</label>
+                                    <input id="pinCode" name="pinCode" type="text" placeholder="122001" />
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="officeAddress">Complete Address</label>
+                                    <textarea id="officeAddress" name="officeAddress"
+                                        placeholder="Enter the office address"></textarea>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="req-card">
-                        <h4><span class="req-card-icon"><i class="fa-solid fa-seedling"></i></span> Freshers &
-                            Experienced Welcome</h4>
-                        <p>Both freshers and experienced professionals can apply. We provide training and support for
-                            career development.</p>
-                    </div>
+                        <div class="post-job-section" data-step="2">
+                            <div class="post-job-form-grid">
+                                <div class="post-job-field">
+                                    <label for="jobTitle">Job Title *</label>
+                                    <input id="jobTitle" name="jobTitle" type="text" placeholder="Software Engineer"
+                                        required />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="department">Department</label>
+                                    <input id="department" name="department" type="text" placeholder="Engineering" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="employmentType">Employment Type</label>
+                                    <select id="employmentType" name="employmentType">
+                                        <option value="Full-Time">Full-Time</option>
+                                        <option value="Part-Time">Part-Time</option>
+                                        <option value="Internship">Internship</option>
+                                        <option value="Freelance">Freelance</option>
+                                        <option value="Contract">Contract</option>
+                                        <option value="Remote">Remote</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="workplaceType">Workplace Type</label>
+                                    <select id="workplaceType" name="workplaceType">
+                                        <option value="Remote">Remote</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                        <option value="On-site">On-site</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="experienceRequired">Experience Required</label>
+                                    <select id="experienceRequired" name="experienceRequired">
+                                        <option value="Fresher">Fresher</option>
+                                        <option value="0-1 Years">0-1 Years</option>
+                                        <option value="1-3 Years">1-3 Years</option>
+                                        <option value="3-5 Years">3-5 Years</option>
+                                        <option value="5+ Years">5+ Years</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="openings">Number of Openings</label>
+                                    <input id="openings" name="openings" type="number" min="1" placeholder="3" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="salaryMin">Minimum Salary</label>
+                                    <input id="salaryMin" name="salaryMin" type="text" placeholder="120000" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="salaryMax">Maximum Salary</label>
+                                    <input id="salaryMax" name="salaryMax" type="text" placeholder="180000" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="salaryCurrency">Currency</label>
+                                    <select id="salaryCurrency" name="salaryCurrency">
+                                        <option value="INR">INR</option>
+                                        <option value="USD">USD</option>
+                                        <option value="EUR">EUR</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="joiningTimeline">Joining Timeline</label>
+                                    <select id="joiningTimeline" name="joiningTimeline">
+                                        <option value="Immediately">Immediately</option>
+                                        <option value="Within 15 Days">Within 15 Days</option>
+                                        <option value="Within 30 Days">Within 30 Days</option>
+                                        <option value="Flexible">Flexible</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="jobDescription">Job Description</label>
+                                    <textarea id="jobDescription" name="jobDescription"
+                                        placeholder="Describe the role, responsibilities, and objectives."></textarea>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="responsibilities">Responsibilities</label>
+                                    <textarea id="responsibilities" name="responsibilities"
+                                        placeholder="List the key responsibilities."></textarea>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="requiredSkills">Required Skills</label>
+                                    <input id="requiredSkills" name="requiredSkills" type="text"
+                                        placeholder="React, Node.js, English Communication" />
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="qualifications">Qualifications</label>
+                                    <textarea id="qualifications" name="qualifications"
+                                        placeholder="Mention required education or certifications."></textarea>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="benefits">Benefits</label>
+                                    <div class="benefit-grid" id="benefits">
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Health Insurance" /> Health Insurance</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits" value="PF" />
+                                            PF</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Bonus" /> Bonus</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Work From Home" /> Work From Home</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Flexible Timing" /> Flexible Timing</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Paid Leaves" /> Paid Leaves</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Incentives" /> Incentives</label>
+                                        <label class="benefit-chip"><input type="checkbox" name="benefits"
+                                                value="Free Training" /> Free Training</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="post-job-section" data-step="3">
+                            <div class="post-job-form-grid">
+                                <div class="post-job-field">
+                                    <label for="minimumEducation">Minimum Education</label>
+                                    <input id="minimumEducation" name="minimumEducation" type="text"
+                                        placeholder="Bachelor's Degree" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="preferredGender">Preferred Gender</label>
+                                    <select id="preferredGender" name="preferredGender">
+                                        <option value="Any">Any</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="ageRequirement">Age Requirement</label>
+                                    <input id="ageRequirement" name="ageRequirement" type="text" placeholder="18-35" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="languagesRequired">Languages Required</label>
+                                    <input id="languagesRequired" name="languagesRequired" type="text"
+                                        placeholder="English, Hindi" />
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="noticePeriod">Notice Period</label>
+                                    <select id="noticePeriod" name="noticePeriod">
+                                        <option value="Immediate">Immediate</option>
+                                        <option value="15 Days">15 Days</option>
+                                        <option value="30 Days">30 Days</option>
+                                        <option value="60 Days">60 Days</option>
+                                    </select>
+                                </div>
+                                <div class="post-job-field">
+                                    <label for="applicationDeadline">Application Deadline</label>
+                                    <input id="applicationDeadline" name="applicationDeadline" type="date" />
+                                </div>
+                                <div class="post-job-field full">
+                                    <div class="toggle-row">
+                                        <label for="resumeRequired">Resume Required</label>
+                                        <input id="resumeRequired" name="resumeRequired" type="checkbox" checked />
+                                    </div>
+                                </div>
+                                <div class="post-job-field full">
+                                    <div class="toggle-row">
+                                        <label for="portfolioRequired">Portfolio Required</label>
+                                        <input id="portfolioRequired" name="portfolioRequired" type="checkbox" />
+                                    </div>
+                                </div>
+                                <div class="post-job-field full">
+                                    <div class="toggle-row">
+                                        <label for="coverLetterRequired">Cover Letter Required</label>
+                                        <input id="coverLetterRequired" name="coverLetterRequired" type="checkbox" />
+                                    </div>
+                                </div>
+                                <div class="post-job-field full">
+                                    <label for="screeningQuestions">Additional Screening Questions</label>
+                                    <textarea id="screeningQuestions" name="screeningQuestions"
+                                        placeholder="Add any extra questions for candidates."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="post-job-section" data-step="4">
+                            <div class="review-card">
+                                <h4>Review & Publish</h4>
+                                <div id="postJobReviewSummary" class="review-grid"></div>
+                            </div>
+                        </div>
+
+                        <div class="post-job-section success" id="postJobSuccessScreen" data-step="5">
+                            <div class="success-state">
+                                <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+                                <div id="postJobSuccessSummary"></div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- Right Column: Terms & Conditions Accordion -->
-                <div class="rtc-section">
-                    <div class="rtc-section-title">
-                        <i class="fa-solid fa-scroll"></i>
-                        Terms & Conditions
+                <div class="post-job-footer" id="postJobFooter">
+                    <button type="button" class="btn btn-outline" id="postJobBackBtn">Back</button>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-outline" id="postJobSaveDraftBtn">Save Draft</button>
+                        <button type="button" class="btn btn-primary" id="postJobNextBtn">Next</button>
+                        <button type="button" class="btn btn-primary" id="postJobSubmitBtn">
+                            <span id="postJobSubmitLabel">Publish Job</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requirements & Terms & Conditions Modal -->
+        <div class="rtc-modal" id="rtcModal">
+            <div class="rtc-modal-content">
+                <div class="rtc-header">
+                    <div class="rtc-header-content">
+                        <h2>Requirements & Terms</h2>
+                        <p id="rtcCompanyName">Company Requirements & Conditions</p>
+                    </div>
+                    <button class="rtc-close" onclick="closeRTCModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="rtc-body">
+                    <!-- Left Column: Requirements -->
+                    <div class="rtc-section">
+                        <div class="rtc-section-title">
+                            <i class="fa-solid fa-briefcase"></i>
+                            Job Requirements
+                        </div>
+
+                        <div class="req-card">
+                            <h4><span class="req-card-icon">🗣️</span> Good Communication Skills</h4>
+                            <p>Excellent verbal and written communication abilities required to interact with clients
+                                and
+                                team members effectively.</p>
+                        </div>
+
+                        <div class="req-card">
+                            <h4><span class="req-card-icon">😊</span> Positive Attitude</h4>
+                            <p>Maintain a positive and professional demeanor in all interactions. Be enthusiastic about
+                                your
+                                work and company goals.</p>
+                        </div>
+
+                        <div class="req-card">
+                            <h4><span class="req-card-icon"><i class="fa-solid fa-phone-volume"></i></span> Basic
+                                Calling &
+                                Follow-Up Skills</h4>
+                            <p>Ability to make professional calls and conduct effective follow-ups with clients.
+                                Customer-centric approach essential.</p>
+                        </div>
+
+                        <div class="req-card">
+                            <h4><span class="req-card-icon"><i class="fa-solid fa-seedling"></i></span> Freshers &
+                                Experienced Welcome</h4>
+                            <p>Both freshers and experienced professionals can apply. We provide training and support
+                                for
+                                career development.</p>
+                        </div>
                     </div>
 
-                    <div class="acc-container">
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Fresher Work Mode — Office Only</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Freshers (0 months experience) are required to work from the office. This ensures
-                                        proper training, mentorship, and supervision during the initial phase of
-                                        employment. Office attendance is mandatory.</p>
-                                </div>
-                            </div>
+                    <!-- Right Column: Terms & Conditions Accordion -->
+                    <div class="rtc-section">
+                        <div class="rtc-section-title">
+                            <i class="fa-solid fa-scroll"></i>
+                            Terms & Conditions
                         </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Experienced Work Mode — Work From Home Available</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Experienced professionals with 3+ months of experience may be eligible for Work
-                                        From Home options in select companies and departments. This is subject to
-                                        company approval, role requirements, and performance evaluation.</p>
+                        <div class="acc-container">
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Fresher Work Mode — Office Only</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Freshers (0 months experience) are required to work from the office. This
+                                            ensures
+                                            proper training, mentorship, and supervision during the initial phase of
+                                            employment. Office attendance is mandatory.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Performance & Attendance Requirements</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Regardless of work mode, employees are expected to maintain good attendance
-                                        records and consistent performance. Regular evaluations will determine
-                                        eligibility for work flexibility options.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Experienced Work Mode — Work From Home Available</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Experienced professionals with 3+ months of experience may be eligible for
+                                            Work
+                                            From Home options in select companies and departments. This is subject to
+                                            company approval, role requirements, and performance evaluation.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Work Location & Travel</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Employees may be required to travel to office or client locations for training,
-                                        meetings, or special projects as per company requirements. Travel expenses will
-                                        be reimbursed as per company policy.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Performance & Attendance Requirements</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Regardless of work mode, employees are expected to maintain good attendance
+                                            records and consistent performance. Regular evaluations will determine
+                                            eligibility for work flexibility options.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Work Hours & Availability</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Standard office hours apply (9 AM - 6 PM with 1 hour lunch break). Work From Home
-                                        employees must remain available during working hours and maintain regular
-                                        communication with the team.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Work Location & Travel</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Employees may be required to travel to office or client locations for
+                                            training,
+                                            meetings, or special projects as per company requirements. Travel expenses
+                                            will
+                                            be reimbursed as per company policy.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Policy Modifications</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>The company reserves the right to modify work mode policies, location
-                                        requirements, or employment terms based on business needs. Employees will be
-                                        notified of any significant changes in advance.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Work Hours & Availability</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Standard office hours apply (9 AM - 6 PM with 1 hour lunch break). Work From
+                                            Home
+                                            employees must remain available during working hours and maintain regular
+                                            communication with the team.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Confidentiality & Professional Conduct</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>All employees must maintain professional conduct and confidentiality of company
-                                        and client information at all times, whether working from office or home. Breach
-                                        of confidentiality may result in disciplinary action.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Policy Modifications</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>The company reserves the right to modify work mode policies, location
+                                            requirements, or employment terms based on business needs. Employees will be
+                                            notified of any significant changes in advance.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Equipment & Technology</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>Company-provided equipment and devices are for official use only. Employees
-                                        working from home are responsible for maintaining secure internet connectivity
-                                        and protecting company data.</p>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Confidentiality & Professional Conduct</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>All employees must maintain professional conduct and confidentiality of
+                                            company
+                                            and client information at all times, whether working from office or home.
+                                            Breach
+                                            of confidentiality may result in disciplinary action.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="acc-item">
-                            <div class="acc-trigger" onclick="toggleAccordion(this)">
-                                <span>Transition & Experience Verification</span>
-                                <i class="fa-solid fa-chevron-down"></i>
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Equipment & Technology</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>Company-provided equipment and devices are for official use only. Employees
+                                            working from home are responsible for maintaining secure internet
+                                            connectivity
+                                            and protecting company data.</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="acc-content">
-                                <div class="acc-text">
-                                    <p>After 3+ months of service and successful performance reviews, freshers may
-                                        request to transition to Work From Home. Previous work experience must be
-                                        verified through original documents before claiming experienced category
-                                        benefits.</p>
+
+                            <div class="acc-item">
+                                <div class="acc-trigger" onclick="toggleAccordion(this)">
+                                    <span>Transition & Experience Verification</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                                <div class="acc-content">
+                                    <div class="acc-text">
+                                        <p>After 3+ months of service and successful performance reviews, freshers may
+                                            request to transition to Work From Home. Previous work experience must be
+                                            verified through original documents before claiming experienced category
+                                            benefits.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -12193,7 +13332,6 @@
                 </div>
             </div>
         </div>
-    </div>
     </div>
     </div>
     </div>
@@ -12303,6 +13441,9 @@
                             <span>Sign In Securely</span>
                             <i class="fa-solid fa-arrow-right"></i>
                         </button>
+                        <button type="button" class="login-popup-google" onclick="handlePopupGoogleLogin(this)">
+                            <i class="fa-brands fa-google"></i> Continue with Google
+                        </button>
                     </form>
 
                 </div>
@@ -12389,6 +13530,9 @@
                             <span>Create Account</span>
                             <i class="fa-solid fa-arrow-right"></i>
                         </button>
+                        <button type="button" class="login-popup-google" onclick="handlePopupGoogleLogin(this)">
+                            <i class="fa-brands fa-google"></i> Continue with Google
+                        </button>
                     </form>
                 </div>
 
@@ -12414,6 +13558,33 @@
                             <i class="fa-solid fa-paper-plane"></i>
                         </button>
                     </form>
+
+                    <aside class="post-job-preview" id="postJobLivePreview" aria-hidden="false">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div class="preview-logo" id="previewLogoHolder"><img id="previewLogoImg" src=""
+                                    alt="Company logo" style="display:none;" /><span id="previewLogoFallback"
+                                    style="font-weight:800;color:var(--primary)"></span></div>
+                            <div style="flex:1;">
+                                <div class="preview-title" id="previewCompany">Your company</div>
+                                <div class="preview-sub" id="previewRole">Job title preview</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:8px; color:var(--text-2); font-size:13px;" id="previewDescription">Short
+                            company description and highlights appear here as you type.</div>
+
+                        <div class="preview-meta" id="previewMeta">
+                            <div class="preview-chip" id="previewLocation">Location</div>
+                            <div class="preview-chip" id="previewSalary">Salary</div>
+                            <div class="preview-chip" id="previewExperience">Experience</div>
+                        </div>
+
+                        <div class="preview-boost">
+                            <button class="btn btn-outline" disabled style="opacity:.85">Boost Post (Coming
+                                Soon)</button>
+                        </div>
+                    </aside>
+
                 </div>
             </div>
 
@@ -12714,8 +13885,8 @@
             icon.classList.toggle('fa-eye-slash', isHidden);
         }
 
-        function handlePopupGoogleLogin() {
-            const googleBtn = document.getElementById('popupGoogleBtn');
+        function handlePopupGoogleLogin(buttonElement = null) {
+            const googleBtn = buttonElement || document.getElementById('popupGoogleBtn');
             const errorEl = document.getElementById('popupLoginError');
             if (errorEl) errorEl.textContent = '';
 
@@ -12732,6 +13903,7 @@
                 };
                 setUserLoggedIn(true, { persistent: true, email: profile.email, fullName: profile.fullName });
                 hideLoginPromptPopup();
+                resumePendingAction();
                 showAuthToast('Signed in with Google successfully!', 'success');
 
                 if (googleBtn) {
@@ -12954,6 +14126,7 @@
                     setTimeout(() => {
                         closeAuthPage();
                         showAuthToast('Login successful!', 'success');
+                        resumePendingAction();
                     }, 3000);
                 }, 2000);
             }
@@ -13051,6 +14224,7 @@
                     setTimeout(() => {
                         closeAuthPage();
                         showAuthToast('Sign up successful!', 'success');
+                        resumePendingAction();
                     }, 3000);
                 }, 2500);
             }

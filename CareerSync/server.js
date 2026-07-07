@@ -17,6 +17,7 @@ const jobsPath = path.join(dataDir, 'jobs.json');
 const jsonReadEncoding = 'utf8';
 
 let applicationsWriteQueue = Promise.resolve();
+let jobsWriteQueue = Promise.resolve();
 
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -76,6 +77,21 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
+function imageFilter(_req, file, cb) {
+    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp'];
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!allowed.includes(ext)) {
+        return cb(new Error('Only image files are allowed for company logos.'));
+    }
+    cb(null, true);
+}
+
+const logoUpload = multer({
+    storage,
+    fileFilter: imageFilter,
+    limits: { fileSize: 2 * 1024 * 1024 }
+});
+
 async function readJson(filePath, fallback) {
     try {
         const raw = await fs.promises.readFile(filePath, jsonReadEncoding);
@@ -108,6 +124,16 @@ function withApplicationsWriteLock(task) {
     const next = applicationsWriteQueue.then(() => task());
     applicationsWriteQueue = next.catch(() => undefined);
     return next;
+}
+
+function withJobsWriteLock(task) {
+    const next = jobsWriteQueue.then(() => task());
+    jobsWriteQueue = next.catch(() => undefined);
+    return next;
+}
+
+function slugify(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'job-posting';
 }
 
 async function findJob(jobId) {
@@ -152,6 +178,69 @@ app.get('/api/jobs/:jobId', async (req, res) => {
         return res.status(404).json({ success: false, message: 'Job not found.' });
     }
     res.json({ success: true, job });
+});
+
+app.post('/api/jobs', logoUpload.single('companyLogo'), async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const companyName = String(payload.companyName || '').trim();
+        const jobTitle = String(payload.jobTitle || '').trim();
+        const recruiterName = String(payload.recruiterName || '').trim();
+        const recruiterEmail = String(payload.recruiterEmail || '').trim();
+        const jobDescription = String(payload.jobDescription || '').trim();
+
+        if (!companyName || !jobTitle || !recruiterName || !recruiterEmail || !jobDescription) {
+            return res.status(400).json({ success: false, message: 'Please complete the required company and job details.' });
+        }
+
+        const now = new Date();
+        const jobId = `${slugify(companyName)}-${slugify(jobTitle)}-${now.getTime()}`;
+        const salary = [payload.salaryCurrency, payload.salaryMin, payload.salaryMax].filter(Boolean).join(' ');
+        const location = [payload.city, payload.state, payload.country].filter(Boolean).join(', ');
+        const requiredSkills = String(payload.requiredSkills || '').split(',').map(item => item.trim()).filter(Boolean);
+        const benefits = Array.isArray(req.body?.benefits) ? req.body.benefits : [req.body?.benefits].filter(Boolean);
+        const job = {
+            jobId,
+            company: companyName,
+            companyLogo: req.file ? `/uploads/${req.file.filename}` : '',
+            title: jobTitle,
+            salary: salary || 'To be disclosed',
+            location: location || payload.officeAddress || 'Remote',
+            experience: payload.experienceRequired || 'Flexible',
+            employmentType: payload.employmentType || 'Full-Time',
+            workplaceType: payload.workplaceType || 'Hybrid',
+            openPositions: Number(payload.openings || 1),
+            industry: payload.industry || 'Others',
+            benefits,
+            requiredSkills,
+            preferredSkills: requiredSkills,
+            description: jobDescription,
+            responsibilities: String(payload.responsibilities || '').split(/\n|\./).map(item => item.trim()).filter(Boolean),
+            officeAddress: [payload.officeAddress, payload.city, payload.state, payload.country, payload.pinCode].filter(Boolean).join(', '),
+            companyOverview: payload.companyDescription || `Hiring for ${jobTitle} at ${companyName}.`,
+            companyWebsite: payload.companyWebsite || '',
+            recruiterName,
+            recruiterEmail,
+            recruiterPhone: payload.recruiterPhone || '',
+            recruiterDesignation: payload.recruiterDesignation || '',
+            applicationDeadline: payload.applicationDeadline || '',
+            jobPostedDate: now.toISOString().slice(0, 10),
+            lastUpdated: now.toISOString().slice(0, 10),
+            postedBy: recruiterName,
+            createdAt: now.toISOString()
+        };
+
+        const result = await withJobsWriteLock(async () => {
+            const jobs = await readJson(jobsPath, []);
+            jobs.unshift(job);
+            await writeJson(jobsPath, jobs);
+            return job;
+        });
+
+        return res.json({ success: true, message: 'Job published successfully.', job: result });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message || 'Unable to publish job.' });
+    }
 });
 
 app.post('/api/applications', applyLimiter, upload.single('resume'), async (req, res) => {
