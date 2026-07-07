@@ -39,8 +39,11 @@ export default function SharedView() {
 
       <div className="bg-zinc-100 min-h-[calc(100vh-4rem)] flex justify-center py-10 px-4">
         {state.loading && (
-          <div className="text-zinc-500 flex items-center gap-2 mt-24" data-testid="shared-loading">
-            <Loader2 size={16} className="animate-spin" /> Loading resume...
+          <div className="mt-24 flex items-center gap-3 rounded-full border border-violet-200 bg-white/90 px-4 py-3 text-sm font-medium text-violet-700 shadow-sm" data-testid="shared-loading">
+            <div className="loader-shell scale-75">
+              <div className="loader-ring" />
+            </div>
+            Preparing your resume view...
           </div>
         )}
         {state.error && (

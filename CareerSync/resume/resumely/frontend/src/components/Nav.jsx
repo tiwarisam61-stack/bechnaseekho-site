@@ -10,11 +10,14 @@ export const Nav = ({ right = null }) => {
       className="sticky top-0 z-50 bg-white border-b border-zinc-200 no-print"
     >
       <div className="max-w-[1400px] mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
-        <Link to="/" data-testid="nav-logo-link" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-black text-white flex items-center justify-center">
+        <Link to="/" data-testid="nav-logo-link" className="flex items-center gap-3 group">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#5B3DF5,_#7B61FF)] text-white shadow-[0_10px_30px_rgba(91,61,245,0.25)]">
             <FileText size={16} strokeWidth={1.5} />
           </div>
-          <span className="font-heading font-black text-lg tracking-tight">Resumely</span>
+          <div className="leading-tight">
+            <div className="font-heading font-black text-lg tracking-tight text-zinc-900">Resume Builder</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-violet-600">CareerSync</div>
+          </div>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
           <Link
@@ -45,7 +48,7 @@ export const Nav = ({ right = null }) => {
             <Link
               to="/templates"
               data-testid="nav-cta-btn"
-              className="inline-flex items-center bg-black text-white px-4 py-2 text-sm font-medium rounded-sm hover:bg-zinc-800 transition-colors"
+              className="inline-flex items-center bg-[linear-gradient(135deg,_#5B3DF5,_#7B61FF)] text-white px-4 py-2 text-sm font-semibold rounded-full shadow-[0_10px_25px_rgba(91,61,245,0.22)] hover:translate-y-[-1px] transition-all"
             >
               Build resume
             </Link>
