@@ -1720,10 +1720,34 @@
             box-shadow: 0 10px 28px rgba(245, 158, 11, .5)
         }
 
+        .nav-btn-dashboard {
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            padding: 9px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, .32);
+        }
+
+        .nav-btn-dashboard:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(79, 70, 229, .45)
+        }
+
         /* Avatar */
         .nav-avatar-wrap {
             position: relative;
-            cursor: pointer
+            cursor: pointer;
+            margin-left: 8px
         }
 
         .nav-avatar {
@@ -2093,6 +2117,7 @@
             .nav-btn-login,
             .nav-btn-signup,
             .nav-btn-post,
+            .nav-btn-dashboard,
             .nav-avatar-wrap {
                 display: none !important
             }
@@ -9612,6 +9637,9 @@
                         <button class="nav-btn-post" onclick="handleAction('Post a Job')">
                             <i class="fa-solid fa-plus"></i> Post a Job
                         </button>
+                        <button class="nav-btn-dashboard" onclick="handleAction('Dashboard')">
+                            <i class="fa-solid fa-gauge-high"></i> Dashboard
+                        </button>
 
                         <!-- Avatar -->
                         <div class="nav-avatar-wrap" id="navAvatarWrap" onclick="handleAction('Profile')"
@@ -9627,9 +9655,6 @@
                                 <button class="nav-profile-item" type="button" role="menuitem"
                                     onclick="handleProfileMenuAction('My Profile')"><i class="fa-solid fa-user"></i> My
                                     Profile</button>
-                                <button class="nav-profile-item" type="button" role="menuitem"
-                                    onclick="handleProfileMenuAction('Dashboard')"><i
-                                        class="fa-solid fa-table-columns"></i> Dashboard</button>
                                 <button class="nav-profile-item" type="button" role="menuitem"
                                     onclick="handleProfileMenuAction('My Applications')"><i
                                         class="fa-solid fa-file-circle-check"></i>
@@ -9853,7 +9878,7 @@
                                 <i class="fa-solid fa-arrow-right" style="font-size:12px;opacity:.8;"></i>
                             </button>
                             <button class="btn-hero-outline"
-                                onclick="handleAction('Upload Resume');smoothScrollTo('#resume')">
+                                onclick="return handleAction('Upload Resume')">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload Resume
                             </button>
                         </div>
@@ -11570,9 +11595,9 @@
 
         // Actions
         function handleAction(label) {
-            const m = { "Login": ["fa-solid fa-right-to-bracket", "Opening login..."], "Sign Up": ["fa-solid fa-user-plus", "Creating your account..."], "Post a Job": ["fa-solid fa-briefcase", "Opening job posting form..."], "Upload Resume": ["fa-solid fa-cloud-arrow-up", "Opening resume uploader..."], "Resume Builder": ["fa-solid fa-file-pen", "Launching Resume Builder..."], "Search Jobs": ["fa-solid fa-magnifying-glass", "Searching jobs..."], "Get Started Free": ["fa-solid fa-rocket", "Let's get you started!"], "AI Job Match": ["fa-solid fa-robot", "Running AI job match..."], "Interview Calls": ["fa-solid fa-phone-volume", "Connecting with employers..."], "Career Growth": ["fa-solid fa-chart-line", "Opening career roadmap..."], "Notifications": ["fa-solid fa-bell", "You have 3 new notifications!"], "Profile": ["fa-solid fa-user-circle", "Opening your profile..."], "Bulk Hiring": ["fa-solid fa-users", "Opening bulk hiring options..."], "Contact Team": ["fa-solid fa-phone", "Connecting to our team..."], "Load More Companies": ["fa-solid fa-rotate", "Coming Soon More Companies"] };
+            const m = { "Login": ["fa-solid fa-right-to-bracket", "Opening login..."], "Sign Up": ["fa-solid fa-user-plus", "Creating your account..."], "Post a Job": ["fa-solid fa-briefcase", "Opening job posting form..."], "Dashboard": ["fa-solid fa-gauge-high", "Opening dashboard..."], "Upload Resume": ["fa-solid fa-cloud-arrow-up", "Opening resume uploader..."], "Resume Builder": ["fa-solid fa-file-pen", "Launching Resume Builder..."], "Search Jobs": ["fa-solid fa-magnifying-glass", "Searching jobs..."], "Get Started Free": ["fa-solid fa-rocket", "Let's get you started!"], "AI Job Match": ["fa-solid fa-robot", "Running AI job match..."], "Interview Calls": ["fa-solid fa-phone-volume", "Connecting with employers..."], "Career Growth": ["fa-solid fa-chart-line", "Opening career roadmap..."], "Notifications": ["fa-solid fa-bell", "You have 3 new notifications!"], "Profile": ["fa-solid fa-user-circle", "Opening your profile..."], "Bulk Hiring": ["fa-solid fa-users", "Opening bulk hiring options..."], "Contact Team": ["fa-solid fa-phone", "Connecting to our team..."], "Load More Companies": ["fa-solid fa-rotate", "Coming Soon More Companies"] };
             const [icon, msg] = m[label] || ["fa-solid fa-arrow-right", `Opening ${label}...`];
-            const comingSoonLabels = new Set(['Mock Interview', 'AI Career Coach', 'AI Job Matcher', 'Smart AI Arena Job Matcher', 'Salary Guide', 'Career Blog', 'Career Tips', 'Salary Calculator', 'Interview Questions', 'Resume Builder', 'Resume Templates', 'Build My Resume', 'Browse Templates']);
+            const comingSoonLabels = new Set(['Mock Interview', 'AI Career Coach', 'AI Job Matcher', 'Smart AI Arena Job Matcher', 'Salary Guide', 'Career Blog', 'Career Tips', 'Salary Calculator', 'Interview Questions', 'Resume Templates', 'Browse Templates']);
             // Check if it's a Login action
             if (label === 'Login') {
                 openAuthPage();
@@ -11585,7 +11610,7 @@
                 return false;
             }
             if (label === 'Resume Builder' || label === 'Build My Resume') {
-                openResumlySection();
+                window.location.href = 'resume-builder.html';
                 return false;
             }
             if (label === 'Post a Job') {
@@ -11596,6 +11621,14 @@
                     return false;
                 }
                 openPostJobModal();
+                return false;
+            }
+            if (label === 'Upload Resume') {
+                window.location.href = 'upload-resume.html';
+                return false;
+            }
+            if (label === 'Dashboard') {
+                window.location.href = 'candidate-dashboard.html';
                 return false;
             }
             if (label === 'Notifications') {
