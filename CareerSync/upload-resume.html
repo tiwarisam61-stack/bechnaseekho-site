@@ -225,9 +225,12 @@
       box-shadow:0 14px 32px rgba(15,23,42,.08)
     }
     .brand-lockup{display:flex;align-items:center;gap:14px;text-decoration:none;color:#0f172a}
-    .brand-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4f46e5,#3b82f6);box-shadow:0 8px 18px rgba(79,70,229,.22)}
+    .brand-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#fff;border:1px solid rgba(99,102,241,.22);box-shadow:0 8px 18px rgba(79,70,229,.22);overflow:hidden}
+    .brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
     .brand-copy{display:flex;flex-direction:column;gap:2px}
     .brand-main{font-size:1.02rem;font-weight:800;letter-spacing:-.02em}
+    .brand-main .career{color:#5b3df5}
+    .brand-main .sync{color:#f97316}
     .brand-sub{font-size:.75rem;color:#64748b}
     .header-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .nav-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;text-decoration:none;font-size:.84rem;font-weight:700;color:#334155;background:rgba(241,245,249,.95);border:1px solid rgba(148,163,184,.18)}
@@ -437,6 +440,56 @@
     .resume-status{display:none;margin-top:10px;padding:11px 12px;border-radius:14px;background:#f8fbff;border:1px solid rgba(148,163,184,.18);color:#475569;font-size:.88rem;line-height:1.55}
     .resume-status.show{display:block}
     .resume-status strong{color:#0f172a}
+    .resume-upload-panel{
+      background:linear-gradient(180deg,#ffffff,#f8fbff);
+      border:1px solid rgba(148,163,184,.2);
+      border-radius:22px;
+      padding:16px;
+      box-shadow:0 12px 26px rgba(15,23,42,.06)
+    }
+    .resume-upload-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .resume-upload-title{font-size:1rem;font-weight:800;color:#0f172a;letter-spacing:-.02em}
+    .resume-upload-sub{font-size:.82rem;color:#64748b;font-weight:600}
+    .upload-secure-chip{
+      display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
+      background:#ecfeff;border:1px solid rgba(8,145,178,.22);color:#0e7490;font-size:.75rem;font-weight:800;
+      text-transform:uppercase;letter-spacing:.04em
+    }
+    .upload-dropzone{
+      border:1.5px dashed rgba(79,70,229,.38);
+      border-radius:18px;
+      background:linear-gradient(180deg,rgba(99,102,241,.05),rgba(14,165,233,.04));
+      padding:18px;
+      transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease
+    }
+    .upload-dropzone.dragging{
+      border-color:#4f46e5;
+      box-shadow:0 0 0 4px rgba(79,70,229,.14);
+      transform:translateY(-1px)
+    }
+    .upload-drop-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+    .upload-drop-icon{
+      width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;flex-shrink:0
+    }
+    .upload-drop-text b{display:block;color:#0f172a;margin-bottom:2px}
+    .upload-drop-text span{font-size:.84rem;color:#64748b;line-height:1.45}
+    .upload-help-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .upload-help-row span{
+      display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;
+      background:#fff;border:1px solid rgba(148,163,184,.2);font-size:.77rem;color:#334155;font-weight:700
+    }
+    .file-row{margin-top:10px}
+    .file-btn.primary-pick{
+      border-style:solid;
+      border-color:transparent;
+      background:linear-gradient(135deg,#4f46e5,#2563eb);
+      color:#fff;
+      box-shadow:0 10px 20px rgba(37,99,235,.22)
+    }
+    .file-btn.primary-pick:hover{background:linear-gradient(135deg,#4338ca,#1d4ed8)}
+    .resume-upload-note{margin-top:10px;font-size:.8rem;color:#64748b;line-height:1.5}
+    .resume-upload-note strong{color:#334155}
     @media (max-width:900px){
       .hero-layout{grid-template-columns:1fr}.hero-title{white-space:normal}
       .form-heading,.form-intro-row{grid-template-columns:1fr}
@@ -486,20 +539,11 @@
 <body class="text-slate-900">
   <div class="grid-bg absolute inset-0"></div>
 
-  <div class="top-strip relative z-10">
-    <strong>CareerSync</strong>
-    <div class="strip-points">
-      <span>Curated sales roles</span>
-      <span>Direct recruiter connection</span>
-      <span>Freshers to experienced</span>
-    </div>
-  </div>
-
   <header class="header-shell">
     <a href="/jobs/jobs" class="brand-lockup">
-      <span class="brand-mark">C</span>
+      <span class="brand-mark"><img src="assets/images/branding/nav-logo.png" alt="CareerSync logo"></span>
       <span class="brand-copy">
-        <span class="brand-main">CareerSync</span>
+        <span class="brand-main"><span class="career">Career</span><span class="sync">Sync</span></span>
         <span class="brand-sub">by BechNaSeekho</span>
       </span>
     </a>
@@ -640,12 +684,41 @@
 
         <!-- Resume Upload -->
         <div class="md:col-span-2" id="resume-upload">
-          <div class="text-sm font-semibold mb-2 text-slate-700">Upload Resume <span class="text-slate-500">(PDF/DOC, max 3 MB)</span></div>
-          <div class="file-row">
-            <input id="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
-            <label for="resume" class="file-btn">Choose file</label>
-            <span id="resumeInfo" class="file-pill hidden"></span>
-            <button type="button" id="resumeClear" class="file-btn hidden">Remove</button>
+          <div class="resume-upload-panel">
+            <div class="resume-upload-head">
+              <div>
+                <div class="resume-upload-title">Upload Resume</div>
+                <div class="resume-upload-sub">PDF / DOC / DOCX, maximum 3 MB</div>
+              </div>
+              <span class="upload-secure-chip">Secure Processing</span>
+            </div>
+
+            <div class="upload-dropzone" id="resumeDropZone">
+              <div class="upload-drop-head">
+                <div class="upload-drop-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V8m0 0-3 3m3-3 3 3M7 19h10a3 3 0 0 0 3-3v-3a3 3 0 0 0-3-3h-1.26a5 5 0 1 0-9.48 0H5a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="upload-drop-text">
+                  <b>Drag and drop your resume here</b>
+                  <span>or choose a file to auto-fill your profile details with AI in seconds.</span>
+                </div>
+              </div>
+
+              <div class="file-row">
+                <input id="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
+                <label for="resume" class="file-btn primary-pick">Choose Resume File</label>
+                <span id="resumeInfo" class="file-pill hidden"></span>
+                <button type="button" id="resumeClear" class="file-btn hidden">Remove</button>
+              </div>
+
+              <div class="upload-help-row">
+                <span>AI Auto-Fill</span>
+                <span>ATS Friendly Intake</span>
+                <span>Faster Recruiter Matching</span>
+              </div>
+
+              <p class="resume-upload-note"><strong>Privacy:</strong> Your resume is used only for profile intake and matching support.</p>
+            </div>
           </div>
           <div id="aiStatus" class="resume-status">Upload a resume and AI will auto-fill the details it can recognize. Please review any remaining fields before submitting.</div>
           <p class="err" id="err-resume"></p>
@@ -850,6 +923,7 @@
     const resumeInfo  = document.getElementById('resumeInfo');
     const resumeClear = document.getElementById('resumeClear');
     const aiStatus    = document.getElementById('aiStatus');
+    const resumeDropZone = document.getElementById('resumeDropZone');
     let resumePayload = null; // {name,type,size,b64}
     const RESUME_PARSE_ENDPOINT = 'https://bechnaseekho.com/api/candidate-resume-parser';
 
@@ -994,8 +1068,7 @@
       return (bytes/1048576).toFixed(2)+' MB';
     }
 
-    resumeInput.addEventListener('change', async ()=>{
-      const f = resumeInput.files && resumeInput.files[0];
+    async function processSelectedResume(f){
       resumePayload = null;
       document.getElementById('err-resume').classList.remove('show');
       if(!f) { resumeInfo.classList.add('hidden'); resumeClear.classList.add('hidden'); aiStatus.classList.remove('show'); aiStatus.textContent = 'Upload a resume and AI will auto-fill the details it can recognize. Please review any remaining fields before submitting.'; return; }
@@ -1016,8 +1089,35 @@
       resumeInfo.textContent = `${f.name} • ${prettySize(f.size)}`;
       resumeInfo.classList.remove('hidden');
       resumeClear.classList.remove('hidden');
-      autoFillResumeFromUpload(f);
+      await autoFillResumeFromUpload(f);
+    }
+
+    resumeInput.addEventListener('change', async ()=>{
+      const f = resumeInput.files && resumeInput.files[0];
+      await processSelectedResume(f);
     });
+
+    if (resumeDropZone) {
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        resumeDropZone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          resumeDropZone.classList.add('dragging');
+        });
+      });
+      ['dragleave', 'drop'].forEach((eventName) => {
+        resumeDropZone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          resumeDropZone.classList.remove('dragging');
+        });
+      });
+      resumeDropZone.addEventListener('drop', async function (event) {
+        const f = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0] ? event.dataTransfer.files[0] : null;
+        if (!f) return;
+        await processSelectedResume(f);
+      });
+    }
 
     resumeClear.addEventListener('click', ()=>{
       resumeInput.value=''; resumeInfo.classList.add('hidden'); resumeClear.classList.add('hidden'); resumePayload=null;

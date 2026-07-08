@@ -6,6 +6,9 @@ CareerSync is a static-first job platform with an Express backend for job/applic
 
 1. Install dependencies:
    - `npm install`
+2. Configure environment:
+   - Copy `.env.example` to `.env`
+   - Fill all required values (admin/hr seed users, JWT, SMTP, contact info)
 2. Start server:
    - `npm start`
 3. Open in browser:
@@ -19,6 +22,19 @@ CareerSync is a static-first job platform with an Express backend for job/applic
 - `admin-dashboard.html` - Admin dashboard UI.
 - `admin-applications.html` - Admin applications management page.
 - `server.js` - API and static hosting server.
+
+## Auth and Roles
+
+- `POST /api/auth/login` returns JWT + user profile.
+- `GET /api/auth/me` validates active JWT.
+- Roles:
+   - `admin`: can create/edit/delete all jobs.
+   - `hr`: can create jobs and edit only own jobs.
+
+## Real-Time Job Updates
+
+- Job create/edit/delete emits `jobs:changed` via Socket.IO.
+- Homepage listens and refreshes job cards without full page reload.
 
 ## Folder Structure
 
