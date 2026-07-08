@@ -2921,24 +2921,10 @@
     </div>
 
     <script>
-        // ======== ADMIN CREDENTIALS ========
-        const ADMINS = [
-            // ── Official Admin Accounts ──
-            { id: 'admin@careersync.in', password: 'CareerSync@2026', role: 'super', name: 'Super Admin', initials: 'SA' },
-            { id: 'vashu@careersync.in', password: 'BechnaSeekho@123', role: 'super', name: 'Vashu Tyagi', initials: 'VT' },
-            { id: 'bechnaseekho@gmail.com', password: 'BechnaSeekho@123', role: 'super', name: 'Vashu Tyagi', initials: 'VT' },
-            // ── Personal Gmail ──
-            { id: 'vashutyagi839@gmail.com', password: 'Admin@1234', role: 'super', name: 'Vashu Tyagi', initials: 'VT' },
-            // ── Demo / Test Account ──
-            { id: 'demo@careersync.in', password: 'Demo@1234', role: 'super', name: 'Demo Admin', initials: 'DA' },
-            // ── Manager Account ──
-            { id: 'manager1@careersync.in', password: 'Manager@2026', role: 'manager', name: 'Manager 1', initials: 'M1' }
-        ];
-
         let currentUser = null;
 
         // ======== LOGIN ========
-        function handleAdminLogin() {
+        async function handleAdminLogin() {
             const id = document.getElementById('adminLoginId').value.trim();
             const pass = document.getElementById('adminPassword').value;
             const role = document.getElementById('adminRole').value;
@@ -2946,17 +2932,36 @@
 
             if (!id || !pass) { err.textContent = 'Please enter both Login ID and Password.'; return; }
 
-            const user = ADMINS.find(a =>
-                a.id.toLowerCase() === id.toLowerCase() &&
-                a.password === pass &&
-                (role === 'super' ? a.role === 'super' : true)
-            );
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: id, password: pass })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || payload?.success !== true) {
+                    err.textContent = payload?.message || 'Invalid credentials.';
+                    return;
+                }
+                if (payload?.user?.role !== 'admin') {
+                    err.textContent = 'Only admin users can access this dashboard.';
+                    return;
+                }
+                if (role !== 'super') {
+                    err.textContent = 'Manager login is disabled in this secure build.';
+                    return;
+                }
 
-            if (!user) { err.textContent = 'Invalid credentials or unauthorized role.'; return; }
-
-            currentUser = user;
-            sessionStorage.setItem('cs_admin_user', JSON.stringify(user));
-            showDashboard(user);
+                const name = String(payload.user.name || 'Admin').trim();
+                const initials = name.split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase() || 'AD';
+                const user = { id: payload.user.email, role: 'super', name, initials, token: payload.token };
+                currentUser = user;
+                sessionStorage.setItem('cs_admin_token', payload.token);
+                sessionStorage.setItem('cs_admin_user', JSON.stringify(user));
+                showDashboard(user);
+            } catch {
+                err.textContent = 'Unable to reach authentication service.';
+            }
         }
 
         function showDashboard(user) {

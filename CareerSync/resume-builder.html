@@ -59,8 +59,10 @@
       border-radius:24px;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);box-shadow:0 16px 44px rgba(20,17,70,.08);
       display:flex;align-items:center;justify-content:space-between;gap:18px;
     }
-    .brand{display:flex;align-items:center;gap:12px;font-weight:900}
-    .brand img{width:42px;height:42px;border-radius:14px;object-fit:cover;box-shadow:0 10px 22px rgba(75,34,232,.18)}
+    .brand{display:flex;align-items:center;gap:0;font-weight:900}
+    .brand-main{display:inline-flex;align-items:center;font-family:'Poppins',sans-serif;font-weight:900;line-height:1;letter-spacing:-.02em}
+    .brand-main .career{color:#5b3df5}
+    .brand-main .sync{color:#f97316}
     .brand small{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-top:2px}
     .nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .pill-link,.btn{
@@ -152,14 +154,8 @@
 <body>
   <header class="topbar wrap">
     <a class="brand" href="/">
-      <img src="/images/logo.png" alt="BechNaSeekho logo">
-      <span>CareerSync Resume AI<small>by BechNaSeekho</small></span>
+      <span><span class="brand-main"><span class="career">Career</span><span class="sync">Sync</span></span> Resume AI<small>by BechNaSeekho</small></span>
     </a>
-    <nav class="nav-actions" aria-label="Resume navigation">
-      <a class="pill-link" href="/jobs/jobs"><i data-lucide="briefcase"></i> View Jobs</a>
-      <a class="pill-link" href="/tools/ai-resume-analyzer/"><i data-lucide="scan-search"></i> Analyzer</a>
-      <a class="btn light" href="/careersync/resume-templates/"><i data-lucide="file-text"></i> Templates</a>
-    </nav>
   </header>
 
   <main>
