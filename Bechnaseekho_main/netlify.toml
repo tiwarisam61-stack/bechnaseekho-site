@@ -1,0 +1,30 @@
+[build]
+  command   = "npm run build"
+  publish   = ".output/public"
+
+[build.environment]
+  NODE_VERSION  = "20"
+  NITRO_PRESET  = "netlify"
+
+# Netlify Functions — Nitro SSR handler
+[functions]
+  directory         = ".output/server"
+  node_bundler      = "esbuild"
+  included_files    = [".output/server/**"]
+
+# Serve the SSR handler for every request
+[[redirects]]
+  from   = "/*"
+  to     = "/.netlify/functions/server"
+  status = 200
+
+# Static assets — served directly without going through the function
+[[headers]]
+  for    = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for    = "/*.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
