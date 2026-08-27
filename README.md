@@ -1,2 +1,0 @@
-# Bechnaseekho
-https://bechnaseekho.com/
