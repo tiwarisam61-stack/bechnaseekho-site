@@ -12,6 +12,12 @@
   node_bundler      = "esbuild"
   included_files    = [".output/server/**"]
 
+# Static standalone pages
+[[redirects]]
+  from   = "/mock-interview-practice"
+  to     = "/mock-interview-practice.html"
+  status = 200
+
 # Serve the SSR handler for every request
 [[redirects]]
   from   = "/*"
