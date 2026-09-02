@@ -14,6 +14,16 @@
 
 # Static standalone pages
 [[redirects]]
+  from   = "/api/mock-interview-ai"
+  to     = "/.netlify/functions/mock-interview-ai"
+  status = 200
+
+[[redirects]]
+  from   = "/api/tts"
+  to     = "/.netlify/functions/tts"
+  status = 200
+
+[[redirects]]
   from   = "/mock-interview-practice"
   to     = "/mock-interview-practice.html"
   status = 200

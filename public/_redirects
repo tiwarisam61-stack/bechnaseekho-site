@@ -1,3 +1,4 @@
+/api/mock-interview-ai /.netlify/functions/mock-interview-ai 200
 /api/tts /.netlify/functions/tts 200
 /mock-interview-practice /mock-interview-practice.html 200
 /* /index.html 200

@@ -31,6 +31,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiGoogleSheetSubmitRouteImport } from './routes/api/google-sheet-submit'
+import { Route as ApiMockInterviewAiRouteImport } from './routes/api/mock-interview-ai'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as CareersyncAcademyIndexRouteImport } from './routes/careersync-academy.index'
 import { Route as CareersyncAboutRouteImport } from './routes/careersync.about'
@@ -155,6 +156,11 @@ const ApiGoogleSheetSubmitRoute = ApiGoogleSheetSubmitRouteImport.update({
   path: '/api/google-sheet-submit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMockInterviewAiRoute = ApiMockInterviewAiRouteImport.update({
+  id: '/api/mock-interview-ai',
+  path: '/api/mock-interview-ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
   id: '/api/tts',
   path: '/api/tts',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
   '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
   '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
   '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/google-sheet-submit'
+    | '/api/mock-interview-ai'
     | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/google-sheet-submit'
+    | '/api/mock-interview-ai'
     | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/chat'
     | '/api/google-sheet-submit'
+    | '/api/mock-interview-ai'
     | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
@@ -470,6 +482,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGoogleSheetSubmitRoute: typeof ApiGoogleSheetSubmitRoute
+  ApiMockInterviewAiRoute: typeof ApiMockInterviewAiRoute
   ApiTtsRoute: typeof ApiTtsRoute
   ApiPublicReportErrorRoute: typeof ApiPublicReportErrorRoute
 }
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/api/google-sheet-submit'
       fullPath: '/api/google-sheet-submit'
       preLoaderRoute: typeof ApiGoogleSheetSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mock-interview-ai': {
+      id: '/api/mock-interview-ai'
+      path: '/api/mock-interview-ai'
+      fullPath: '/api/mock-interview-ai'
+      preLoaderRoute: typeof ApiMockInterviewAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tts': {
@@ -813,6 +833,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGoogleSheetSubmitRoute: ApiGoogleSheetSubmitRoute,
+  ApiMockInterviewAiRoute: ApiMockInterviewAiRoute,
   ApiTtsRoute: ApiTtsRoute,
   ApiPublicReportErrorRoute: ApiPublicReportErrorRoute,
 }
