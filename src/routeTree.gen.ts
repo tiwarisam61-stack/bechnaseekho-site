@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AiArenaRouteImport } from './routes/ai-arena'
 import { Route as AtsScoreCheckerRouteImport } from './routes/ats-score-checker'
 import { Route as BechnaseekhoRouteImport } from './routes/bechnaseekho'
 import { Route as CareersyncRouteImport } from './routes/careersync'
@@ -29,6 +30,8 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiGoogleSheetSubmitRouteImport } from './routes/api/google-sheet-submit'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as CareersyncAcademyIndexRouteImport } from './routes/careersync-academy.index'
 import { Route as CareersyncAboutRouteImport } from './routes/careersync.about'
 import { Route as CareersyncBlogsRouteImport } from './routes/careersync.blogs'
@@ -50,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiArenaRoute = AiArenaRouteImport.update({
+  id: '/ai-arena',
+  path: '/ai-arena',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtsScoreCheckerRoute = AtsScoreCheckerRouteImport.update({
@@ -142,6 +150,16 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGoogleSheetSubmitRoute = ApiGoogleSheetSubmitRouteImport.update({
+  id: '/api/google-sheet-submit',
+  path: '/api/google-sheet-submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CareersyncAcademyIndexRoute = CareersyncAcademyIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -210,6 +228,7 @@ const CareersyncAcademyCoursesCourseIdUnitIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
   '/careersync': typeof CareersyncRouteWithChildren
@@ -228,6 +247,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
   '/careersync/jobs': typeof CareersyncJobsRoute
@@ -244,6 +265,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
   '/careersync': typeof CareersyncRouteWithChildren
@@ -261,6 +283,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
   '/careersync/jobs': typeof CareersyncJobsRoute
@@ -277,6 +301,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
   '/careersync': typeof CareersyncRouteWithChildren
@@ -295,6 +320,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
+  '/api/tts': typeof ApiTtsRoute
   '/careersync/about': typeof CareersyncAboutRoute
   '/careersync/blogs': typeof CareersyncBlogsRouteWithChildren
   '/careersync/jobs': typeof CareersyncJobsRoute
@@ -313,6 +340,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
     | '/careersync'
@@ -331,6 +359,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/api/chat'
+    | '/api/google-sheet-submit'
+    | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
     | '/careersync/jobs'
@@ -347,6 +377,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
     | '/careersync'
@@ -364,6 +395,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/api/chat'
+    | '/api/google-sheet-submit'
+    | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
     | '/careersync/jobs'
@@ -379,6 +412,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
     | '/careersync'
@@ -397,6 +431,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/api/chat'
+    | '/api/google-sheet-submit'
+    | '/api/tts'
     | '/careersync/about'
     | '/careersync/blogs'
     | '/careersync/jobs'
@@ -414,6 +450,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AiArenaRoute: typeof AiArenaRoute
   AtsScoreCheckerRoute: typeof AtsScoreCheckerRoute
   BechnaseekhoRoute: typeof BechnaseekhoRoute
   CareersyncRoute: typeof CareersyncRouteWithChildren
@@ -432,6 +469,8 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGoogleSheetSubmitRoute: typeof ApiGoogleSheetSubmitRoute
+  ApiTtsRoute: typeof ApiTtsRoute
   ApiPublicReportErrorRoute: typeof ApiPublicReportErrorRoute
 }
 
@@ -449,6 +488,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-arena': {
+      id: '/ai-arena'
+      path: '/ai-arena'
+      fullPath: '/ai-arena'
+      preLoaderRoute: typeof AiArenaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ats-score-checker': {
@@ -575,6 +621,20 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/google-sheet-submit': {
+      id: '/api/google-sheet-submit'
+      path: '/api/google-sheet-submit'
+      fullPath: '/api/google-sheet-submit'
+      preLoaderRoute: typeof ApiGoogleSheetSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/careersync-academy/': {
@@ -733,6 +793,7 @@ const CareersyncAcademyRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AiArenaRoute: AiArenaRoute,
   AtsScoreCheckerRoute: AtsScoreCheckerRoute,
   BechnaseekhoRoute: BechnaseekhoRoute,
   CareersyncRoute: CareersyncRouteWithChildren,
@@ -751,6 +812,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGoogleSheetSubmitRoute: ApiGoogleSheetSubmitRoute,
+  ApiTtsRoute: ApiTtsRoute,
   ApiPublicReportErrorRoute: ApiPublicReportErrorRoute,
 }
 export const routeTree = rootRouteImport

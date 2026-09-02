@@ -1,0 +1,2078 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Arena — BechnaSeekho CareerSync</title>
+<meta name="description" content="Practice for your next interview with a role-specific AI interviewer and get a scored report card at the end." />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  :root {
+    --font-display: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --ink: #0f172a;
+    --ink-soft: #475569;
+    --ink-faint: #94a3b8;
+    --paper: #f6f9ff;
+    --card: #ffffff;
+    --line: #dbe7f7;
+    --violet: #2563eb;
+    --violet-deep: #1d4ed8;
+    --magenta: #06b6d4;
+    --amber: #10b981;
+    --mint: #059669;
+    --rose: #dc2626;
+    --brand-navy: #0f2a5c;
+    --brand-blue: #2563eb;
+    --brand-cyan: #06b6d4;
+    --brand-emerald: #10b981;
+    --grad-main: linear-gradient(120deg, #2563eb 0%, #06b6d4 62%, #10b981 100%);
+    --wash-violet: rgba(37,99,235,.10);
+    --wash-magenta: rgba(6,182,212,.08);
+    --wash-amber: rgba(16,185,129,.08);
+  }
+
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    min-height: 100vh; color: var(--ink);
+    background:
+      linear-gradient(rgba(37,99,235,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,99,235,.055) 1px, transparent 1px),
+      linear-gradient(135deg, #f8fbff 0%, #eef6ff 52%, #f4fffb 100%);
+    background-size: 42px 42px, 42px 42px, auto;
+    background-position: -1px -1px, -1px -1px, center; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; }
+  img { max-width: 100%; display: block; }
+  ::selection { background: #bfdbfe; }
+  [hidden] { display: none !important; }
+
+  .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  header.pg-header { max-width: 60rem; margin: 0 auto; padding: 1.6rem 1.5rem 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .back-link { display: inline-flex; align-items: center; gap: .65rem; font-size: .875rem; font-weight: 800; color: var(--brand-navy); transition: color .2s, transform .2s; }
+  .back-link::before { content: "B"; display: grid; place-items: center; height: 2.35rem; width: 2.35rem; border-radius: .8rem; background: #fff; color: var(--brand-blue); box-shadow: 0 10px 24px -14px rgba(15,42,92,.45); border: 1px solid var(--line); font-family: var(--font-display); font-weight: 800; }
+  .back-link:hover { color: var(--brand-blue); transform: translateY(-1px); }
+  .back-link svg { display: none; }
+  .header-badge { display: inline-flex; align-items: center; gap: .45rem; font-size: .72rem; font-weight: 800; color: var(--brand-blue); background: #fff; border: 1.5px solid var(--line); padding: .45rem .9rem .45rem .7rem; border-radius: 999px; box-shadow: 0 10px 26px -16px rgba(37,99,235,.45); }
+  .header-badge svg { color: var(--brand-cyan); }
+
+  main { max-width: 60rem; margin: 0 auto; padding: 1.75rem 1.5rem 4rem; }
+
+  .card { position: relative; border-radius: 1.6rem; background: rgba(255,255,255,.94); padding: 2rem; box-shadow: 0 34px 70px -34px rgba(15,42,92,.42), 0 10px 24px -18px rgba(15,23,42,.18); border: 1px solid var(--line); overflow: hidden; backdrop-filter: blur(14px); }
+  @media (min-width: 640px) { .card { padding: 2.5rem; } }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--grad-main); }
+
+  .card-head { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.6rem; }
+  @media (max-width: 480px) { .card-head h1 { font-size: 1.5rem; } }
+  .badge-ic { display: grid; place-items: center; height: 3.4rem; width: 3.4rem; border-radius: 1.05rem; background: var(--grad-main); box-shadow: 0 14px 30px -12px rgba(37,99,235,.65), 0 0 0 6px rgba(37,99,235,.08); color: #fff; flex-shrink: 0; }
+  .card-head h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: 0; line-height: 1.12; color: var(--ink); }
+  .card-head .sub-line { font-size: .9rem; color: var(--ink-soft); margin-top: .25rem; line-height: 1.5; }
+
+  /* ---- setup view ---- */
+  .setup-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-top: .5rem; }
+  @media (min-width: 640px) { .setup-grid { grid-template-columns: 1fr 1fr; } }
+  .field { display: block; }
+  .field.span2 { grid-column: 1 / -1; }
+  .field .flabel { display: block; margin-bottom: .45rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+  .finput {
+    width: 100%; border-radius: .85rem; border: 1.5px solid var(--line); background: var(--card);
+    padding: .75rem 1rem; font-size: .9rem; color: var(--ink); outline: none;
+    font-family: inherit; transition: border-color .2s, box-shadow .2s;
+  }
+  .finput:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 4px rgba(37,99,235,.14); }
+  select.finput { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c6280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .75rem center; background-size: 1.1em; padding-right: 2.25rem; }
+
+  .count-chips { display: flex; gap: .6rem; }
+  .count-chip { flex: 1; border-radius: .85rem; border: 1.5px solid var(--line); background: var(--card); padding: .7rem; font-size: .82rem; font-weight: 700; color: var(--ink-soft); text-align: center; transition: all .15s; }
+  .count-chip:hover { border-color: #93c5fd; }
+  .count-chip.active { border-color: transparent; background: var(--grad-main); color: #fff; box-shadow: 0 10px 22px -10px rgba(37,99,235,.55); }
+  .count-chip span { display: block; font-size: .65rem; font-weight: 500; color: var(--ink-faint); margin-top: .15rem; }
+  .count-chip.active span { color: rgba(255,255,255,.82); }
+  .lang-note { grid-column: 1 / -1; margin-top: .5rem; font-size: .72rem; color: var(--ink-faint); line-height: 1.55; }
+  .voice-status { grid-column: 1 / -1; display: flex; align-items: center; gap: .5rem; margin-top: .65rem; border-radius: .9rem; background: #eff6ff; border: 1px solid #bfdbfe; padding: .7rem .85rem; font-size: .74rem; font-weight: 700; color: var(--brand-navy); }
+  .voice-status .spark { display: grid; place-items: center; width: 1.55rem; height: 1.55rem; border-radius: .55rem; background: #fff; color: var(--brand-blue); box-shadow: 0 8px 18px -14px rgba(37,99,235,.7); flex-shrink: 0; }
+
+  .setup-note { grid-column: 1 / -1; margin-top: .25rem; border-radius: .9rem; background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(6,182,212,.08)); border: 1px solid var(--line); padding: .85rem 1.1rem; font-size: .78rem; color: var(--brand-navy); line-height: 1.55; }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    border-radius: .85rem; background: var(--grad-main); padding: .85rem 1.7rem;
+    font-size: .9rem; font-weight: 800; color: #fff; box-shadow: 0 16px 30px -10px rgba(37,99,235,.55);
+    transition: filter .2s, opacity .2s, transform .15s; border: none;
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-primary:active { transform: scale(.98); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: .85rem; border: 1.5px solid var(--line); background: var(--card); padding: .8rem 1.4rem; font-size: .85rem; font-weight: 700; color: var(--ink-soft); transition: background .2s, border-color .2s; }
+  .btn-ghost:hover { background: #eff6ff; border-color: #93c5fd; }
+  .btn-text { background: none; border: none; padding: 0; font-size: .78rem; font-weight: 600; color: var(--ink-faint); text-decoration: underline; text-underline-offset: 2px; }
+  .btn-text:hover { color: var(--ink-soft); }
+
+  .setup-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: .25rem; }
+
+  /* ---- AI power-up panel ---- */
+  .ai-power { grid-column: 1 / -1; border-radius: 1.1rem; border: 1.5px solid var(--line); background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(16,185,129,.08)); overflow: hidden; }
+  .ai-power summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .95rem 1.15rem; font-size: .85rem; font-weight: 700; color: var(--brand-navy); }
+  .ai-power summary::-webkit-details-marker { display: none; }
+  .ai-power summary .sum-left { display: inline-flex; align-items: center; flex-wrap: wrap; row-gap: .3rem; gap: .5rem; }
+  .ai-power summary .bolt { color: var(--brand-cyan); flex-shrink: 0; }
+  .ai-power summary .chev { transition: transform .2s; flex-shrink: 0; color: var(--brand-blue); }
+  .ai-power[open] summary .chev { transform: rotate(90deg); }
+  .ai-power-body { padding: 0 1.15rem 1.15rem; }
+  .ai-power-desc { font-size: .78rem; color: var(--ink-soft); line-height: 1.6; margin-bottom: 1rem; }
+  .ai-status-pill { display: inline-flex; align-items: center; gap: .35rem; font-size: .68rem; font-weight: 700; padding: .2rem .55rem; border-radius: 999px; }
+  .ai-status-pill.on { background: #e6f9f1; color: var(--mint); }
+  .ai-status-pill.off { background: #f1edf9; color: var(--ink-faint); }
+  .ai-key-row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: .9rem; }
+  .ai-key-row input { flex: 1; min-width: 12rem; }
+  .ai-context-drop { border: 1.5px dashed #93c5fd; border-radius: .85rem; padding: 1.1rem; text-align: center; font-size: .78rem; color: var(--ink-soft); cursor: pointer; transition: all .15s; background: rgba(255,255,255,.5); }
+  .ai-context-drop:hover, .ai-context-drop.drag { border-color: var(--brand-blue); background: #fff; }
+  .ai-context-status-row { display: flex; align-items: center; gap: .6rem; margin-top: .5rem; }
+  .ai-context-status { font-size: .74rem; color: var(--brand-blue); min-height: 1rem; font-weight: 600; }
+  .ai-badge { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 700; color: #fff; background: var(--grad-main); padding: .25rem .6rem; border-radius: 999px; box-shadow: 0 6px 16px -8px rgba(37,99,235,.5); }
+  .report-ai-note { font-size: .72rem; color: var(--brand-blue); margin-top: .35rem; font-weight: 600; }
+
+  /* ---- past sessions ---- */
+  .past-section { margin-top: 2.75rem; }
+  .past-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+  .past-head h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--ink); }
+  .past-head span { font-size: .75rem; color: var(--ink-faint); }
+  .past-empty { border-radius: 1.1rem; border: 1.5px dashed #bfdbfe; padding: 1.6rem; text-align: center; font-size: .82rem; color: var(--ink-soft); background: rgba(255,255,255,.5); }
+  .past-list { display: grid; gap: .8rem; grid-template-columns: 1fr; }
+  @media (min-width: 700px) { .past-list { grid-template-columns: 1fr 1fr; } }
+  .past-item { border-radius: 1.1rem; background: var(--card); border: 1px solid var(--line); padding: 1.1rem 1.2rem; display: flex; align-items: center; gap: .9rem; box-shadow: 0 14px 28px -18px rgba(24,15,46,.25); transition: transform .15s, box-shadow .15s; }
+  .past-item:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -16px rgba(37,99,235,.3); }
+  .past-score { display: grid; place-items: center; height: 2.9rem; width: 2.9rem; border-radius: 999px; font-size: .85rem; font-weight: 800; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .past-info { flex: 1; min-width: 0; }
+  .past-info p.t { font-size: .87rem; font-weight: 700; color: var(--ink); }
+  .past-info p.d { font-size: .72rem; color: var(--ink-faint); margin-top: .15rem; }
+  .past-actions { display: flex; flex-direction: column; gap: .3rem; }
+  .past-actions button { border-radius: .6rem; padding: .3rem .6rem; font-size: .68rem; font-weight: 700; border: 1.5px solid var(--line); background: #faf8fc; color: var(--ink-soft); transition: all .15s; }
+  .past-actions button:hover { background: #eff6ff; border-color: #93c5fd; }
+  .past-actions button.danger:hover { background: #fef2f2; color: var(--rose); border-color: #fecaca; }
+
+  /* ---- interview view (video-call style, deliberately dark — its own visual world) ---- */
+  .card.call-card { background:
+      linear-gradient(135deg, #07111f 0%, #0f2a5c 54%, #064e5d 100%);
+    border-color: rgba(255,255,255,.09);
+    box-shadow: 0 48px 100px -32px rgba(15,42,92,.72), 0 0 0 1px rgba(255,255,255,.03) inset;
+    color: #f8fbff;
+  }
+  .call-topbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: .4rem; }
+  .live-badge { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: #67e8f9; }
+  .live-badge .dot { height: .5rem; width: .5rem; border-radius: 999px; background: #10b981; animation: pulse-fade 1.6s infinite; }
+  @keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .call-progress-text { font-size: .75rem; font-weight: 600; color: rgba(243,238,252,.65); }
+  .call-timer { font-size: .78rem; font-weight: 700; color: rgba(243,238,252,.8); font-variant-numeric: tabular-nums; }
+  .interview-context-line { font-size: .76rem; color: rgba(243,238,252,.5); margin-bottom: 1rem; }
+
+  .call-progress-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,.12); overflow: hidden; margin-bottom: 1.5rem; }
+  .call-progress-fill { height: 100%; width: 0%; border-radius: 999px; background: var(--grad-main); transition: width .4s ease; }
+
+  .call-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.4rem; }
+  @media (min-width: 640px) { .call-grid { grid-template-columns: 1fr 1fr; } }
+  .call-tile { position: relative; border-radius: 1.25rem; overflow: hidden; aspect-ratio: 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.1); }
+  .ai-tile { background: linear-gradient(165deg, rgba(37,99,235,.42), rgba(6,182,212,.26) 55%, rgba(16,185,129,.18)); }
+  .ai-tile::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(to bottom, black, transparent 86%); }
+  .ai-tile::after { content: ""; position: absolute; left: 0; right: 0; top: -40%; height: 42%; background: linear-gradient(to bottom, transparent, rgba(103,232,249,.12), transparent); animation: bot-scan 3.4s linear infinite; }
+  @keyframes bot-scan { 0% { transform: translateY(0); } 100% { transform: translateY(340%); } }
+  .you-tile { background: #07111f; }
+  .you-tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .video-off-placeholder { display: flex; flex-direction: column; align-items: center; gap: .5rem; color: rgba(243,238,252,.4); font-size: .75rem; }
+  .tile-name { position: absolute; left: .8rem; bottom: .65rem; font-size: .72rem; font-weight: 700; color: #fff; background: rgba(0,0,0,.45); padding: .25rem .65rem; border-radius: 999px; backdrop-filter: blur(4px); }
+
+  .ai-avatar-stage { position: relative; display: grid; place-items: center; height: 5.75rem; width: 5.75rem; }
+  .ai-avatar { position: relative; display: grid; place-items: center; height: 4.4rem; width: 4.4rem; border-radius: 999px; background: var(--grad-main); color: #fff; z-index: 2; box-shadow: 0 0 44px 4px rgba(6,182,212,.35); }
+  .ai-avatar::before { content: ""; position: absolute; inset: .62rem; border-radius: 1.1rem; background: rgba(7,17,31,.34); border: 1px solid rgba(255,255,255,.32); }
+  .ai-avatar svg { position: relative; z-index: 2; filter: drop-shadow(0 4px 10px rgba(0,0,0,.2)); }
+  .avatar-ring { position: absolute; inset: 0; border-radius: 999px; border: 2px solid rgba(103,232,249,.55); opacity: 0; }
+  .bot-chip { position: absolute; top: .7rem; left: .7rem; z-index: 3; display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); padding: .28rem .65rem; color: #dffafe; font-size: .65rem; font-weight: 900; letter-spacing: .13em; }
+  .bot-chip::before { content: ""; width: .38rem; height: .38rem; border-radius: 999px; background: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
+  .bot-signal { position: absolute; bottom: 3.15rem; right: .9rem; z-index: 3; display: grid; gap: .18rem; grid-auto-flow: column; align-items: end; height: 1.1rem; }
+  .bot-signal span { display: block; width: .22rem; border-radius: 999px; background: #67e8f9; animation: signal-rise 1s ease-in-out infinite; }
+  .bot-signal span:nth-child(1) { height: .35rem; }
+  .bot-signal span:nth-child(2) { height: .65rem; animation-delay: .12s; }
+  .bot-signal span:nth-child(3) { height: 1rem; animation-delay: .24s; }
+  @keyframes signal-rise { 0%, 100% { opacity: .45; transform: scaleY(.75); } 50% { opacity: 1; transform: scaleY(1); } }
+  .ai-tile.speaking .avatar-ring { animation: ring-pulse 1.6s ease-out infinite; }
+  .ai-tile.speaking .r2 { animation-delay: .5s; }
+  @keyframes ring-pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.9); opacity: 0; } }
+  .speaking-status { margin-top: .7rem; font-size: .72rem; font-weight: 600; color: #a5f3fc; }
+
+  .mic-indicator { position: absolute; top: .65rem; right: .65rem; display: inline-flex; align-items: center; gap: .35rem; font-size: .68rem; font-weight: 700; color: #fff; background: rgba(220,38,38,.85); padding: .25rem .55rem; border-radius: 999px; }
+  .mic-pulse { height: .4rem; width: .4rem; border-radius: 999px; background: #fff; animation: pulse-fade 1s infinite; }
+
+  /* visually hidden but still readable by screen readers — keeps the interview audio-first
+     while not losing accessibility for people who need captions */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  .listen-hint { text-align: center; font-size: .8rem; color: rgba(243,238,252,.5); margin-bottom: 1.1rem; min-height: 1.1rem; transition: color .2s; }
+  .listen-hint.active { color: #67e8f9; font-weight: 600; }
+
+  .answer-block { margin-bottom: 1rem; }
+  .answer-label-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: .4rem; }
+  .call-card .flabel { color: rgba(243,238,252,.55); }
+  .word-count { font-size: .7rem; color: rgba(243,238,252,.45); font-variant-numeric: tabular-nums; }
+  textarea.finput { resize: vertical; line-height: 1.6; min-height: 8rem; }
+  .fallback-textarea { min-height: 5rem; }
+  .voice-note { font-size: .72rem; color: rgba(243,238,252,.45); margin-bottom: .75rem; }
+  .call-card .finput { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #f8fbff; }
+  .call-card .finput::placeholder { color: rgba(243,238,252,.35); }
+  .call-card .finput:focus { border-color: #67e8f9; box-shadow: 0 0 0 4px rgba(6,182,212,.18); }
+  .call-card .star-tip { color: rgba(243,238,252,.5); }
+
+  .call-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+  .call-controls-right { display: flex; align-items: center; gap: .6rem; }
+  .call-card .btn-text { color: rgba(243,238,252,.45); }
+  .call-card .btn-text:hover { color: rgba(243,238,252,.8); }
+  .call-card .btn-ghost { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.18); color: #f8fbff; }
+  .call-card .btn-ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+  .call-card .btn-primary { box-shadow: 0 16px 32px -10px rgba(37,99,235,.65); }
+  .mic-btn, .icon-btn { display: grid; place-items: center; height: 2.85rem; width: 2.85rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: rgba(243,238,252,.85); transition: all .15s; flex-shrink: 0; }
+  .mic-btn:hover, .icon-btn:hover { border-color: #67e8f9; color: #67e8f9; background: rgba(255,255,255,.14); }
+  .mic-btn.active { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; border-color: transparent; animation: mic-glow 1.4s infinite; }
+  @keyframes mic-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.4); } 50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); } }
+
+  /* ---- report view ---- */
+  .report-head { display: flex; flex-wrap: wrap; align-items: center; gap: 1.6rem; padding-bottom: 1.6rem; border-bottom: 1px solid var(--line); margin-bottom: 1.6rem; }
+  .report-ring-wrap { position: relative; height: 6.5rem; width: 6.5rem; flex-shrink: 0; }
+  .report-ring-wrap svg { transform: rotate(-90deg); }
+  .report-ring-val { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .report-headline { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; color: var(--ink); line-height: 1.2; }
+  .report-sub { font-size: .82rem; color: var(--ink-soft); margin-top: .2rem; }
+  .report-meta { font-size: .74rem; color: var(--ink-faint); margin-top: .45rem; }
+
+  .score-breakdown { display: flex; flex-direction: column; gap: .65rem; margin-bottom: 1.9rem; }
+  .score-row { display: grid; grid-template-columns: 7rem 1fr 2.4rem; align-items: center; gap: .7rem; }
+  .score-row .srlabel { font-size: .76rem; font-weight: 600; color: var(--ink-soft); }
+  .score-row .srtrack { height: 7px; border-radius: 999px; background: #eaf2ff; overflow: hidden; }
+  .score-row .srfill { height: 100%; border-radius: 999px; transition: width .5s ease; }
+  .score-row .srval { font-size: .74rem; font-weight: 700; color: var(--ink-faint); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .insight-cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-bottom: 2rem; }
+  @media (min-width: 640px) { .insight-cols { grid-template-columns: 1fr 1fr; } }
+  .insight-card { border-radius: 1.1rem; padding: 1.2rem 1.3rem; }
+  .insight-card.strengths { background: #eafbf3; border: 1px solid #bfeed9; }
+  .insight-card.improve { background: #fef2e6; border: 1px solid #fbd3a4; }
+  .insight-card h3 { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .65rem; }
+  .insight-card.strengths h3 { color: #047857; }
+  .insight-card.improve h3 { color: #c2410c; }
+  .insight-card ul { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+  .insight-card li { font-size: .83rem; line-height: 1.5; display: flex; gap: .5rem; }
+  .insight-card.strengths li { color: #065f46; }
+  .insight-card.improve li { color: #9a3412; }
+  .insight-card li svg { flex-shrink: 0; margin-top: .18rem; }
+
+  .qa-list { display: flex; flex-direction: column; gap: .8rem; margin-bottom: 2rem; }
+  .qa-item { border-radius: 1.1rem; border: 1px solid var(--line); padding: 1.05rem 1.25rem; transition: border-color .15s; }
+  .qa-item:hover { border-color: #93c5fd; }
+  .qa-item summary { list-style: none; cursor: pointer; display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; }
+  .qa-item summary::-webkit-details-marker { display: none; }
+  .qa-q { font-size: .85rem; font-weight: 700; color: var(--ink); line-height: 1.45; }
+  .qa-badge { flex-shrink: 0; font-size: .72rem; font-weight: 800; padding: .25rem .6rem; border-radius: 999px; font-variant-numeric: tabular-nums; }
+  .qa-body { margin-top: .85rem; padding-top: .85rem; border-top: 1px dashed var(--line); }
+  .qa-answer { font-size: .82rem; line-height: 1.6; color: #334155; white-space: pre-line; }
+  .qa-answer.skipped { color: var(--ink-faint); font-style: italic; }
+  .qa-tip { margin-top: .75rem; font-size: .78rem; color: var(--brand-blue); display: flex; gap: .4rem; align-items: flex-start; }
+  .qa-tip svg { flex-shrink: 0; margin-top: .15rem; }
+  .qa-time { margin-top: .4rem; font-size: .68rem; color: var(--ink-faint); }
+
+  .report-actions { display: flex; flex-wrap: wrap; gap: .7rem; }
+
+  /* Toast */
+  #toastHost { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: .5rem; align-items: center; }
+  .toast { display: flex; align-items: center; gap: .65rem; border-radius: .85rem; background: var(--ink); color: #fff; padding: .75rem 1.15rem; font-size: .85rem; font-weight: 500; box-shadow: 0 16px 34px -12px rgba(24,15,46,.5); opacity: 0; transform: translateY(8px); transition: opacity .25s, transform .25s; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: var(--mint); }
+  .toast.error { background: var(--rose); }
+
+  /* Printable report */
+  .print-only { display: none; }
+  #printArea h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--ink); }
+  #printArea .p-sub { font-size: .85rem; color: var(--ink-soft); margin-top: .2rem; }
+  #printArea .p-score { margin-top: 1rem; font-size: 1.1rem; font-weight: 800; color: var(--brand-blue); }
+  #printArea .p-qa { margin-top: 1.5rem; }
+  #printArea .p-qa .p-q { font-weight: 700; font-size: .9rem; margin-top: 1rem; }
+  #printArea .p-qa .p-a { font-size: .85rem; color: #334155; margin-top: .3rem; white-space: pre-line; }
+  #printArea .p-foot { margin-top: 2rem; font-size: .72rem; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: .6rem; }
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    .print-only { display: block !important; padding: 1.5rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="pg-header">
+  <a href="careersync.html" class="back-link">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to CareerSync
+  </a>
+  <span class="header-badge"><svg class="icon" viewBox="0 0 24 24" width="12" height="12"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg> AI Interview Practice</span>
+</header>
+
+<main>
+  <!-- ===================== SETUP VIEW ===================== -->
+  <div id="setupView">
+    <div class="card">
+      <div class="card-head">
+        <div class="badge-ic"><svg class="icon" viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg></div>
+        <div>
+          <h1>Practice with an AI interviewer</h1>
+          <p class="sub-line">Pick a category and get role-specific interview questions, one at a time — with a scored report card at the end.</p>
+        </div>
+      </div>
+
+      <div class="setup-grid">
+        <label class="field">
+          <span class="flabel">Category *</span>
+          <select class="finput" id="ivCategory">
+            <option>Sales</option>
+            <option>Tech</option>
+            <option>Data</option>
+            <option>Marketing</option>
+            <option>Ops</option>
+            <option>Support</option>
+            <option>HR</option>
+            <option>Finance</option>
+            <option>Design</option>
+            <option>Networking</option>
+            <option>Product</option>
+            <option>Legal</option>
+            <option>Other</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="flabel">Experience level</span>
+          <select class="finput" id="ivExperience">
+            <option>Entry</option>
+            <option>Junior</option>
+            <option selected>Mid-level</option>
+            <option>Senior</option>
+            <option>Lead</option>
+            <option>Executive</option>
+          </select>
+        </label>
+
+        <label class="field span2">
+          <span class="flabel">Job title <span style="text-transform:none;font-weight:400;color:#9ca3af">(optional — personalizes the intro)</span></span>
+          <input class="finput" id="ivRole" placeholder="e.g. Senior React Developer" maxlength="80" />
+        </label>
+
+        <div class="field span2">
+          <span class="flabel">Number of questions</span>
+          <div class="count-chips" id="countChips">
+            <button type="button" class="count-chip" data-count="5">5<span>Quick</span></button>
+            <button type="button" class="count-chip active" data-count="8">8<span>Standard</span></button>
+            <button type="button" class="count-chip" data-count="12">12<span>Full-length</span></button>
+          </div>
+        </div>
+
+        <div class="field span2">
+          <span class="flabel">Human voice</span>
+          <div class="count-chips" id="langChips">
+            <button type="button" class="count-chip active" data-lang="English">English<span>Human voice</span></button>
+            <button type="button" class="count-chip" data-lang="Hinglish">Hindi<span>Human voice</span></button>
+          </div>
+          <p class="voice-status" id="voiceStatus"><span class="spark"><svg class="icon" viewBox="0 0 24 24" width="13" height="13"><path d="M12 2v20M6 8v8M18 8v8M3 11v2M21 11v2"/></svg></span><span id="voiceStatusText">English ElevenLabs human voice selected.</span></p>
+          <p class="lang-note" id="langNote" hidden>Hindi ElevenLabs human voice selected. The interviewer will speak Hindi with natural neural audio when the local voice proxy is running.</p>
+        </div>
+
+        <p class="setup-note">By default this runs entirely in your browser — the "AI interviewer" asks pre-written, role-tailored questions and the report card is generated by a scoring rubric (answer depth, structure, specificity and clarity), not a live language model. Turn on "Power up with real AI" below for genuinely AI-driven questions, follow-ups, and scoring.</p>
+
+        <details class="ai-power" id="aiPowerDetails">
+          <summary>
+            <span class="sum-left"><svg class="icon bolt" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg> Power up with real AI <span class="ai-status-pill off" id="aiStatusPill">AI: off</span></span>
+            <svg class="icon chev" viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg>
+          </summary>
+          <div class="ai-power-body">
+            <p class="ai-power-desc">
+              Paste your own Anthropic API key to turn this into a real AI-driven interview: questions tailored to a resume or job description, follow-up questions that react to what you actually said, and a report written by Claude instead of the built-in scoring rubric. In Hinglish mode, it also fixes mispronunciation for the natural voice — Claude converts each question to proper Devanagari script behind the scenes before it's spoken, since Hindi voices are built for that script, not romanized text. Your key is saved only in this browser (localStorage) and every request goes straight from your browser to Anthropic's API — there's no server of ours in between. Don't paste it on a shared or public computer.
+            </p>
+            <div class="ai-key-row">
+              <input type="password" class="finput" id="apiKeyInput" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" aria-label="Anthropic API key" />
+              <button type="button" class="btn-ghost" id="saveKeyBtn">Save key</button>
+              <button type="button" class="btn-text" id="removeKeyBtn">Remove</button>
+            </div>
+            <div class="ai-context-drop" id="aiContextDrop">
+              <span id="aiContextDropLabel">Optional: drop a resume or job description here (PDF, DOCX or TXT) so questions are tailored to it</span>
+              <input type="file" id="aiContextFile" accept=".pdf,.docx,.txt" hidden />
+            </div>
+            <div class="ai-context-status-row">
+              <p class="ai-context-status" id="aiContextStatus"></p>
+              <button type="button" class="btn-text" id="clearContextBtn" hidden>Clear</button>
+            </div>
+          </div>
+        </details>
+
+        <div class="setup-actions">
+          <button type="button" class="btn-primary" id="startInterviewBtn">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16"><path d="M5 3l14 9-14 9V3z"/></svg>
+            Start interview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="past-section">
+      <div class="past-head">
+        <h2>Your past practice sessions</h2>
+        <span id="pastCount">0 in this browser</span>
+      </div>
+      <div id="pastEmpty" class="past-empty">No sessions yet — finish a practice interview and it'll show up here so you can review your report or try again.</div>
+      <div class="past-list" id="pastList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== INTERVIEW VIEW ===================== -->
+  <div id="interviewView" hidden>
+    <div class="card call-card">
+      <div class="call-topbar">
+        <span class="live-badge"><span class="dot"></span> LIVE PRACTICE</span>
+        <span class="ai-badge" id="aiModeBadge" hidden><svg class="icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" stroke="none"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg> AI-powered</span>
+        <span class="call-progress-text" id="ivProgressText">Question 1 of 8</span>
+        <span class="call-timer" id="callTimer">00:00</span>
+      </div>
+      <p class="interview-context-line" id="interviewContext">Tech · Mid-level</p>
+      <div class="call-progress-track"><div class="call-progress-fill" id="ivProgressFill"></div></div>
+
+      <div class="call-grid">
+        <div class="call-tile ai-tile" id="aiTile">
+          <span class="bot-chip">AI BOT</span>
+          <div class="ai-avatar-stage">
+            <div class="avatar-ring"></div>
+            <div class="avatar-ring r2"></div>
+            <div class="ai-avatar"><svg class="icon" viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg></div>
+          </div>
+          <p class="speaking-status" id="speakingStatus">Getting your first question ready…</p>
+          <div class="bot-signal" aria-hidden="true"><span></span><span></span><span></span></div>
+          <p class="tile-name">BechnaSeekho AI Bot</p>
+        </div>
+        <div class="call-tile you-tile" id="youTile">
+          <video id="candidateVideo" autoplay playsinline muted hidden></video>
+          <div class="video-off-placeholder" id="videoOffPlaceholder">
+            <svg class="icon" viewBox="0 0 24 24" width="26" height="26"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <span id="videoOffText">Camera off</span>
+          </div>
+          <div class="mic-indicator" id="micIndicator" hidden><span class="mic-pulse"></span> Listening</div>
+          <p class="tile-name">You</p>
+        </div>
+      </div>
+
+      <p class="listen-hint" id="listenHint">Getting your first question ready…</p>
+
+      <!-- Screen-reader-only: nothing here is shown on screen, this is purely so people using
+           assistive tech still get the question/answer text. The visible experience is audio-only. -->
+      <p class="sr-only" id="captionText" aria-live="polite"></p>
+      <p class="sr-only" id="liveTranscript" aria-live="polite"></p>
+      <span class="sr-only" id="wordCount">0 words</span>
+
+      <div class="answer-block" id="fallbackAnswerWrap" hidden>
+        <div class="answer-label-row">
+          <span class="flabel">Your answer</span>
+          <span class="word-count" id="fallbackWordCount">0 words</span>
+        </div>
+        <textarea class="finput fallback-textarea" id="fallbackAnswerArea" rows="5" placeholder="Take a moment, then answer as you would in a real interview…" aria-label="Your answer"></textarea>
+        <p class="star-tip"><svg class="icon" viewBox="0 0 24 24" width="13" height="13"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg> Voice input isn't available right now, so type your answer here instead.</p>
+      </div>
+
+      <div class="call-controls">
+        <button type="button" class="btn-text" id="endEarlyBtn">End interview now</button>
+        <div class="call-controls-right">
+          <button type="button" class="icon-btn" id="replayQuestionBtn" title="Replay the question">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </button>
+          <button type="button" class="btn-ghost" id="skipQuestionBtn">Skip</button>
+          <button type="button" class="mic-btn" id="micBtn" title="Mute / resume your microphone" aria-pressed="false">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+          </button>
+          <button type="button" class="btn-primary" id="submitAnswerBtn">
+            I'm done — next question
+            <svg class="icon" viewBox="0 0 24 24" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== REPORT VIEW ===================== -->
+  <div id="reportView" hidden>
+    <div class="card">
+      <div class="report-head">
+        <div class="report-ring-wrap">
+          <svg viewBox="0 0 60 60" width="96" height="96">
+            <circle cx="30" cy="30" r="26" stroke="#f1f5f9" stroke-width="6" fill="none" />
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb" />
+                <stop offset="55%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+            </defs>
+            <circle id="reportRingFg" cx="30" cy="30" r="26" stroke="url(#ringGrad)" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="0 999" />
+          </svg>
+          <div class="report-ring-val" id="reportRingVal">0</div>
+        </div>
+        <div>
+          <p class="report-headline" id="reportHeadline">Interview report</p>
+          <p class="report-sub" id="reportSub">Here's how your practice answers scored.</p>
+          <p class="report-meta" id="reportMeta"></p>
+          <p class="report-ai-note" id="reportAiNote"></p>
+        </div>
+      </div>
+
+      <div class="score-breakdown">
+        <div class="score-row"><span class="srlabel">Depth</span><div class="srtrack"><div class="srfill" id="srDepth" style="width:0%;background:#2563eb"></div></div><span class="srval" id="srDepthVal">0/25</span></div>
+        <div class="score-row"><span class="srlabel">Structure</span><div class="srtrack"><div class="srfill" id="srStructure" style="width:0%;background:#06b6d4"></div></div><span class="srval" id="srStructureVal">0/25</span></div>
+        <div class="score-row"><span class="srlabel">Specificity</span><div class="srtrack"><div class="srfill" id="srSpecificity" style="width:0%;background:#059669"></div></div><span class="srval" id="srSpecificityVal">0/25</span></div>
+        <div class="score-row"><span class="srlabel">Clarity</span><div class="srtrack"><div class="srfill" id="srClarity" style="width:0%;background:#10b981"></div></div><span class="srval" id="srClarityVal">0/25</span></div>
+      </div>
+
+      <div class="insight-cols">
+        <div class="insight-card strengths">
+          <h3>Strengths</h3>
+          <ul id="strengthsList"></ul>
+        </div>
+        <div class="insight-card improve">
+          <h3>Areas to improve</h3>
+          <ul id="improveList"></ul>
+        </div>
+      </div>
+
+      <div class="qa-list" id="qaList"></div>
+
+      <div class="report-actions">
+        <button type="button" class="btn-primary" id="retryBtn">
+          <svg class="icon" viewBox="0 0 24 24" width="15" height="15"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Try again — same category
+        </button>
+        <button type="button" class="btn-ghost" id="newPracticeBtn">Practice a different category</button>
+        <button type="button" class="btn-ghost" id="downloadReportBtn">
+          <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+          Download as PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toastHost" aria-live="polite" aria-atomic="true"></div>
+<div id="printArea" class="print-only" aria-hidden="true"></div>
+
+<script>
+  // ================= Toast =================
+  function toast(message, type) {
+    const host = document.getElementById('toastHost');
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.textContent = message;
+    host.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3200);
+  }
+
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+  // ================= View switching =================
+  const setupView = document.getElementById('setupView');
+  const interviewView = document.getElementById('interviewView');
+  const reportView = document.getElementById('reportView');
+  function showView(name) {
+    setupView.hidden = name !== 'setup';
+    interviewView.hidden = name !== 'interview';
+    reportView.hidden = name !== 'report';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ================= Question banks =================
+  const QUESTION_BANKS = {
+    English: {
+      open: [
+        "Tell me a little about yourself and what draws you to this role.",
+        "Walk me through your background and what's led you here today.",
+      ],
+      close: [
+        "Where do you see yourself in the next 3-5 years?",
+        "Is there anything you'd want the interview panel to know that we haven't covered?",
+      ],
+      categories: {
+        Tech: [
+          "Walk me through how you'd approach debugging a production issue you've never seen before.",
+          "Describe a technical decision you made that you later had to revisit. What did you learn?",
+          "How do you balance writing clean, maintainable code against shipping quickly?",
+          "Tell me about a time you had to learn a new technology quickly for a project.",
+          "How do you approach code reviews — both giving and receiving feedback?",
+          "Describe a bug that was particularly hard to track down. How did you eventually find it?",
+          "How do you decide when to refactor versus when to leave code as-is?",
+          "Tell me about a time you disagreed with a teammate's technical approach. How did you resolve it?",
+        ],
+        Data: [
+          "Tell me about a time your data analysis changed a business decision.",
+          "How do you handle a dataset with significant missing or messy data?",
+          "Walk me through how you'd explain a complex analysis to a non-technical stakeholder.",
+          "Describe a time your initial hypothesis was wrong. How did you find out, and what did you do?",
+          "How do you decide which metrics matter most for a given problem?",
+          "Tell me about a dashboard or report you built that people actually used regularly.",
+          "How do you validate that a model or analysis is actually reliable before sharing results?",
+        ],
+        Sales: [
+          "Tell me about the toughest deal you've ever closed.",
+          "How do you handle a prospect who keeps going quiet mid-pipeline?",
+          "Describe a time you lost a big deal. What did you learn from it?",
+          "How do you qualify whether a lead is worth pursuing?",
+          "Tell me about a time you had to push back on a client's unrealistic expectations.",
+          "How do you build rapport with a prospect in the first few minutes of a call?",
+          "Describe how you handle a quarter where you're behind on quota.",
+        ],
+        Marketing: [
+          "Tell me about a campaign you ran that underperformed. What did you do?",
+          "How do you decide which channel to prioritize with a limited budget?",
+          "Describe a time data changed the direction of a campaign mid-flight.",
+          "How do you balance brand-building work against performance-driven, measurable work?",
+          "Tell me about a piece of content or campaign you're most proud of.",
+          "How do you approach understanding a new target audience?",
+        ],
+        Ops: [
+          "Tell me about a process you redesigned that meaningfully improved efficiency.",
+          "How do you handle competing priorities when everything feels urgent?",
+          "Describe a time a vendor or supplier let you down. How did you handle it?",
+          "How do you approach measuring and improving operational efficiency?",
+          "Tell me about a time you had to coordinate across multiple teams to solve a problem.",
+          "Describe how you'd respond to a sudden disruption in a critical process.",
+        ],
+        Support: [
+          "Tell me about the most difficult customer interaction you've handled.",
+          "How do you stay calm and helpful when a customer is upset?",
+          "Describe a time you had to say no to a customer request. How did you handle it?",
+          "How do you prioritize tickets when you have a large queue?",
+          "Tell me about a time you turned an unhappy customer into a happy one.",
+          "How do you know when to escalate an issue versus solving it yourself?",
+        ],
+        HR: [
+          "Tell me about a time you had to deliver difficult feedback to an employee.",
+          "How do you approach sourcing candidates for a hard-to-fill role?",
+          "Describe how you'd handle a conflict between two team members.",
+          "How do you measure whether an onboarding program is actually working?",
+          "Tell me about a hiring decision you're proud of, and one you'd do differently.",
+          "How do you keep candidates engaged during a long hiring process?",
+        ],
+        Finance: [
+          "Tell me about a time you found an error in a financial model or report.",
+          "How do you approach explaining budget variances to non-finance stakeholders?",
+          "Describe a time you had to make a recommendation under significant uncertainty.",
+          "How do you stay organized during month-end or quarter-end close?",
+          "Tell me about a cost-saving initiative you identified and implemented.",
+          "How do you approach building a forecast you can actually stand behind?",
+        ],
+        Design: [
+          "Walk me through your design process for a recent project, from brief to final delivery.",
+          "Tell me about a time user feedback significantly changed your design direction.",
+          "How do you handle pushback from stakeholders on a design decision you believe in?",
+          "Describe a time you had to balance usability against a tight deadline.",
+          "How do you approach designing for accessibility?",
+          "Tell me about a design you shipped that didn't perform the way you expected.",
+        ],
+        Networking: [
+          "Tell me about the most complex network issue you've diagnosed and resolved.",
+          "How do you approach planning for scalability when designing network infrastructure?",
+          "Describe a time you had to respond to a network outage. Walk me through what you did.",
+          "How do you stay on top of new security threats and vulnerabilities?",
+          "Tell me about a time you had to document a system for a team that would maintain it after you.",
+          "How do you approach balancing security requirements against ease of access for users?",
+        ],
+        Product: [
+          "Tell me about a feature you shipped that didn't perform the way you expected.",
+          "How do you prioritize a roadmap when engineering, sales, and support all want different things?",
+          "Describe how you gather and weigh user feedback when defining requirements.",
+          "Tell me about a time you said no to a stakeholder's feature request. How did you handle it?",
+          "How do you measure whether a feature you shipped was actually successful?",
+          "Describe a time you had to make a product call with incomplete data.",
+        ],
+        Legal: [
+          "Tell me about a time you had to explain a complex legal risk to a non-legal audience.",
+          "How do you balance being a business enabler against being the compliance gatekeeper?",
+          "Describe a contract negotiation that didn't go as planned.",
+          "How do you stay current with changing regulations relevant to your work?",
+          "Tell me about a time you had to make a judgment call with incomplete information.",
+          "Describe a time you identified a compliance risk before it became a problem.",
+          "How do you handle a situation where a business team wants to move faster than you're comfortable approving?",
+          "Tell me about a time you had to say no to a deal or request on legal grounds. How did you communicate it?",
+        ],
+        Other: [
+          "Tell me about a professional accomplishment you're proud of.",
+          "Describe a time you had to adapt quickly to a change at work.",
+          "How do you prioritize when you have multiple deadlines at once?",
+          "Tell me about a time you received critical feedback. How did you respond?",
+          "Describe a time you worked with a difficult teammate. How did you handle it?",
+          "What does a productive workday look like for you?",
+        ],
+      },
+    },
+    Hinglish: {
+      open: [
+        "Thoda apne baare mein bataiye aur ye role aapko kyun attract karta hai.",
+        "Apna background thoda detail mein bataiye aur aap yahan tak kaise pahunche.",
+      ],
+      close: [
+        "Aap agle 3-5 saal mein khud ko kahan dekhte hain?",
+        "Kuch aisa hai jo aap interview panel ko batana chahenge jo humne cover nahi kiya?",
+      ],
+      categories: {
+        Tech: [
+          "Agar production mein aisa issue aaye jo aapne pehle kabhi nahi dekha, toh aap debugging kaise approach karenge?",
+          "Koi technical decision batayiye jo aapne liya tha aur baad mein usko revisit karna pada. Aapne kya seekha?",
+          "Clean, maintainable code likhne aur jaldi ship karne ke beech aap balance kaise banate hain?",
+          "Ek baar bataiye jab aapko kisi project ke liye jaldi se naya technology seekhna pada.",
+          "Code reviews ko aap kaise approach karte hain — feedback dena aur lena dono?",
+          "Koi aisa bug bataiye jo track karna kaafi mushkil tha. Aakhir mein aapne use kaise dhoonda?",
+          "Aap kaise decide karte hain ki code ko refactor karna hai ya as-is chhod dena hai?",
+          "Ek baar bataiye jab aap apne teammate ke technical approach se disagree kiya. Aapne use kaise resolve kiya?",
+        ],
+        Data: [
+          "Ek baar bataiye jab aapke data analysis ne kisi business decision ko badal diya.",
+          "Agar dataset mein kaafi missing ya messy data ho toh aap use kaise handle karte hain?",
+          "Ek complex analysis ko non-technical stakeholder ko aap kaise explain karenge, thoda detail mein bataiye.",
+          "Ek baar bataiye jab aapki initial hypothesis galat nikli. Aapko kaise pata chala, aur aapne kya kiya?",
+          "Kisi bhi problem ke liye kaunse metrics sabse zyada matter karte hain, ye aap kaise decide karte hain?",
+          "Koi dashboard ya report bataiye jo aapne banaya aur log usko regularly use karte the.",
+          "Results share karne se pehle aap kaise validate karte hain ki model ya analysis actually reliable hai?",
+        ],
+        Sales: [
+          "Sabse toughest deal bataiye jo aapne close ki hai.",
+          "Agar prospect pipeline ke beech mein quiet ho jaaye toh aap use kaise handle karte hain?",
+          "Ek baar bataiye jab aapne koi badi deal lose ki. Aapne usse kya seekha?",
+          "Aap kaise decide karte hain ki koi lead pursue karne layak hai ya nahi?",
+          "Ek baar bataiye jab aapko client ki unrealistic expectations par push back karna pada.",
+          "Call ke pehle kuch minutes mein aap prospect ke saath rapport kaise banate hain?",
+          "Agar quarter mein aap quota se peeche ho toh us situation ko aap kaise handle karte hain?",
+        ],
+        Marketing: [
+          "Ek campaign bataiye jo underperform kar gayi thi. Aapne kya kiya?",
+          "Limited budget ke saath aap kaunsa channel prioritize karna hai, ye kaise decide karte hain?",
+          "Ek baar bataiye jab data ne campaign ki direction beech mein hi badal di.",
+          "Brand-building work aur performance-driven, measurable work ke beech aap balance kaise banate hain?",
+          "Wo content ya campaign bataiye jispar aapko sabse zyada proud feel hota hai.",
+          "Naye target audience ko samajhne ke liye aap kya approach lete hain?",
+        ],
+        Ops: [
+          "Koi process bataiye jo aapne redesign kiya aur efficiency meaningfully improve hui.",
+          "Jab sab kuch urgent lage tab competing priorities ko aap kaise handle karte hain?",
+          "Ek baar bataiye jab kisi vendor ya supplier ne aapko let down kiya. Aapne use kaise handle kiya?",
+          "Operational efficiency ko measure aur improve karne ke liye aap kya approach lete hain?",
+          "Ek baar bataiye jab aapko kisi problem ko solve karne ke liye multiple teams ke saath coordinate karna pada.",
+          "Agar kisi critical process mein achanak disruption ho jaaye toh aap kaise respond karenge?",
+        ],
+        Support: [
+          "Sabse difficult customer interaction bataiye jo aapne handle kiya hai.",
+          "Jab customer upset ho tab aap calm aur helpful kaise reh paate hain?",
+          "Ek baar bataiye jab aapko customer ki request ko na kehna pada. Aapne use kaise handle kiya?",
+          "Jab queue bada ho tab aap tickets ko kaise prioritize karte hain?",
+          "Ek baar bataiye jab aapne ek unhappy customer ko happy customer mein badal diya.",
+          "Aapko kaise pata chalta hai ki issue escalate karna hai ya khud solve karna hai?",
+        ],
+        HR: [
+          "Ek baar bataiye jab aapko kisi employee ko difficult feedback dena pada.",
+          "Hard-to-fill role ke liye candidates sourcing ko aap kaise approach karte hain?",
+          "Do team members ke beech conflict ko aap kaise handle karenge, bataiye.",
+          "Aap kaise measure karte hain ki onboarding program actually kaam kar raha hai ya nahi?",
+          "Koi hiring decision bataiye jispar aapko proud feel hota hai, aur ek jo aap differently karte.",
+          "Lambe hiring process ke dauraan aap candidates ko engaged kaise rakhte hain?",
+        ],
+        Finance: [
+          "Ek baar bataiye jab aapko financial model ya report mein koi error mila.",
+          "Budget variances ko non-finance stakeholders ko explain karne ke liye aap kya approach lete hain?",
+          "Ek baar bataiye jab aapko kaafi uncertainty ke beech ek recommendation deni padi.",
+          "Month-end ya quarter-end close ke dauraan aap organized kaise rehte hain?",
+          "Koi cost-saving initiative bataiye jo aapne identify aur implement kiya.",
+          "Aisa forecast banane ke liye aap kya approach lete hain jispar aap khud confident ho?",
+        ],
+        Design: [
+          "Apne kisi recent project ka design process, brief se final delivery tak, thoda detail mein bataiye.",
+          "Ek baar bataiye jab user feedback ne aapki design direction ko significantly badal diya.",
+          "Agar aap kisi design decision par believe karte hain aur stakeholders pushback karein toh aap kaise handle karte hain?",
+          "Ek baar bataiye jab aapko usability aur tight deadline ke beech balance banana pada.",
+          "Accessibility ke liye design karne ka aapka approach kya hai?",
+          "Koi design bataiye jo aapne ship kiya lekin wo expected tarah perform nahi kiya.",
+        ],
+        Networking: [
+          "Sabse complex network issue bataiye jo aapne diagnose aur resolve kiya hai.",
+          "Network infrastructure design karte waqt scalability ke liye planning kaise karte hain?",
+          "Ek baar bataiye jab aapko network outage par respond karna pada. Detail mein bataiye aapne kya kiya.",
+          "Naye security threats aur vulnerabilities ke saath aap kaise update rehte hain?",
+          "Ek baar bataiye jab aapko ek system document karna pada taaki aapke baad wo team use maintain kar sake.",
+          "Security requirements aur users ke liye ease of access ke beech aap balance kaise banate hain?",
+        ],
+        Product: [
+          "Koi feature bataiye jo aapne ship kiya lekin wo expected tarah perform nahi kiya.",
+          "Jab engineering, sales, aur support sabki alag-alag demand ho tab aap roadmap ko kaise prioritize karte hain?",
+          "Requirements define karte waqt aap user feedback ko kaise gather aur weigh karte hain?",
+          "Ek baar bataiye jab aapne kisi stakeholder ki feature request ko na kaha. Aapne use kaise handle kiya?",
+          "Aap kaise measure karte hain ki jo feature aapne ship kiya wo actually successful raha ya nahi?",
+          "Ek baar bataiye jab aapko incomplete data ke saath ek product call leni padi.",
+        ],
+        Legal: [
+          "Ek baar bataiye jab aapko kisi complex legal risk ko non-legal audience ko explain karna pada.",
+          "Business enabler hone aur compliance gatekeeper hone ke beech aap balance kaise banate hain?",
+          "Koi contract negotiation bataiye jo planned tarah se nahi gayi.",
+          "Apne work se relevant changing regulations ke saath aap kaise update rehte hain?",
+          "Ek baar bataiye jab aapko incomplete information ke saath ek judgment call leni padi.",
+          "Ek baar bataiye jab aapne kisi compliance risk ko problem banne se pehle hi identify kar liya.",
+          "Agar business team aapke comfortable approval speed se zyada fast move karna chahe toh aap us situation ko kaise handle karte hain?",
+          "Ek baar bataiye jab aapko legal grounds par kisi deal ya request ko na kehna pada. Aapne ye kaise communicate kiya?",
+        ],
+        Other: [
+          "Koi professional accomplishment bataiye jispar aapko proud feel hota hai.",
+          "Ek baar bataiye jab aapko kaam mein kisi change ke saath jaldi adapt karna pada.",
+          "Jab ek saath multiple deadlines ho tab aap prioritize kaise karte hain?",
+          "Ek baar bataiye jab aapko critical feedback mila. Aapne kaise respond kiya?",
+          "Ek baar bataiye jab aapne kisi difficult teammate ke saath kaam kiya. Aapne use kaise handle kiya?",
+          "Aapke liye ek productive workday kaisa dikhta hai?",
+        ],
+      },
+    },
+  };
+  const CATEGORY_KEYWORDS = {
+    Tech: ['code','deploy','bug','api','architecture','test','release','engineer','system','database','performance','scalab'],
+    Data: ['data','analysis','model','dashboard','metric','sql','query','trend','insight','hypothesis','pipeline'],
+    Sales: ['deal','client','pipeline','quota','negotiat','close','prospect','revenue','crm','objection'],
+    Marketing: ['campaign','audience','conversion','brand','channel','content','budget','engagement','funnel'],
+    Ops: ['process','efficien','vendor','workflow','logistics','sla','coordinat','supply'],
+    Support: ['customer','ticket','escalat','resolution','satisfaction','queue','issue'],
+    HR: ['candidate','onboard','employee','feedback','culture','recruit','policy','interview'],
+    Finance: ['budget','forecast','variance','report','audit','reconcil','model','cost'],
+    Design: ['user','wireframe','prototype','feedback','usability','accessib','research','iterat'],
+    Networking: ['network','infrastructure','security','uptime','latency','firewall','server','protocol'],
+    Product: ['roadmap','feature','stakeholder','requirement','launch','user','metric','prioritiz'],
+    Legal: ['contract','complian','risk','regulation','negotiat','clause','policy'],
+    Other: ['team','project','goal','result','deadline','collaborat'],
+  };
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function buildQuestionSet(category, count, lang) {
+    const bank = QUESTION_BANKS[lang] || QUESTION_BANKS.English;
+    const pool = bank.categories[category] || bank.categories.Other;
+    if (count <= 2) return shuffle(pool).slice(0, count);
+    const opener = shuffle(bank.open)[0];
+    const closer = shuffle(bank.close)[0];
+    const middleCount = Math.max(count - 2, 0);
+    // shuffled passes concatenated until we have enough — repeats only happen
+    // if a category's bank is smaller than the requested question count
+    let middle = shuffle(pool);
+    while (middle.length < middleCount) middle = middle.concat(shuffle(pool));
+    middle = middle.slice(0, middleCount);
+    const questions = [opener, ...middle, closer].slice(0, count);
+    return lang === 'Hinglish' ? questions.map(localHindiSpeechText) : questions;
+  }
+
+  // ================= Answer scoring rubric =================
+  const FILLER_WORDS = /\b(um+|uh+|like|you know|sort of|kind of|basically|actually|i guess|whatever|stuff like that)\b/gi;
+  const SEQUENCE_WORDS = /\b(first|then|next|after that|eventually|as a result|because|so that|ultimately|finally)\b/i;
+  const ACTION_STARTERS = /\bi (led|built|created|designed|developed|managed|drove|launched|owned|decided|analyzed|resolved|negotiated|implemented|improved|reduced|increased|coordinated|handled|delivered)\b/i;
+  const METRIC_PATTERN = /\d+(\.\d+)?\s?%|[₹$€£]\s?\d|\b\d+\s?(users|customers|clients|hours|days|weeks|months|people|team members|percent|x)\b/i;
+
+  function scoreAnswer(text, category) {
+    const trimmed = (text || '').trim();
+    const words = trimmed ? trimmed.split(/\s+/) : [];
+    const wc = words.length;
+
+    let depth = 0;
+    if (wc >= 30) depth += 10;
+    if (wc >= 60) depth += 8;
+    if (wc >= 40 && wc <= 260) depth += 7;
+    depth = Math.min(25, depth);
+
+    let structure = 0;
+    if (SEQUENCE_WORDS.test(trimmed)) structure += 10;
+    if (ACTION_STARTERS.test(trimmed)) structure += 10;
+    if ((trimmed.match(/[.!?]/g) || []).length >= 3) structure += 5;
+    structure = Math.min(25, structure);
+
+    let specificity = 0;
+    if (METRIC_PATTERN.test(trimmed)) specificity += 12;
+    const keywords = CATEGORY_KEYWORDS[category] || CATEGORY_KEYWORDS.Other;
+    const kwHits = keywords.filter(k => new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(trimmed)).length;
+    specificity += Math.min(13, kwHits * 5);
+    specificity = Math.min(25, specificity);
+
+    let clarity = 25;
+    const fillerHits = (trimmed.match(FILLER_WORDS) || []).length;
+    clarity -= Math.min(15, fillerHits * 3);
+    if (wc > 0 && wc < 15) clarity -= 10;
+    clarity = Math.max(0, Math.min(25, clarity));
+
+    return { depth, structure, specificity, clarity, total: depth + structure + specificity + clarity, wordCount: wc };
+  }
+
+  // ================= Language-dependent UI copy (English / Hinglish) =================
+  // Scope: questions (QUESTION_BANKS above), the AI interviewer's spoken/status lines,
+  // live-coaching nudges, and the report copy all switch language. Setup-screen labels,
+  // buttons, and camera-hardware status messages stay English by design.
+  const COPY = {
+    English: {
+      tips: {
+        depth: 'Add a bit more detail — aim for a few full sentences that give real context.',
+        structure: 'Try structuring this with the STAR method: Situation, Task, Action, Result.',
+        specificity: 'Ground this in specifics — a real project, tool, or number makes it more convincing.',
+        clarity: 'Watch filler words like "um" or "basically" — practice pausing instead of filling space.',
+      },
+      skipTip: 'Skipped — try answering this one next time for a fuller picture.',
+      strongAnswer: 'Strong answer — specific, well-structured, and clearly delivered.',
+      readingQuestion: 'Reading question…',
+      readingQuestionHint: 'Reading the question…',
+      speaking: 'Speaking…',
+      interviewerSpeaking: 'The interviewer is speaking…',
+      yourTurnVoice: 'Your turn — go ahead and answer',
+      yourTurnType: 'Your turn — type your answer below',
+      listening: 'Listening — answer whenever you\'re ready',
+      movingOn: 'Got it — moving to the next question…',
+      muted: 'Muted — tap the mic to resume',
+      thinkingAboutAnswer: 'Thinking about your answer…',
+      nextQuestionReady: 'Getting your next question ready…',
+      nextQuestionCaption: 'Thinking of your next question…',
+      micDenied: 'Microphone access was denied, so type your answer here instead.',
+      coachWrapUp: 'Try to land your main point soon — wrap up with a result or takeaway.',
+      coachFiller: 'Lots of filler words — try a silent pause instead of "um" or "like".',
+      scoringWithClaude: 'Scoring your interview with Claude…',
+      strengthCopy: {
+        depth: 'Your answers had real substance — enough detail for an interviewer to follow your thinking.',
+        structure: 'You structured answers clearly, with a sense of sequence and ownership ("I decided…", "as a result…").',
+        specificity: 'You backed answers up with concrete details and role-relevant specifics rather than staying vague.',
+        clarity: 'Your answers were clear and concise, with filler words kept well under control.',
+      },
+      improveCopy: {
+        depth: 'Several answers were quite short. Aim for a few full sentences of context, not just a headline.',
+        structure: 'Try the STAR method — Situation, Task, Action, Result — to give answers a clear shape.',
+        specificity: 'Add concrete numbers, project names, or outcomes — specifics are far more convincing than generalities.',
+        clarity: 'Watch for filler words ("um," "basically," "kind of") and keep sentences complete and direct.',
+      },
+      reportHeadlineStrong: 'Strong practice round',
+      reportHeadlineGood: 'Good start — room to sharpen',
+      reportHeadlineKeep: 'Keep practicing — you\'ll get there',
+      noAnswerGiven: 'No answer given.',
+      aiFollowUpLabel: ' (AI follow-up)',
+      scoredByClaude: (model) => `Scored and written by Claude (${model}) — not the built-in rubric.`,
+      reportMeta: (answered, total, avgTime, skipped, followUpNote) => `${answered} of ${total} answered · avg ${avgTime}s per answer · ${skipped} skipped${followUpNote}`,
+      followUpNote: (n) => ` · ${n} AI follow-up${n === 1 ? '' : 's'} asked`,
+      aiPromptName: 'English',
+    },
+    Hinglish: {
+      tips: {
+        depth: 'Thoda aur detail add kijiye — kuch pure sentences mein real context dijiye.',
+        structure: 'STAR method try kijiye: Situation, Task, Action, Result.',
+        specificity: 'Isse specifics ke saath ground kijiye — koi real project, tool, ya number isko zyada convincing banata hai.',
+        clarity: 'Filler words jaise "um" ya "basically" se bachiye — space fill karne ki jagah pause lena practice kijiye.',
+      },
+      skipTip: 'Skip kiya gaya — agli baar isko answer karke dekhiye, fuller picture milegi.',
+      strongAnswer: 'Strong answer — specific, well-structured, aur clearly deliver kiya gaya.',
+      readingQuestion: 'Sawaal padha ja raha hai…',
+      readingQuestionHint: 'Sawaal padha ja raha hai…',
+      speaking: 'Bol raha hai…',
+      interviewerSpeaking: 'Interviewer bol raha hai…',
+      yourTurnVoice: 'Aapki baari — jawaab dijiye',
+      yourTurnType: 'Aapki baari — neeche apna jawaab type kijiye',
+      listening: 'Sun raha hai — jab bhi aap ready ho jawaab dijiye',
+      movingOn: 'Theek hai — agle sawaal par ja rahe hain…',
+      muted: 'Muted — resume karne ke liye mic tap kijiye',
+      thinkingAboutAnswer: 'Aapke jawaab par soch raha hai…',
+      nextQuestionReady: 'Agla sawaal taiyaar kiya ja raha hai…',
+      nextQuestionCaption: 'Agle sawaal ke baare mein soch raha hai…',
+      micDenied: 'Microphone access deny ho gayi, isliye yahan apna jawaab type kijiye.',
+      coachWrapUp: 'Jaldi apna main point par aaiye — kisi result ya takeaway ke saath wrap up kijiye.',
+      coachFiller: 'Kaafi filler words aa rahe hain — "um" ya "like" ki jagah silent pause lijiye.',
+      scoringWithClaude: 'Claude ke saath aapka interview score kiya ja raha hai…',
+      strengthCopy: {
+        depth: 'Aapke jawaabon mein real substance tha — interviewer ke liye aapki soch samajhna aasan tha.',
+        structure: 'Aapne jawaab clearly structure kiye, sequence aur ownership ke saath ("maine decide kiya…", "result ke taur par…").',
+        specificity: 'Aapne jawaabon ko concrete details aur role-relevant specifics se back kiya, vague nahi rahe.',
+        clarity: 'Aapke jawaab clear aur concise the, filler words kaafi control mein the.',
+      },
+      improveCopy: {
+        depth: 'Kai jawaab kaafi chhote the. Sirf headline nahi, kuch pure sentences ka context dene ki koshish kijiye.',
+        structure: 'STAR method try kijiye — Situation, Task, Action, Result — jawaabon ko ek clear shape dene ke liye.',
+        specificity: 'Concrete numbers, project names, ya outcomes add kijiye — specifics generalities se kaafi zyada convincing hote hain.',
+        clarity: 'Filler words ("um," "basically," "kind of") se bachiye aur sentences complete aur direct rakhiye.',
+      },
+      reportHeadlineStrong: 'Practice round kaafi strong raha',
+      reportHeadlineGood: 'Achi shuruaat — thoda aur sharpen karna hai',
+      reportHeadlineKeep: 'Practice jaari rakhiye — aap wahan pahunch jaayenge',
+      noAnswerGiven: 'Koi jawaab nahi diya gaya.',
+      aiFollowUpLabel: ' (AI follow-up)',
+      scoredByClaude: (model) => `Claude (${model}) dwara score aur likha gaya — built-in rubric se nahi.`,
+      reportMeta: (answered, total, avgTime, skipped, followUpNote) => `${total} mein se ${answered} answer kiye · average ${avgTime}s per answer · ${skipped} skip kiye${followUpNote}`,
+      followUpNote: (n) => ` · ${n} AI follow-up ${n === 1 ? 'poocha gaya' : 'poochey gaye'}`,
+      aiPromptName: 'Hinglish (Hindi-English code-mixed, written in Latin/Roman script — NOT Devanagari)',
+    },
+  };
+  function langCopy(lang) { return COPY[lang] || COPY.English; }
+
+  function tipForAnswer(detail, lang) {
+    const t = langCopy(lang);
+    if (!detail) return t.skipTip;
+    const dims = [
+      { key: 'depth', tip: t.tips.depth },
+      { key: 'structure', tip: t.tips.structure },
+      { key: 'specificity', tip: t.tips.specificity },
+      { key: 'clarity', tip: t.tips.clarity },
+    ];
+    const weakest = dims.reduce((a, b) => (detail[a.key] <= detail[b.key] ? a : b));
+    if (detail.total >= 85) return t.strongAnswer;
+    return weakest.tip;
+  }
+
+  // ================= Real AI mode (optional, bring-your-own API key) =================
+  // Everything below is inert unless the person pastes their own Anthropic API key.
+  // The key lives only in this browser's localStorage and every call goes straight
+  // from this browser to Anthropic's API — there is no server of ours in between.
+  const API_KEY_STORAGE = 'bechnaseekho_anthropic_key';
+  const AI_MODEL = 'claude-haiku-4-5';
+
+  function getApiKey() { try { return (localStorage.getItem(API_KEY_STORAGE) || '').trim(); } catch (e) { return ''; } }
+  function setApiKey(key) { try { if (key) localStorage.setItem(API_KEY_STORAGE, key); else localStorage.removeItem(API_KEY_STORAGE); } catch (e) {} }
+
+  async function callClaude(system, userText, maxTokens) {
+    const key = getApiKey();
+    if (!key) return null;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          max_tokens: maxTokens || 1024,
+          system: system,
+          messages: [{ role: 'user', content: userText }],
+        }),
+      });
+      if (!res.ok) {
+        if (res.status === 401) toast('That API key was rejected by Anthropic — check it and save again.', 'error');
+        else toast('The AI request failed — continuing with the built-in question bank instead.', 'error');
+        return null;
+      }
+      const data = await res.json();
+      return (data.content || []).map(b => b.text || '').join('');
+    } catch (e) {
+      toast('Could not reach Anthropic\'s API — continuing without AI for now.', 'error');
+      return null;
+    }
+  }
+
+  // Pulls the first balanced JSON array/object out of a model response, tolerating
+  // markdown code fences or a little stray prose around it.
+  function extractJson(text) {
+    if (!text) return null;
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const candidate = fenced ? fenced[1] : text;
+    const start = candidate.search(/[\[{]/);
+    if (start === -1) return null;
+    const openChar = candidate[start];
+    const closeChar = openChar === '[' ? ']' : '}';
+    let depth = 0, end = -1;
+    for (let i = start; i < candidate.length; i++) {
+      if (candidate[i] === openChar) depth++;
+      else if (candidate[i] === closeChar) { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) return null;
+    try { return JSON.parse(candidate.slice(start, end + 1)); } catch (e) { return null; }
+  }
+
+  async function generateAIQuestions(category, experience, role, count, contextText, lang) {
+    const langName = langCopy(lang).aiPromptName;
+    const sys = `You are an experienced hiring interviewer. Generate realistic, specific interview questions. Write every question in ${langName}. Respond with ONLY a JSON array of plain question strings — no numbering, no markdown, no commentary, no code fences.`;
+    let user = `Generate exactly ${count} interview questions, written in ${langName}, for a ${experience}-level ${category} candidate` +
+      (role ? ` applying for the role "${role}"` : '') +
+      `. Mix behavioral questions with role-specific/technical ones appropriate for this category and level. Return ONLY a JSON array of ${count} question strings.`;
+    if (contextText) {
+      user += `\n\nHere is the candidate's resume and/or the job description — use it to ask about specific skills, tools, or experience mentioned, but keep the questions natural rather than a checklist:\n"""${contextText.slice(0, 6000)}"""`;
+    }
+    const raw = await callClaude(sys, user, 1400);
+    if (!raw) return null;
+    const parsed = extractJson(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return null;
+    const cleaned = parsed.filter(q => typeof q === 'string' && q.trim()).map(q => q.trim());
+    return cleaned.length ? cleaned.slice(0, count) : null;
+  }
+
+  async function generateFollowUp(category, question, answer, lang) {
+    if (!answer || answer.trim().split(/\s+/).length < 8) return null; // too short to probe meaningfully
+    const langName = langCopy(lang).aiPromptName;
+    const sys = `You are a skilled interviewer deciding whether to ask ONE natural, spoken-style follow-up question that digs into something specific the candidate just said. Only propose one if there is a genuinely interesting thread to pull on — a vague claim, an interesting project, a decision worth probing. If you do ask one, write it in ${langName}. Respond with ONLY a JSON object: {"followUp": "..."} or {"followUp": null} if it does not warrant one. No markdown, no commentary.`;
+    const user = `Category: ${category}\nOriginal question: "${question}"\nCandidate's answer: "${answer}"\n\nShould you ask a follow-up? If yes, write it in ${langName}. Respond with the JSON object only.`;
+    const raw = await callClaude(sys, user, 250);
+    if (!raw) return null;
+    const parsed = extractJson(raw);
+    if (parsed && typeof parsed.followUp === 'string' && parsed.followUp.trim()) return parsed.followUp.trim();
+    return null;
+  }
+
+  // Browser Hindi (hi-IN) text-to-speech voices are built to read Devanagari script — fed
+  // romanized Hinglish instead, they guess at Latin-letter pronunciation and sound broken.
+  // When a real API key is available, Claude converts each line to accurate Devanagari
+  // (keeping embedded English/technical words as-is, the way a bilingual speaker would write
+  // them) purely for speech; the on-screen text and scoring always stay on the original
+  // romanized Hinglish. Results are cached per line so each question is only translated once.
+  const transliterationCache = new Map();
+  async function transliterateToDevanagari(text) {
+    if (transliterationCache.has(text)) return transliterationCache.get(text);
+    const sys = 'You transliterate casual romanized Hindi/Hinglish (Latin script) into accurate, natural Devanagari script, for a text-to-speech engine to read aloud. Keep English words and phrases that appear in the input (technical terms, tool names, methods like "STAR method") exactly as written, in Latin script, embedded naturally within the Devanagari sentence — the way a bilingual Hindi speaker would write them. Respond with ONLY the transliterated sentence, nothing else — no quotes, no explanation, no markdown.';
+    const raw = await callClaude(sys, text, 300);
+    const cleaned = (raw || '').trim().replace(/^["'“”]+|["'“”]+$/g, '');
+    const result = cleaned || text; // fall back to the original romanized text if the call failed
+    transliterationCache.set(text, result);
+    return result;
+  }
+
+  const HINDI_SPEECH_LINES = new Map([
+    ["Thoda apne baare mein bataiye aur ye role aapko kyun attract karta hai.", "थोड़ा अपने बारे में बताइए, और यह role आपको क्यों अच्छा लगता है?"],
+    ["Apna background thoda detail mein bataiye aur aap yahan tak kaise pahunche.", "अपना background थोड़ा detail में बताइए, और आप यहाँ तक कैसे पहुँचे?"],
+    ["Aap agle 3-5 saal mein khud ko kahan dekhte hain?", "आप अगले तीन से पाँच साल में खुद को कहाँ देखते हैं?"],
+    ["Kuch aisa hai jo aap interview panel ko batana chahenge jo humne cover nahi kiya?", "क्या कुछ ऐसा है, जो आप interview panel को बताना चाहेंगे, और जो हमने अभी तक cover नहीं किया?"],
+    ["Sabse toughest deal bataiye jo aapne close ki hai.", "सबसे tough deal के बारे में बताइए, जो आपने close की है।"],
+    ["Agar prospect pipeline ke beech mein quiet ho jaaye toh aap use kaise handle karte hain?", "अगर prospect pipeline के बीच में quiet हो जाए, तो आप उसे कैसे handle करते हैं?"],
+    ["Ek baar bataiye jab aapne koi badi deal lose ki. Aapne usse kya seekha?", "एक ऐसा example बताइए, जब आपने कोई बड़ी deal lose की। आपने उससे क्या सीखा?"],
+    ["Aap kaise decide karte hain ki koi lead pursue karne layak hai ya nahi?", "आप कैसे decide करते हैं कि कोई lead pursue करने लायक है या नहीं?"],
+    ["Ek baar bataiye jab aapko client ki unrealistic expectations par push back karna pada.", "एक ऐसा example बताइए, जब आपको client की unrealistic expectations पर push back करना पड़ा।"],
+    ["Call ke pehle kuch minutes mein aap prospect ke saath rapport kaise banate hain?", "Call के पहले कुछ minutes में आप prospect के साथ rapport कैसे बनाते हैं?"],
+    ["Agar quarter mein aap quota se peeche ho toh us situation ko aap kaise handle karte hain?", "अगर quarter में आप quota से पीछे हों, तो उस situation को आप कैसे handle करते हैं?"],
+  ]);
+
+  function localHindiSpeechText(text) {
+    if (HINDI_SPEECH_LINES.has(text)) return HINDI_SPEECH_LINES.get(text);
+    const replacements = [
+      [/\bThoda\b/g, "थोड़ा"],
+      [/\bApna\b/g, "अपना"],
+      [/\bAap\b/g, "आप"],
+      [/\baap\b/g, "आप"],
+      [/\baapne\b/g, "आपने"],
+      [/\baapko\b/g, "आपको"],
+      [/\bbaare mein\b/g, "बारे में"],
+      [/\bbataiye\b/g, "बताइए"],
+      [/\bbataiye\b/gi, "बताइए"],
+      [/\bye\b/g, "यह"],
+      [/\bkyun\b/g, "क्यों"],
+      [/\bkaise\b/g, "कैसे"],
+      [/\bkya\b/g, "क्या"],
+      [/\bseekha\b/g, "सीखा"],
+      [/\bkarte hain\b/g, "करते हैं"],
+      [/\bkarte\b/g, "करते"],
+      [/\bkarta hai\b/g, "करता है"],
+      [/\bhai\b/g, "है"],
+      [/\bhain\b/g, "हैं"],
+      [/\bmein\b/g, "में"],
+      [/\bke saath\b/g, "के साथ"],
+      [/\bke liye\b/g, "के लिए"],
+      [/\bjab\b/g, "जब"],
+      [/\btoh\b/g, "तो"],
+      [/\bho jaaye\b/g, "हो जाए"],
+      [/\bho\b/g, "हो"],
+      [/\bki\b/g, "की"],
+      [/\bka\b/g, "का"],
+      [/\bko\b/g, "को"],
+      [/\bek\b/gi, "एक"],
+      [/\bbaar\b/g, "बार"],
+      [/\bagle\b/g, "अगले"],
+      [/\bsaal\b/g, "साल"],
+      [/\bkhud\b/g, "खुद"],
+      [/\bkahan\b/g, "कहाँ"],
+      [/\bdekhte\b/g, "देखते"],
+      [/\bkuch\b/g, "कुछ"],
+      [/\baisa\b/g, "ऐसा"],
+      [/\bjo\b/g, "जो"],
+      [/\bhumne\b/g, "हमने"],
+      [/\bnahi\b/g, "नहीं"],
+      [/\bpehle\b/g, "पहले"],
+      [/\bkabhi\b/g, "कभी"],
+      [/\bnaya\b/g, "नया"],
+      [/\bmushkil\b/g, "मुश्किल"],
+      [/\btha\b/g, "था"],
+      [/\bthi\b/g, "थी"],
+    ];
+    return replacements.reduce((value, [pattern, replacement]) => value.replace(pattern, replacement), text);
+  }
+
+  async function generateAIReport(sess) {
+    const langName = langCopy(sess.lang).aiPromptName;
+    const transcript = sess.questions.map((q, i) => `Q${i + 1}: ${q.q}\nA${i + 1}: ${q.skipped ? '(no answer given)' : q.answer}`).join('\n\n');
+    const sys = `You are an expert interview coach evaluating a mock interview transcript. Score honestly but constructively. Write the "headline", "strengths", and "improvements" text in ${langName}. Respond with ONLY a JSON object, no markdown fences, no extra text, matching exactly this shape: {"headline": string (max 8 words), "depth": integer 0-25, "structure": integer 0-25, "specificity": integer 0-25, "clarity": integer 0-25, "strengths": array of 1-3 short strings, "improvements": array of 1-3 short strings}. depth = substance/detail, structure = clear shape such as the STAR method, specificity = concrete examples/numbers/tools, clarity = concise and easy to follow with minimal filler.`;
+    const user = `Category: ${sess.category}\nExperience level: ${sess.experience}\n${sess.role ? 'Role: ' + sess.role + '\n' : ''}\nTranscript:\n${transcript}\n\nReturn the JSON evaluation object only.`;
+    const raw = await callClaude(sys, user, 900);
+    if (!raw) return null;
+    const parsed = extractJson(raw);
+    if (!parsed || typeof parsed.depth !== 'number') return null;
+    const clamp = (n) => Math.max(0, Math.min(25, Math.round(Number(n) || 0)));
+    return {
+      headline: typeof parsed.headline === 'string' ? parsed.headline : null,
+      depth: clamp(parsed.depth), structure: clamp(parsed.structure), specificity: clamp(parsed.specificity), clarity: clamp(parsed.clarity),
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.filter(s => typeof s === 'string').slice(0, 3) : [],
+      improvements: Array.isArray(parsed.improvements) ? parsed.improvements.filter(s => typeof s === 'string').slice(0, 3) : [],
+    };
+  }
+
+  // ================= Natural voice (automatic, server-proxied) =================
+  // Browser text-to-speech (used as the fallback) is capped at whatever robotic voice engine
+  // the OS ships — no amount of correct-script text fixes that. ElevenLabs' neural voices
+  // sound genuinely natural in both English and Hindi. The API key never touches the browser:
+  // this calls our own same-origin /api/tts route, which holds the key server-side and proxies
+  // the request to ElevenLabs. If that route isn't configured (or the call fails for any
+  // reason), this quietly falls back to browser text-to-speech.
+  let elevenWarnedThisSession = false;
+  // Returns an object URL for the synthesized audio, or null if unavailable/failed — callers
+  // fall back to browser text-to-speech whenever this returns null, so a missing server key, a
+  // network hiccup, or an upstream ElevenLabs error all degrade gracefully and silently.
+  async function elevenSpeak(text, langTag) {
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          language_code: langTag === 'hi-IN' ? 'hi' : 'en',
+        }),
+      });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      // Most likely offline, or this page isn't being served from a host with the
+      // /api/tts route (e.g. opened as a local file) — fail silent, once.
+      if (!elevenWarnedThisSession) { elevenWarnedThisSession = true; }
+      return null;
+    }
+  }
+
+  // -------- AI settings UI --------
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveKeyBtn = document.getElementById('saveKeyBtn');
+  const removeKeyBtn = document.getElementById('removeKeyBtn');
+  const aiStatusPill = document.getElementById('aiStatusPill');
+  const aiContextDrop = document.getElementById('aiContextDrop');
+  const aiContextDropLabel = document.getElementById('aiContextDropLabel');
+  const aiContextFile = document.getElementById('aiContextFile');
+  const aiContextStatus = document.getElementById('aiContextStatus');
+  const clearContextBtn = document.getElementById('clearContextBtn');
+  const aiModeBadge = document.getElementById('aiModeBadge');
+  const reportAiNote = document.getElementById('reportAiNote');
+  let aiContextText = '';
+
+  function updateAiStatusUI() {
+    const on = !!getApiKey();
+    aiStatusPill.textContent = on ? 'AI: on' : 'AI: off';
+    aiStatusPill.className = 'ai-status-pill ' + (on ? 'on' : 'off');
+  }
+  saveKeyBtn.addEventListener('click', () => {
+    const val = apiKeyInput.value.trim();
+    if (!val) { toast('Paste your Anthropic API key first.', 'error'); return; }
+    setApiKey(val);
+    updateAiStatusUI();
+    toast('AI key saved — stored only in this browser.', 'success');
+  });
+  removeKeyBtn.addEventListener('click', () => {
+    setApiKey('');
+    apiKeyInput.value = '';
+    updateAiStatusUI();
+    toast('AI key removed.');
+  });
+
+  // Reuses the same lazy-loaded pdf.js / mammoth.js pattern as the Post a Job page,
+  // purely client-side, only to pull plain text out of an uploaded resume/JD.
+  function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src; s.onload = () => resolve(); s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+  async function ensurePdfJs() {
+    if (window.pdfjsLib) return window.pdfjsLib;
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    return window.pdfjsLib;
+  }
+  async function ensureMammoth() {
+    if (window.mammoth) return window.mammoth;
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+    return window.mammoth;
+  }
+  async function extractPdfText(file) {
+    const pdfjsLib = await ensurePdfJs();
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return text;
+  }
+  async function extractDocxText(file) {
+    const mammoth = await ensureMammoth();
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return result.value || '';
+  }
+
+  async function handleAiContextFile(file) {
+    if (!file) return;
+    aiContextStatus.textContent = 'Reading file…';
+    try {
+      let text = '';
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.pdf')) text = await extractPdfText(file);
+      else if (name.endsWith('.docx')) text = await extractDocxText(file);
+      else text = await file.text();
+      text = text.trim();
+      if (!text) { aiContextStatus.textContent = 'Could not find any text in that file.'; return; }
+      aiContextText = text;
+      const wc = text.split(/\s+/).length;
+      aiContextStatus.textContent = `Loaded "${file.name}" (${wc} words) — questions will be tailored to it.`;
+      clearContextBtn.hidden = false;
+    } catch (e) {
+      aiContextStatus.textContent = 'Could not read that file — PDF/DOCX parsing needs an internet connection. Try a .txt file instead.';
+    }
+  }
+  aiContextFile.addEventListener('change', () => { if (aiContextFile.files[0]) handleAiContextFile(aiContextFile.files[0]); });
+  aiContextDrop.addEventListener('click', () => aiContextFile.click());
+  aiContextDrop.addEventListener('dragover', (e) => { e.preventDefault(); aiContextDrop.classList.add('drag'); });
+  aiContextDrop.addEventListener('dragleave', () => aiContextDrop.classList.remove('drag'));
+  aiContextDrop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    aiContextDrop.classList.remove('drag');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleAiContextFile(file);
+  });
+  clearContextBtn.addEventListener('click', () => {
+    aiContextText = '';
+    aiContextStatus.textContent = '';
+    clearContextBtn.hidden = true;
+    aiContextFile.value = '';
+  });
+
+  // ================= Setup view =================
+  const ivCategory = document.getElementById('ivCategory');
+  const ivExperience = document.getElementById('ivExperience');
+  const ivRole = document.getElementById('ivRole');
+  const countChips = document.querySelectorAll('#countChips .count-chip');
+  let selectedCount = 8;
+  countChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      countChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedCount = Number(chip.dataset.count);
+    });
+  });
+
+  const langChips = document.querySelectorAll('#langChips .count-chip');
+  const langNote = document.getElementById('langNote');
+  const voiceStatusText = document.getElementById('voiceStatusText');
+  let selectedLang = 'English';
+  langChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      langChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedLang = chip.dataset.lang;
+      langNote.hidden = selectedLang !== 'Hinglish';
+      updateVoiceStatus();
+    });
+  });
+
+  const startInterviewBtn = document.getElementById('startInterviewBtn');
+  const startBtnDefaultHtml = startInterviewBtn.innerHTML;
+  startInterviewBtn.addEventListener('click', async () => {
+    if (!ivCategory.value) { toast('Choose a category to get started.', 'error'); ivCategory.focus(); return; }
+    await startInterview(ivCategory.value, ivExperience.value, ivRole.value.trim(), selectedCount, selectedLang);
+  });
+
+  // ================= Interview state =================
+  let session = null;
+  let currentIndex = 0;
+  let questionShownAt = 0;
+
+  const interviewContext = document.getElementById('interviewContext');
+  const ivProgressText = document.getElementById('ivProgressText');
+  const ivProgressFill = document.getElementById('ivProgressFill');
+  const callTimer = document.getElementById('callTimer');
+  const aiTile = document.getElementById('aiTile');
+  const speakingStatus = document.getElementById('speakingStatus');
+  const listenHint = document.getElementById('listenHint');
+  const captionText = document.getElementById('captionText');
+  const replayQuestionBtn = document.getElementById('replayQuestionBtn');
+  const candidateVideo = document.getElementById('candidateVideo');
+  const videoOffPlaceholder = document.getElementById('videoOffPlaceholder');
+  const videoOffText = document.getElementById('videoOffText');
+  const micIndicator = document.getElementById('micIndicator');
+  const liveTranscript = document.getElementById('liveTranscript');
+  const wordCount = document.getElementById('wordCount');
+  const fallbackAnswerWrap = document.getElementById('fallbackAnswerWrap');
+  const fallbackAnswerArea = document.getElementById('fallbackAnswerArea');
+  const fallbackWordCount = document.getElementById('fallbackWordCount');
+  const micBtn = document.getElementById('micBtn');
+  const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+
+  // How long to wait after the candidate stops talking before treating the answer as finished.
+  const SILENCE_MS = 2400;
+
+  // -------- Camera + microphone permission (webcam preview only — nothing is uploaded or recorded) --------
+  // Both permissions are requested together, synchronously, right when the candidate clicks
+  // "Start interview" — while that click still counts as a live user gesture. Requesting the
+  // microphone this way (even though we don't keep the audio track) gets the mic permission
+  // granted for this origin immediately; without this, the first getUserMedia/SpeechRecognition
+  // call for audio wouldn't happen until seconds later, inside the TTS "onEnd" callback — by
+  // then the browser no longer treats it as gesture-triggered, and many browsers silently
+  // refuse to even show a permission prompt at that point (voice looks "denied" with no ask).
+  let mediaStream = null;
+  async function primeMediaPermissions(lang) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      videoOffText.textContent = 'Camera not supported in this browser';
+      return;
+    }
+    const wantAudio = usingVoice;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: wantAudio });
+      mediaStream = stream;
+      candidateVideo.srcObject = stream;
+      candidateVideo.hidden = false;
+      videoOffPlaceholder.hidden = true;
+      // SpeechRecognition captures its own audio internally — we only needed this
+      // stream's audio track to establish the mic permission grant, so release it.
+      if (wantAudio) stream.getAudioTracks().forEach(t => t.stop());
+    } catch (e) {
+      if (wantAudio) {
+        // The combined request may have failed because of the microphone half —
+        // retry video-only so the camera preview can still work even if voice can't.
+        try {
+          const videoOnly = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          mediaStream = videoOnly;
+          candidateVideo.srcObject = videoOnly;
+          candidateVideo.hidden = false;
+          videoOffPlaceholder.hidden = true;
+        } catch (e2) {
+          videoOffText.textContent = 'Camera unavailable or permission denied';
+        }
+        switchToTypingFallback(langCopy(lang).micDenied);
+      } else {
+        videoOffText.textContent = 'Camera unavailable or permission denied';
+      }
+    }
+  }
+  function stopCamera() {
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    candidateVideo.hidden = true;
+    videoOffPlaceholder.hidden = false;
+  }
+
+  // -------- Text-to-speech: the AI interviewer reads each question aloud --------
+  const synth = window.speechSynthesis || null;
+  function currentLang() { return (session && session.lang) || 'English'; }
+
+  // getVoices() is often empty until the browser finishes loading its voice list
+  // asynchronously — cache it and refresh whenever the browser tells us it changed.
+  let cachedVoices = [];
+  function voiceLangTag(lang) { return lang === 'Hinglish' ? 'hi-IN' : 'en-US'; }
+  function refreshVoices() { cachedVoices = (synth && synth.getVoices()) || []; }
+  if (synth) {
+    refreshVoices();
+    synth.onvoiceschanged = refreshVoices;
+  }
+  // Prefer a natural/network voice (e.g. "Google हिन्दी") over a compact local one when
+  // both are installed for the same language — the compact ones tend to sound flat/robotic.
+  function pickVoiceFor(langTag) {
+    if (!cachedVoices.length && synth) cachedVoices = synth.getVoices() || [];
+    const wantLower = langTag.toLowerCase();
+    const prefix = wantLower.slice(0, 2);
+    const exact = cachedVoices.filter(v => (v.lang || '').toLowerCase() === wantLower);
+    const pool = exact.length ? exact : cachedVoices.filter(v => (v.lang || '').toLowerCase().startsWith(prefix));
+    if (!pool.length) return null;
+    return pool.find(v => /google|natural|online|neural|premium|enhanced/i.test(v.name))
+      || pool.find(v => !/compact/i.test(v.name))
+      || pool[0];
+  }
+
+  function updateVoiceStatus() {
+    if (!voiceStatusText) return;
+    const label = selectedLang === 'Hinglish' ? 'Hindi' : 'English';
+    const tag = voiceLangTag(selectedLang);
+    const voice = pickVoiceFor(tag);
+    voiceStatusText.textContent = `${label} ElevenLabs human voice selected. Browser voice will be used only if neural audio is unavailable.`;
+  }
+  updateVoiceStatus();
+  if (synth) synth.onvoiceschanged = () => { refreshVoices(); updateVoiceStatus(); };
+
+  // Tracks whatever is currently producing sound (either a browser SpeechSynthesis
+  // utterance or an ElevenLabs <audio> clip) so a new question or a "replay" click can
+  // cleanly stop whichever one is active.
+  let currentAudioEl = null;
+  function stopSpeaking() {
+    if (synth) synth.cancel();
+    if (currentAudioEl) { currentAudioEl.pause(); currentAudioEl.src = ''; currentAudioEl = null; }
+  }
+
+  function speakQuestion(text, onEnd) {
+    const t = langCopy(currentLang());
+    captionText.textContent = text;
+    if (!synth) { speakingStatus.textContent = t.readingQuestion; listenHint.textContent = t.readingQuestionHint; listenHint.classList.remove('active'); setTimeout(onEnd, 900); return; }
+    const isHinglish = currentLang() === 'Hinglish';
+    const langTag = voiceLangTag(currentLang());
+
+    const speakWithBrowserVoice = (spoken) => {
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(spoken);
+      utter.lang = langTag;
+      const voice = pickVoiceFor(langTag);
+      if (voice) utter.voice = voice;
+      utter.rate = 1;
+      utter.pitch = 1;
+      let ended = false;
+      const finish = () => { if (ended) return; ended = true; aiTile.classList.remove('speaking'); onEnd(); };
+      utter.onstart = () => { aiTile.classList.add('speaking'); speakingStatus.textContent = t.speaking; listenHint.textContent = t.interviewerSpeaking; listenHint.classList.remove('active'); };
+      utter.onend = finish;
+      utter.onerror = finish;
+      synth.speak(utter);
+      // Safety net: some browsers silently drop utterances — never let the interview stall.
+      setTimeout(() => { if (!ended && !synth.speaking) finish(); }, 15000);
+    };
+
+    (async () => {
+      // Hindi TTS voices are built for Devanagari script — romanized Hinglish read at
+      // lang="hi-IN" comes out mispronounced. When real AI mode is confirmed working this
+      // session, have Claude transliterate the line to Devanagari first (cached per line)
+      // so the voice reads it correctly; otherwise speak the romanized text as-is.
+      let spoken = text;
+      if (isHinglish) {
+        spoken = session && session.aiPowered
+          ? await transliterateToDevanagari(text)
+          : localHindiSpeechText(text);
+      }
+
+      stopSpeaking();
+      const audioUrl = await elevenSpeak(spoken, langTag);
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        currentAudioEl = audio;
+        let ended = false;
+        const finish = () => {
+          if (ended) return; ended = true;
+          aiTile.classList.remove('speaking');
+          URL.revokeObjectURL(audioUrl);
+          if (currentAudioEl === audio) currentAudioEl = null;
+          onEnd();
+        };
+        audio.onplay = () => { aiTile.classList.add('speaking'); speakingStatus.textContent = t.speaking; listenHint.textContent = t.interviewerSpeaking; listenHint.classList.remove('active'); };
+        audio.onended = finish;
+        audio.onerror = () => { finish(); speakWithBrowserVoice(spoken); }; // fall back mid-stream if playback itself fails
+        audio.play().catch(() => { finish(); speakWithBrowserVoice(spoken); });
+        // Safety net, same as the browser-voice path below.
+        setTimeout(() => { if (!ended && audio.paused) finish(); }, 20000);
+        return;
+      }
+      speakWithBrowserVoice(spoken);
+    })();
+  }
+
+  // -------- Speech-to-text, with graceful fallback to typing --------
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  let recognition = null;
+  let usingVoice = !!SpeechRecognitionCtor;
+  let listening = false;
+  let micMuted = false;
+  let finalTranscript = '';
+  let lastSpeechAt = null;
+  let silenceCheckHandle = null;
+  let committing = false;
+
+  function switchToTypingFallback(message) {
+    usingVoice = false;
+    listening = false;
+    stopSilenceWatch();
+    micBtn.hidden = true;
+    listenHint.hidden = true;
+    fallbackAnswerWrap.hidden = false;
+    if (message) toast(message, 'error');
+    speakingStatus.textContent = langCopy(currentLang()).yourTurnType;
+    fallbackAnswerArea.focus();
+  }
+
+  if (SpeechRecognitionCtor) {
+    recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += transcript + ' ';
+        else interim += transcript;
+      }
+      liveTranscript.textContent = (finalTranscript + interim).trim();
+      lastSpeechAt = Date.now();
+      updateWordCount();
+      maybeCoach();
+    };
+    recognition.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        switchToTypingFallback(langCopy(currentLang()).micDenied);
+      }
+      // other transient errors (no-speech, network) are swallowed — onend restarts listening below
+    };
+    recognition.onend = () => {
+      micIndicator.hidden = true;
+      if (listening && usingVoice && !micMuted) {
+        // continuous mode still ends on silence in some browsers — restart automatically
+        try { recognition.start(); micIndicator.hidden = false; } catch (e) {}
+      }
+    };
+  } else {
+    usingVoice = false;
+  }
+
+  function startListening() {
+    if (!usingVoice || !recognition || micMuted) return;
+    recognition.lang = currentLang() === 'Hinglish' ? 'hi-IN' : 'en-US';
+    finalTranscript = liveTranscript.textContent ? liveTranscript.textContent + ' ' : '';
+    lastSpeechAt = null;
+    listening = true;
+    try { recognition.start(); micIndicator.hidden = false; } catch (e) {}
+    listenHint.textContent = langCopy(currentLang()).listening;
+    listenHint.classList.add('active');
+    startSilenceWatch();
+  }
+  function stopListening() {
+    listening = false;
+    micIndicator.hidden = true;
+    stopSilenceWatch();
+    if (recognition) { try { recognition.stop(); } catch (e) {} }
+  }
+
+  // Polls for a trailing pause in speech so the interview can auto-advance hands-free,
+  // the way a real interviewer would notice you've finished answering.
+  function startSilenceWatch() {
+    stopSilenceWatch();
+    silenceCheckHandle = setInterval(() => {
+      if (!listening || micMuted || lastSpeechAt === null) return;
+      if (Date.now() - lastSpeechAt >= SILENCE_MS) {
+        stopSilenceWatch();
+        listenHint.textContent = langCopy(currentLang()).movingOn;
+        submitAnswerBtn.click();
+      }
+    }, 400);
+  }
+  function stopSilenceWatch() {
+    if (silenceCheckHandle) { clearInterval(silenceCheckHandle); silenceCheckHandle = null; }
+  }
+
+  // -------- Live coaching (heuristic, always on — no API key needed) --------
+  // A brief, non-intrusive nudge in place of the "Listening…" status, based on the
+  // same filler-word/pace signals the end-of-interview rubric uses.
+  let lastCoachAt = 0;
+  let coachActiveUntil = 0;
+  function maybeCoach() {
+    const now = Date.now();
+    if (now < coachActiveUntil) return;
+    if (now - lastCoachAt < 6000) return;
+    const text = liveTranscript.textContent.trim();
+    if (!text) return;
+    const words = text.split(/\s+/);
+    const wc = words.length;
+    const elapsedMs = now - questionShownAt;
+    const fillerHits = (text.match(FILLER_WORDS) || []).length;
+    const t = langCopy(currentLang());
+    let hint = null;
+    if (elapsedMs > 55000 && wc < 50) {
+      hint = t.coachWrapUp;
+    } else if (wc >= 12 && fillerHits / wc > 0.15) {
+      hint = t.coachFiller;
+    }
+    if (hint) {
+      lastCoachAt = now;
+      coachActiveUntil = now + 4000;
+      listenHint.textContent = hint;
+      listenHint.classList.add('active');
+      setTimeout(() => {
+        if (listening && !micMuted) listenHint.textContent = langCopy(currentLang()).listening;
+      }, 4000);
+    }
+  }
+
+  micBtn.addEventListener('click', () => {
+    if (!usingVoice) return;
+    micMuted = !micMuted;
+    micBtn.classList.toggle('active', !micMuted);
+    micBtn.setAttribute('aria-pressed', String(!micMuted));
+    if (micMuted) {
+      stopListening();
+      listenHint.textContent = langCopy(currentLang()).muted;
+      listenHint.classList.remove('active');
+    } else {
+      startListening();
+    }
+  });
+
+  replayQuestionBtn.addEventListener('click', () => {
+    if (!session) return;
+    if (usingVoice) stopListening();
+    speakQuestion(session.questions[currentIndex].q, () => { if (usingVoice) startListening(); });
+  });
+
+  function updateWordCount() {
+    const src = usingVoice ? liveTranscript.textContent : fallbackAnswerArea.value;
+    const wc = src.trim() ? src.trim().split(/\s+/).length : 0;
+    const label = `${wc} word${wc === 1 ? '' : 's'}`;
+    wordCount.textContent = label;
+    fallbackWordCount.textContent = label;
+  }
+  fallbackAnswerArea.addEventListener('input', updateWordCount);
+
+  function getCurrentAnswerText() {
+    return (usingVoice ? liveTranscript.textContent : fallbackAnswerArea.value).trim();
+  }
+
+  // -------- Call timer (total elapsed time for this practice session) --------
+  let callSeconds = 0;
+  let callTimerHandle = null;
+  function startCallTimer() {
+    callSeconds = 0;
+    callTimer.textContent = '00:00';
+    callTimerHandle = setInterval(() => {
+      callSeconds++;
+      const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+      const s = String(callSeconds % 60).padStart(2, '0');
+      callTimer.textContent = `${m}:${s}`;
+    }, 1000);
+  }
+  function stopCallTimer() {
+    if (callTimerHandle) { clearInterval(callTimerHandle); callTimerHandle = null; }
+  }
+
+  async function startInterview(category, experience, role, count, lang) {
+    const interviewLang = lang || 'English';
+    // Start the interview immediately. Camera/microphone permission can take time or be
+    // hidden by the browser, so it runs in the background instead of blocking the Start button.
+    void primeMediaPermissions(interviewLang);
+    const aiOn = !!getApiKey();
+    let questionStrings = null;
+    if (aiOn) {
+      startInterviewBtn.disabled = true;
+      startInterviewBtn.textContent = 'Preparing tailored questions with Claude…';
+      questionStrings = await generateAIQuestions(category, experience, role, count, aiContextText, interviewLang);
+      startInterviewBtn.disabled = false;
+      startInterviewBtn.innerHTML = startBtnDefaultHtml;
+    }
+    const aiPowered = aiOn && !!questionStrings;
+    const questions = (questionStrings || buildQuestionSet(category, count, interviewLang)).map(q => ({ q, answer: '', skipped: false, timeSec: 0, scoreDetail: null }));
+    session = { category, experience, role, lang: interviewLang, questions, requestedCount: count, aiPowered, followUpsUsed: 0, startedAt: new Date().toISOString(), finishedAt: null };
+    currentIndex = 0;
+    interviewContext.textContent = role ? `${role} · ${category} · ${experience}` : `${category} · ${experience}`;
+    aiModeBadge.hidden = !aiPowered;
+    micMuted = false;
+    micBtn.classList.remove('active');
+    micBtn.setAttribute('aria-pressed', 'false');
+    if (!usingVoice) { fallbackAnswerWrap.hidden = false; micBtn.hidden = true; listenHint.hidden = true; }
+    showView('interview');
+    startCallTimer();
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const total = session.questions.length;
+    ivProgressText.textContent = `Question ${currentIndex + 1} of ${total}`;
+    ivProgressFill.style.width = `${Math.round((currentIndex / total) * 100)}%`;
+    committing = false;
+    finalTranscript = '';
+    lastSpeechAt = null;
+    liveTranscript.textContent = '';
+    fallbackAnswerArea.value = '';
+    submitAnswerBtn.disabled = false;
+    updateWordCount();
+    const t = langCopy(currentLang());
+    speakingStatus.textContent = t.speaking;
+    speakQuestion(session.questions[currentIndex].q, () => {
+      speakingStatus.textContent = usingVoice ? t.yourTurnVoice : t.yourTurnType;
+      if (usingVoice) startListening();
+    });
+    questionShownAt = Date.now();
+  }
+
+  function recordAnswer(skip) {
+    const q = session.questions[currentIndex];
+    const answerText = getCurrentAnswerText();
+    stopListening();
+    q.answer = skip ? '' : answerText;
+    q.skipped = skip || !answerText;
+    q.timeSec = Math.max(1, Math.round((Date.now() - questionShownAt) / 1000));
+    q.scoreDetail = q.skipped ? null : scoreAnswer(q.answer, session.category);
+    currentIndex++;
+  }
+
+  const MAX_FOLLOW_UPS = 3;
+  async function advance() {
+    aiTile.classList.remove('speaking');
+    const justAnswered = session.questions[currentIndex - 1];
+    // In AI mode, give Claude a chance to ask one natural follow-up on a substantial
+    // answer — capped, and never chained off another follow-up.
+    const t = langCopy(currentLang());
+    if (session.aiPowered && justAnswered && !justAnswered.skipped && !justAnswered.isFollowUp && session.followUpsUsed < MAX_FOLLOW_UPS) {
+      speakingStatus.textContent = t.thinkingAboutAnswer;
+      listenHint.textContent = t.thinkingAboutAnswer;
+      listenHint.classList.remove('active');
+      const followUp = await generateFollowUp(session.category, justAnswered.q, justAnswered.answer, session.lang);
+      if (followUp) {
+        session.questions.splice(currentIndex, 0, { q: followUp, answer: '', skipped: false, timeSec: 0, scoreDetail: null, isFollowUp: true });
+        session.followUpsUsed++;
+      }
+    }
+    if (currentIndex >= session.questions.length) { finishInterview(); return; }
+    speakingStatus.textContent = t.nextQuestionReady;
+    captionText.textContent = t.nextQuestionCaption;
+    setTimeout(renderQuestion, 550 + Math.random() * 450);
+  }
+
+  // commitAnswer() is the single path for finishing a question — the submit button, the
+  // silence-triggered auto-advance, and skip all funnel through it so a race between two
+  // triggers (e.g. clicking submit right as the pause timer fires) never double-advances.
+  function commitAnswer(skip) {
+    if (committing) return;
+    committing = true;
+    submitAnswerBtn.disabled = true;
+    recordAnswer(skip);
+    advance();
+  }
+
+  submitAnswerBtn.addEventListener('click', () => commitAnswer(false));
+  document.getElementById('skipQuestionBtn').addEventListener('click', () => commitAnswer(true));
+  document.getElementById('endEarlyBtn').addEventListener('click', () => {
+    if (committing) return;
+    committing = true;
+    recordAnswer(!getCurrentAnswerText());
+    // mark every remaining question as skipped so the report only scores what was answered
+    for (let i = currentIndex; i < session.questions.length; i++) session.questions[i].skipped = true;
+    finishInterview();
+  });
+  fallbackAnswerArea.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); submitAnswerBtn.click(); }
+  });
+
+  // ================= Report generation =================
+  const reportRingFg = document.getElementById('reportRingFg');
+  const reportRingVal = document.getElementById('reportRingVal');
+  const reportHeadline = document.getElementById('reportHeadline');
+  const reportSub = document.getElementById('reportSub');
+  const reportMeta = document.getElementById('reportMeta');
+  const strengthsList = document.getElementById('strengthsList');
+  const improveList = document.getElementById('improveList');
+  const qaList = document.getElementById('qaList');
+
+  function computeOverall(questions) {
+    const answered = questions.filter(q => q.scoreDetail);
+    const avg = (key) => answered.length ? Math.round(answered.reduce((s, q) => s + q.scoreDetail[key], 0) / answered.length) : 0;
+    const depth = avg('depth'), structure = avg('structure'), specificity = avg('specificity'), clarity = avg('clarity');
+    return { depth, structure, specificity, clarity, total: depth + structure + specificity + clarity, answeredCount: answered.length };
+  }
+
+  function renderReport(sess) {
+    const t = langCopy(sess.lang);
+    const ai = sess.aiReport;
+    const overall = ai
+      ? { depth: ai.depth, structure: ai.structure, specificity: ai.specificity, clarity: ai.clarity, total: ai.depth + ai.structure + ai.specificity + ai.clarity, answeredCount: sess.questions.filter(q => q.scoreDetail).length }
+      : computeOverall(sess.questions);
+    const c = 2 * Math.PI * 26;
+    reportRingFg.setAttribute('stroke-dasharray', `${(overall.total / 100) * c} ${c}`);
+    const color = overall.total >= 71 ? '#059669' : overall.total >= 41 ? '#d97706' : '#dc2626';
+    reportRingVal.textContent = overall.total;
+    reportRingVal.style.color = color;
+    reportHeadline.textContent = (ai && ai.headline) ? ai.headline : (overall.total >= 71 ? t.reportHeadlineStrong : overall.total >= 41 ? t.reportHeadlineGood : t.reportHeadlineKeep);
+    reportSub.textContent = `${sess.role ? sess.role + ' · ' : ''}${sess.category} · ${sess.experience}`;
+    reportAiNote.textContent = ai ? t.scoredByClaude(AI_MODEL) : '';
+
+    const totalTime = sess.questions.reduce((s, q) => s + (q.timeSec || 0), 0);
+    const avgTime = overall.answeredCount ? Math.round(totalTime / overall.answeredCount) : 0;
+    const skippedCount = sess.questions.filter(q => q.skipped).length;
+    const followUpNote = sess.followUpsUsed ? t.followUpNote(sess.followUpsUsed) : '';
+    reportMeta.textContent = t.reportMeta(overall.answeredCount, sess.questions.length, avgTime, skippedCount, followUpNote);
+
+    setBar('srDepth', 'srDepthVal', overall.depth);
+    setBar('srStructure', 'srStructureVal', overall.structure);
+    setBar('srSpecificity', 'srSpecificityVal', overall.specificity);
+    setBar('srClarity', 'srClarityVal', overall.clarity);
+
+    const dims = ['depth', 'structure', 'specificity', 'clarity'];
+    let strengthTexts, improveTexts;
+    if (ai && (ai.strengths.length || ai.improvements.length)) {
+      strengthTexts = ai.strengths.length ? ai.strengths : [t.strengthCopy[dims.slice().sort((a, b) => overall[b] - overall[a])[0]]];
+      improveTexts = ai.improvements.length ? ai.improvements : [t.improveCopy[dims.slice().sort((a, b) => overall[a] - overall[b])[0]]];
+    } else {
+      const strengths = dims.filter(d => overall[d] >= 19);
+      const weaknesses = dims.filter(d => overall[d] < 14);
+      strengthTexts = (strengths.length ? strengths : dims.slice().sort((a, b) => overall[b] - overall[a]).slice(0, 1)).map(d => t.strengthCopy[d]);
+      improveTexts = (weaknesses.length ? weaknesses : dims.slice().sort((a, b) => overall[a] - overall[b]).slice(0, 1)).map(d => t.improveCopy[d]);
+    }
+    strengthsList.innerHTML = strengthTexts.map(s => `<li><svg class="icon" viewBox="0 0 24 24" width="14" height="14"><path d="M20 6 9 17l-5-5"/></svg><span>${escapeHtml(s)}</span></li>`).join('');
+    improveList.innerHTML = improveTexts.map(s => `<li><svg class="icon" viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span>${escapeHtml(s)}</span></li>`).join('');
+
+    qaList.innerHTML = sess.questions.map((q, i) => {
+      const badgeColor = !q.scoreDetail ? '#f8fafc' : q.scoreDetail.total >= 71 ? '#ecfdf5' : q.scoreDetail.total >= 41 ? '#fffbeb' : '#fef2f2';
+      const badgeText = !q.scoreDetail ? '#94a3b8' : q.scoreDetail.total >= 71 ? '#059669' : q.scoreDetail.total >= 41 ? '#b45309' : '#dc2626';
+      const badgeLabel = q.scoreDetail ? `${q.scoreDetail.total}/100` : 'Skipped';
+      return `<details class="qa-item">
+        <summary>
+          <span class="qa-q">Q${i + 1}${q.isFollowUp ? t.aiFollowUpLabel : ''}. ${escapeHtml(q.q)}</span>
+          <span class="qa-badge" style="background:${badgeColor};color:${badgeText}">${badgeLabel}</span>
+        </summary>
+        <div class="qa-body">
+          <p class="qa-answer${q.skipped ? ' skipped' : ''}">${q.skipped ? t.noAnswerGiven : escapeHtml(q.answer)}</p>
+          <p class="qa-tip"><svg class="icon" viewBox="0 0 24 24" width="13" height="13"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg><span>${escapeHtml(tipForAnswer(q.scoreDetail, sess.lang))}</span></p>
+          <p class="qa-time">${q.timeSec ? `Took ${q.timeSec}s` : ''}</p>
+        </div>
+      </details>`;
+    }).join('');
+  }
+  function setBar(fillId, valId, score) {
+    document.getElementById(fillId).style.width = (score / 25 * 100) + '%';
+    document.getElementById(valId).textContent = score + '/25';
+  }
+
+  async function finishInterview() {
+    stopListening();
+    stopCamera();
+    stopCallTimer();
+    stopSpeaking();
+    aiTile.classList.remove('speaking');
+    session.finishedAt = new Date().toISOString();
+    session.overall = computeOverall(session.questions);
+    session.aiReport = null;
+    if (session.aiPowered) {
+      toast(langCopy(session.lang).scoringWithClaude);
+      session.aiReport = await generateAIReport(session);
+    }
+    saveSession(session);
+    renderReport(session);
+    renderPastSessions();
+    showView('report');
+  }
+
+  // ================= Persistence: past sessions =================
+  const SESSIONS_KEY = 'bechnaseekho_interview_sessions';
+  function getSessions() { try { return JSON.parse(localStorage.getItem(SESSIONS_KEY) || '[]'); } catch (e) { return []; } }
+  function setSessions(list) { try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(list)); } catch (e) {} }
+  function saveSession(sess) {
+    const list = getSessions();
+    list.push(sess);
+    setSessions(list.slice(-30)); // keep the most recent 30
+  }
+
+  const pastList = document.getElementById('pastList');
+  const pastEmpty = document.getElementById('pastEmpty');
+  const pastCount = document.getElementById('pastCount');
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+  function scoreColor(total) {
+    if (total >= 71) return { bg: '#ecfdf5', fg: '#059669' };
+    if (total >= 41) return { bg: '#fffbeb', fg: '#b45309' };
+    return { bg: '#fef2f2', fg: '#dc2626' };
+  }
+
+  function renderPastSessions() {
+    const list = getSessions();
+    pastCount.textContent = `${list.length} in this browser`;
+    pastEmpty.style.display = list.length ? 'none' : 'block';
+    pastList.innerHTML = '';
+    list.slice().reverse().forEach((sess) => {
+      const realIndex = list.indexOf(sess);
+      const total = sess.overall ? sess.overall.total : 0;
+      const col = scoreColor(total);
+      const item = document.createElement('div');
+      item.className = 'past-item';
+      item.innerHTML = `
+        <div class="past-score" style="background:${col.bg};color:${col.fg}">${total}</div>
+        <div class="past-info">
+          <p class="t">${escapeHtml(sess.role ? sess.role : sess.category)}</p>
+          <p class="d">${escapeHtml(sess.category)} · ${escapeHtml(sess.experience)} · ${timeAgo(sess.finishedAt || sess.startedAt)}</p>
+        </div>
+        <div class="past-actions">
+          <button type="button" data-act="view">View report</button>
+          <button type="button" class="danger" data-act="delete">Delete</button>
+        </div>`;
+      item.querySelector('[data-act="view"]').addEventListener('click', () => {
+        session = sess;
+        renderReport(sess);
+        showView('report');
+      });
+      item.querySelector('[data-act="delete"]').addEventListener('click', () => {
+        const listNow = getSessions();
+        listNow.splice(realIndex, 1);
+        setSessions(listNow);
+        renderPastSessions();
+        toast('Session deleted.');
+      });
+      pastList.appendChild(item);
+    });
+  }
+
+  // ================= Report actions =================
+  document.getElementById('retryBtn').addEventListener('click', async () => {
+    if (!session) return;
+    await startInterview(session.category, session.experience, session.role, session.requestedCount || session.questions.length, session.lang);
+  });
+  document.getElementById('newPracticeBtn').addEventListener('click', () => {
+    showView('setup');
+  });
+
+  const printArea = document.getElementById('printArea');
+  document.getElementById('downloadReportBtn').addEventListener('click', () => {
+    if (!session) return;
+    const ai = session.aiReport;
+    const overall = ai
+      ? { depth: ai.depth, structure: ai.structure, specificity: ai.specificity, clarity: ai.clarity, total: ai.depth + ai.structure + ai.specificity + ai.clarity }
+      : (session.overall || computeOverall(session.questions));
+    const tDl = langCopy(session.lang);
+    const qaHtml = session.questions.map((q, i) => `
+      <div class="p-q">Q${i + 1}${q.isFollowUp ? tDl.aiFollowUpLabel : ''}. ${escapeHtml(q.q)}</div>
+      <div class="p-a">${q.skipped ? tDl.noAnswerGiven : escapeHtml(q.answer)}${q.scoreDetail ? ` (${q.scoreDetail.total}/100)` : ''}</div>`).join('');
+    printArea.innerHTML = `
+      <h1>Interview Report — ${escapeHtml(session.role || session.category)}</h1>
+      <p class="p-sub">${escapeHtml(session.category)} · ${escapeHtml(session.experience)} · ${new Date(session.finishedAt || session.startedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+      <p class="p-score">Overall score: ${overall.total}/100 (Depth ${overall.depth}/25 · Structure ${overall.structure}/25 · Specificity ${overall.specificity}/25 · Clarity ${overall.clarity}/25)</p>
+      <div class="p-qa">${qaHtml}</div>
+      <p class="p-foot">Generated by CareerSync's AI Interview Practice — a browser-based practice tool, not a real hiring evaluation.${ai ? ' This report was scored and written by Claude.' : ''}</p>`;
+    window.print();
+  });
+
+  // ================= Init =================
+  apiKeyInput.value = getApiKey();
+  updateAiStatusUI();
+  renderPastSessions();
+</script>
+</body>
+</html>

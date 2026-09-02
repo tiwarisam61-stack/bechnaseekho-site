@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Link } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, Mic, UserRound, Headphones } from "lucide-react";
 
 const UPDATES = [
@@ -90,13 +89,13 @@ export function MockInterviewAnnouncementCard() {
 
           {/* CTA */}
           <div className="flex justify-center lg:justify-end">
-            <Link
-              to="/careersync/journey"
+            <a
+              href="/mock-interview-practice"
               className="group/cta inline-flex shrink-0 items-center gap-2.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-3.5 text-sm font-bold text-white ring-1 ring-white/30 shadow-[0_14px_35px_-12px_rgba(16,185,129,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-10px_rgba(16,185,129,0.7)]"
             >
               Explore Mock Interview
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/cta:translate-x-1" />
-            </Link>
+            </a>
           </div>
         </div>
       </motion.div>
