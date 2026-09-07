@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, CircleAlert, Clock3, Layers3, MessageSquareText, PlusCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useMemo } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
 import {
@@ -15,7 +16,11 @@ import {
     useDemoSnapshot,
     addDemoTimesheetEntry,
     getDemoEmployeeSnapshot,
+    mergeSharedCareerSyncJobs,
+    type DemoJobRecord,
 } from "@/services/careersync/careersync-service";
+import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
+import { reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
 
 export function CareerSyncDashboard() {
     const { user } = useAuth();
@@ -125,9 +130,9 @@ function AdminPanel({ userId }: { userId: string }) {
                         meta={`${job.location ?? "Remote"} · ${job.salary ?? "Salary not set"}`}
                         actions={(
                             <div className="flex flex-wrap gap-2">
-                                <ActionButton onClick={() => approveDemoJob(job.id, userId)} tone="success">Approve</ActionButton>
-                                <ActionButton onClick={() => requestDemoJobChanges(job.id, userId, "Please add more detail to the job description and requirements.")} tone="warning">Request changes</ActionButton>
-                                <ActionButton onClick={() => rejectDemoJob(job.id, userId)} tone="danger">Reject</ActionButton>
+                                <ActionButton onClick={() => handleAdminJobReview(job, userId, "approved", "approved", () => approveDemoJob(job.id, userId))} tone="success">Approve</ActionButton>
+                                <ActionButton onClick={() => handleAdminJobReview(job, userId, "changes_requested", "changes_requested", () => requestDemoJobChanges(job.id, userId, "Please add more detail to the job description and requirements."))} tone="warning">Request changes</ActionButton>
+                                <ActionButton onClick={() => handleAdminJobReview(job, userId, "rejected", "rejected", () => rejectDemoJob(job.id, userId))} tone="danger">Reject</ActionButton>
                             </div>
                         )}
                     />
@@ -150,6 +155,35 @@ function AdminPanel({ userId }: { userId: string }) {
             </div>
         </PanelShell>
     );
+}
+
+async function handleAdminJobReview(job: DemoJobRecord, adminUserId: string, status: DemoJobRecord["status"], action: string, localUpdate: () => void) {
+    const reviewer = getDemoDisplayName(adminUserId);
+    try {
+        localUpdate();
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.id)) {
+            const sharedJob = await reviewSharedCareerSyncJob({ jobId: job.id, status, reviewedBy: reviewer });
+            if (sharedJob) mergeSharedCareerSyncJobs([sharedJob]);
+        }
+        await submitToGoogleSheet(buildJobSheetPayload({
+            company: job.company,
+            role: job.role,
+            location: job.location,
+            category: job.tags?.[0] ?? "",
+            employmentType: job.employment_type,
+            experience: job.experience,
+            salary: job.salary,
+            tags: job.tags,
+            description: job.description,
+            postedBy: job.recruiter_email || job.posted_by || reviewer,
+            status,
+            action,
+            reviewedBy: reviewer,
+        }));
+        toast.success(`Job ${action} and logged to Google Sheet.`);
+    } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not log review to Google Sheet.");
+    }
 }
 
 function CompanyPanel({ userId }: { userId: string }) {

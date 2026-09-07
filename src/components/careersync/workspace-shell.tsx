@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, FileClock, LogOut, ShieldCheck, Users, UserRound } from "lucide-react";
 import { CareerSyncDashboard } from "@/components/careersync/dashboard";
 import { NotificationBell } from "@/components/careersync/notification-bell";
@@ -26,6 +27,8 @@ import {
     getCareerSyncCandidateProgress,
     getCareerSyncCompanyAnalytics,
     getCareerSyncLeadAssignments,
+    mergeSharedCareerSyncJobs,
+    syncCareerSyncWorkspaceUser,
     reviewDemoBlog,
     reviewDemoLeaveRequest,
     rejectDemoJob,
@@ -34,11 +37,16 @@ import {
     submitDemoLeaveRequest,
     updateDemoTaskStatus,
     toggleDemoSavedJob,
+    updateDemoApplicationStatus,
     useDemoSnapshot,
     type DemoJobRecord,
 } from "@/services/careersync/careersync-service";
 import { signOut } from "@/services/platform/auth-service";
+import { notifyAdminWhatsAppSilently } from "@/lib/admin-whatsapp-notify";
+import { fetchSharedCareerSyncJobs, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
 import { getRoleLabel } from "@/lib/careersync-rbac";
+import { fallbackCareerSyncMatch } from "@/lib/careersync-match";
+import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
 
 const ROLE_NAVS = {
     admin: [
@@ -95,6 +103,36 @@ export function CareerSyncWorkspaceShell() {
     const { user, loading: authLoading } = useAuth();
     const { role, loading: roleLoading, isAdmin, isCompany, isEmployee, isCandidate } = useRole();
     const snapshot = useDemoSnapshot();
+    const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;
+    const companyName = typeof user?.user_metadata?.company_name === "string" ? user.user_metadata.company_name : null;
+    const phone = typeof user?.user_metadata?.phone === "string" ? user.user_metadata.phone : null;
+
+    useEffect(() => {
+        if (!user || !role) return;
+        syncCareerSyncWorkspaceUser({
+            id: user.id,
+            email: user.email,
+            role,
+            fullName,
+            companyName,
+            phone,
+        });
+    }, [companyName, fullName, phone, role, user?.email, user?.id]);
+
+    useEffect(() => {
+        if (!user || !role || (role !== "admin" && role !== "company")) return;
+        let cancelled = false;
+        fetchSharedCareerSyncJobs({ role, userId: user.id, email: user.email })
+            .then((jobs) => {
+                if (!cancelled) mergeSharedCareerSyncJobs(jobs, role === "company" ? user.id : null);
+            })
+            .catch((error) => {
+                console.warn("[CareerSync] Shared jobs sync failed", error);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [role, user?.email, user?.id]);
 
     if (authLoading || roleLoading) {
         return <WorkspaceLoading />;
@@ -109,7 +147,7 @@ export function CareerSyncWorkspaceShell() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/40 text-[#0F172A]">
             <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 backdrop-blur-xl">
-                <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center">
                     <div className="flex items-center gap-3">
                         <Link to="/" className="flex items-center gap-2.5 rounded-full bg-white px-3 py-2 ring-1 ring-slate-100">
                             <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-md"><ShieldCheck className="h-4 w-4" /></div>
@@ -120,12 +158,18 @@ export function CareerSyncWorkspaceShell() {
                         </div>
                     </div>
 
-                    <nav className="flex flex-wrap items-center gap-2">
+                    <nav className="flex w-full flex-wrap items-center justify-start gap-2 lg:w-auto lg:flex-1">
                         {navItems.map((item) => (
                             item.href.startsWith("#") ? (
                                 <a
                                     key={item.label}
                                     href={item.href}
+                                    onClick={(event) => {
+                                        if (role !== "company") return;
+                                        event.preventDefault();
+                                        window.history.replaceState(null, "", item.href);
+                                        window.dispatchEvent(new CustomEvent("careersync-company-section", { detail: item.href.slice(1) }));
+                                    }}
                                     className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-100 transition hover:bg-slate-50 hover:text-slate-900"
                                 >
                                     {item.label}
@@ -421,12 +465,44 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     );
 }
 
+function sendAdminApprovalAlert(input: {
+    title: string;
+    message: string;
+    actor?: string;
+    entity?: string;
+    href?: string;
+}) {
+    notifyAdminWhatsAppSilently({
+        type: "approval_request",
+        href: input.href ?? "/careersync?workspace=1",
+        ...input,
+    });
+}
+
+type CompanyWorkspaceTab = "overview" | "jobs" | "pipeline" | "candidates" | "analytics" | "notifications" | "profile";
+
+const COMPANY_SECTION_TABS: Record<string, CompanyWorkspaceTab> = {
+    dashboard: "overview",
+    "my-jobs": "jobs",
+    applicants: "candidates",
+    analytics: "analytics",
+    notifications: "notifications",
+    profile: "profile",
+};
+
+function getCompanyWorkspaceTab(section: string) {
+    return COMPANY_SECTION_TABS[section.replace(/^#/, "")] ?? "overview";
+}
+
 function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
     const myJobs = snapshot.jobs.filter((job) => job.posted_by === userId);
     const myNotifications = getDemoNotificationsForUser(userId);
     const myApplications = snapshot.applications.filter((application) => myJobs.some((job) => job.id === application.job_id));
     const companyAnalytics = getCareerSyncCompanyAnalytics(userId);
-    const [activeTab, setActiveTab] = useState<"overview" | "pipeline" | "candidates" | "analytics" | "profile">("overview");
+    const [activeTab, setActiveTab] = useState<CompanyWorkspaceTab>(() => {
+        if (typeof window === "undefined") return "overview";
+        return getCompanyWorkspaceTab(window.location.hash);
+    });
     const [selectedRoleId, setSelectedRoleId] = useState<string | "all">("all");
     const [candidateQuery, setCandidateQuery] = useState("");
     const companyName = myJobs[0]?.company || snapshot.users.find((user) => user.id === userId)?.company_name || getDemoDisplayName(userId);
@@ -434,7 +510,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     const roleOptions = useMemo(() => myJobs.map((job, index) => {
         const applications = myApplications.filter((application) => application.job_id === job.id);
         const activeApplications = applications.filter((application) => !["rejected", "withdrawn"].includes(application.status));
-        const avgFit = applications.length ? Math.round(applications.reduce((sum, application) => sum + recruiterFitScore(application.id, job.id), 0) / applications.length) : 0;
+        const avgFit = applications.length ? Math.round(applications.reduce((sum, application) => sum + getApplicationFit(application, job), 0) / applications.length) : 0;
         return {
             ...job,
             code: String(index + 1).padStart(2, "0"),
@@ -454,7 +530,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                 return {
                     ...application,
                     job,
-                    fit: recruiterFitScore(application.id, application.job_id),
+                    fit: getApplicationFit(application, job),
                 };
             })
             .filter((application) => {
@@ -482,12 +558,30 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     }, {});
 
     const tabs = [
-        ["overview", "Overview"],
+        ["overview", "Dashboard"],
+        ["jobs", "My Jobs"],
         ["pipeline", "Pipeline"],
-        ["candidates", "Candidates"],
+        ["candidates", "Applicants"],
         ["analytics", "Analytics"],
-        ["profile", "Company profile"],
+        ["notifications", "Notifications"],
+        ["profile", "Profile"],
     ] as const;
+
+    useEffect(() => {
+        const applyHash = () => setActiveTab(getCompanyWorkspaceTab(window.location.hash));
+        const applySection = (event: Event) => {
+            const section = event instanceof CustomEvent && typeof event.detail === "string" ? event.detail : "";
+            setActiveTab(getCompanyWorkspaceTab(section));
+        };
+
+        applyHash();
+        window.addEventListener("hashchange", applyHash);
+        window.addEventListener("careersync-company-section", applySection);
+        return () => {
+            window.removeEventListener("hashchange", applyHash);
+            window.removeEventListener("careersync-company-section", applySection);
+        };
+    }, []);
 
     return (
         <div className="min-h-screen rounded-[1.25rem] bg-[#F6F5F1] p-3 text-[#171B2B] sm:p-5">
@@ -625,6 +719,18 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                     </RecruiterPanel>
                 )}
 
+                {activeTab === "jobs" && (
+                    <RecruiterPanel title="My Jobs" caption={`${myJobs.length} roles posted from this company workspace`} action={<Link to="/post-job" className="rounded-xl bg-[#0F1424] px-4 py-2 text-xs font-black text-white transition hover:bg-[#171E33]">+ Post new role</Link>}>
+                        {myJobs.length === 0 ? (
+                            <EmptyState title="No jobs yet" message="Post your first role to start building a hiring pipeline." />
+                        ) : (
+                            <div className="grid gap-3 lg:grid-cols-2">
+                                {myJobs.map((job) => <CompanyJobCard key={job.id} job={job} companyUserId={userId} />)}
+                            </div>
+                        )}
+                    </RecruiterPanel>
+                )}
+
                 {activeTab === "candidates" && (
                     <RecruiterPanel title="AI-matched candidates" caption={`${filteredApplications.length} shown`}>
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -654,10 +760,13 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                         <RecruiterPanel title="Average fit by role" caption="AI score estimate">
                             <RecruiterBarList data={roleOptions.map((job) => ({ label: job.role, value: job.avgFit }))} suffix="%" />
                         </RecruiterPanel>
-                        <RecruiterPanel title="Notifications" caption="recruiter alerts">
-                            <NotificationList notifications={myNotifications} emptyLabel="No HR notifications yet." />
-                        </RecruiterPanel>
                     </div>
+                )}
+
+                {activeTab === "notifications" && (
+                    <RecruiterPanel title="Notifications" caption="Recruiter alerts for this workspace">
+                        <NotificationList notifications={myNotifications} emptyLabel="No HR notifications yet." />
+                    </RecruiterPanel>
                 )}
 
                 {activeTab === "profile" && (
@@ -693,9 +802,31 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     );
 }
 
-function recruiterFitScore(applicationId: string, jobId: string) {
-    const seed = `${applicationId}:${jobId}`.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return 56 + (seed % 39);
+function getApplicationFit(application: {
+    id: string;
+    job_id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+    cover_letter: string | null;
+    resume_path: string | null;
+    resume_url: string | null;
+    ai_match_score?: number | null;
+}, job?: DemoJobRecord) {
+    if (typeof application.ai_match_score === "number") return application.ai_match_score;
+    if (!job) return 0;
+    return fallbackCareerSyncMatch({
+        job,
+        candidate: {
+            full_name: application.full_name,
+            email: application.email,
+            phone: application.phone,
+            cover_letter: application.cover_letter,
+            resume_path: application.resume_path,
+            resume_url: application.resume_url,
+            resumeName: application.resume_path?.split("/").pop() ?? null,
+        },
+    }).fitScore;
 }
 
 function recruiterStage(status: string) {
@@ -797,6 +928,10 @@ function RecruiterCandidateCard({
         status: string;
         created_at: string;
         fit: number;
+        ai_match_reason?: string | null;
+        ai_matched_skills?: string[] | null;
+        ai_missing_skills?: string[] | null;
+        ai_score_source?: "ai" | "fallback" | null;
         job?: DemoJobRecord;
     };
     compact?: boolean;
@@ -823,10 +958,15 @@ function RecruiterCandidateCard({
                     {!compact && (
                         <>
                             <div className="mt-3 flex flex-wrap gap-1.5">
-                                {(application.job?.required_skills ?? application.job?.tags ?? []).slice(0, 4).map((skill) => (
+                                {(application.ai_matched_skills?.length ? application.ai_matched_skills : application.job?.required_skills ?? application.job?.tags ?? []).slice(0, 4).map((skill) => (
                                     <span key={skill} className="rounded-full bg-[#F6F5F1] px-2 py-1 text-[11px] font-bold text-[#5B6172] ring-1 ring-[#E4E2DA]">{skill}</span>
                                 ))}
                             </div>
+                            {application.ai_match_reason && (
+                                <p className="mt-3 rounded-xl bg-[#F6F5F1] px-3 py-2 text-xs font-semibold leading-5 text-[#5B6172]">
+                                    {application.ai_match_reason}
+                                </p>
+                            )}
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                                 {application.resume_url ? (
                                     <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-[#F6F5F1] px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA] transition hover:bg-white">Resume</a>
@@ -931,7 +1071,18 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
             <section id="leave" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
                 <SectionHeading title="Leave Requests" subtitle="Request leave and track approval status." />
                 <div className="mt-5 flex flex-wrap gap-2">
-                    <ActionButton tone="success" onClick={() => submitDemoLeaveRequest({ userId, leaveType: "casual", startDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10), endDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), reason: "Personal work" })}>
+                    <ActionButton tone="success" onClick={() => {
+                        const startDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+                        const endDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+                        submitDemoLeaveRequest({ userId, leaveType: "casual", startDate, endDate, reason: "Personal work" });
+                        sendAdminApprovalAlert({
+                            title: "Leave approval requested",
+                            message: `${getDemoDisplayName(userId)} requested casual leave from ${startDate} to ${endDate}.`,
+                            href: "/careersync?workspace=1#employees",
+                            actor: getDemoDisplayName(userId),
+                            entity: "Casual leave",
+                        });
+                    }}>
                         Submit leave request
                     </ActionButton>
                 </div>
@@ -976,7 +1127,16 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
                         Create draft
                     </ActionButton>
                     {employee.blogs.filter((blog) => blog.status === "draft").slice(0, 1).map((blog) => (
-                        <ActionButton key={blog.id} tone="success" onClick={() => submitDemoBlogForReview(blog.id, userId)}>
+                        <ActionButton key={blog.id} tone="success" onClick={() => {
+                            submitDemoBlogForReview(blog.id, userId);
+                            sendAdminApprovalAlert({
+                                title: "Blog approval requested",
+                                message: `${getDemoDisplayName(userId)} submitted "${blog.title}" for approval.`,
+                                href: "/careersync?workspace=1#blog-approval",
+                                actor: getDemoDisplayName(userId),
+                                entity: blog.title,
+                            });
+                        }}>
                             Submit latest draft
                         </ActionButton>
                     ))}
@@ -1109,6 +1269,39 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
 }
 
 function AdminJobCard({ job, adminUserId }: { job: DemoJobRecord; adminUserId: string }) {
+    const [reviewing, setReviewing] = useState<DemoJobRecord["status"] | null>(null);
+    const reviewer = getDemoDisplayName(adminUserId);
+    const submitReview = async (status: DemoJobRecord["status"], action: string, localUpdate: () => void) => {
+        setReviewing(status);
+        try {
+            localUpdate();
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.id)) {
+                const sharedJob = await reviewSharedCareerSyncJob({ jobId: job.id, status, reviewedBy: reviewer });
+                if (sharedJob) mergeSharedCareerSyncJobs([sharedJob]);
+            }
+            await submitToGoogleSheet(buildJobSheetPayload({
+                company: job.company,
+                role: job.role,
+                location: job.location,
+                category: job.tags?.[0] ?? "",
+                employmentType: job.employment_type,
+                experience: job.experience,
+                salary: job.salary,
+                tags: job.tags,
+                description: job.description,
+                postedBy: job.recruiter_email || job.posted_by || reviewer,
+                status,
+                action,
+                reviewedBy: reviewer,
+            }));
+            toast.success(`Job ${action} and logged to Google Sheet.`);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Could not log review to Google Sheet.");
+        } finally {
+            setReviewing(null);
+        }
+    };
+
     return (
         <div className="rounded-3xl border border-amber-100 bg-amber-50/40 p-4 ring-1 ring-amber-100">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1120,10 +1313,32 @@ function AdminJobCard({ job, adminUserId }: { job: DemoJobRecord; adminUserId: s
                     {job.status}
                 </span>
             </div>
+            <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                <p><span className="font-bold text-slate-800">Salary:</span> {job.salary || "Not provided"}</p>
+                <p><span className="font-bold text-slate-800">Experience:</span> {job.experience || "Not provided"}</p>
+                <p><span className="font-bold text-slate-800">Type:</span> {job.employment_type || "Not provided"}</p>
+                <p><span className="font-bold text-slate-800">Posted by:</span> {job.posted_by ? getDemoDisplayName(job.posted_by) : job.recruiter_email || "Company workspace"}</p>
+            </div>
+            {job.tags?.length ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                    {job.tags.map((tag) => (
+                        <span key={tag} className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 ring-1 ring-amber-100">
+                            {tag}
+                        </span>
+                    ))}
+                </div>
+            ) : null}
+            <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-600">{job.description || "No description provided."}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-                <ActionButton tone="success" onClick={() => approveDemoJob(job.id, adminUserId)}>Approve</ActionButton>
-                <ActionButton tone="warning" onClick={() => requestDemoJobChanges(job.id, adminUserId, "Please add more detail to the job description and requirements.")}>Request changes</ActionButton>
-                <ActionButton tone="danger" onClick={() => rejectDemoJob(job.id, adminUserId)}>Reject</ActionButton>
+                <ActionButton tone="success" disabled={Boolean(reviewing)} onClick={() => submitReview("approved", "approved", () => approveDemoJob(job.id, adminUserId))}>
+                    {reviewing === "approved" ? "Logging..." : "Approve"}
+                </ActionButton>
+                <ActionButton tone="warning" disabled={Boolean(reviewing)} onClick={() => submitReview("changes_requested", "changes_requested", () => requestDemoJobChanges(job.id, adminUserId, "Please add more detail to the job description and requirements."))}>
+                    {reviewing === "changes_requested" ? "Logging..." : "Request changes"}
+                </ActionButton>
+                <ActionButton tone="danger" disabled={Boolean(reviewing)} onClick={() => submitReview("rejected", "rejected", () => rejectDemoJob(job.id, adminUserId))}>
+                    {reviewing === "rejected" ? "Logging..." : "Reject"}
+                </ActionButton>
             </div>
         </div>
     );
@@ -1148,7 +1363,16 @@ function CompanyJobCard({ job, companyUserId }: { job: DemoJobRecord; companyUse
                     Edit / Resubmit
                 </Link>
                 {isPending && <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">Awaiting admin review</span>}
-                <ActionButton tone="danger" onClick={() => deleteDemoJob(job.id, companyUserId)}>Delete</ActionButton>
+                <ActionButton tone="danger" onClick={() => {
+                    deleteDemoJob(job.id, companyUserId);
+                    sendAdminApprovalAlert({
+                        title: "Job deletion approval requested",
+                        message: `${getDemoDisplayName(companyUserId)} requested deletion for ${job.role} at ${job.company}.`,
+                        href: "/careersync?workspace=1#delete-requests",
+                        actor: getDemoDisplayName(companyUserId),
+                        entity: `${job.role} · ${job.company}`,
+                    });
+                }}>Delete</ActionButton>
             </div>
         </div>
     );
@@ -1301,7 +1525,7 @@ function UserRow({ name, meta, badge }: { name: string; meta: string; badge: str
     );
 }
 
-function ActionButton({ children, tone, onClick }: { children: React.ReactNode; tone: "success" | "warning" | "danger" | "neutral"; onClick: () => void }) {
+function ActionButton({ children, tone, onClick, disabled = false }: { children: React.ReactNode; tone: "success" | "warning" | "danger" | "neutral"; onClick: () => void; disabled?: boolean }) {
     const classes = {
         success: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
         warning: "bg-amber-50 text-amber-700 hover:bg-amber-100",
@@ -1310,7 +1534,7 @@ function ActionButton({ children, tone, onClick }: { children: React.ReactNode; 
     }[tone];
 
     return (
-        <button type="button" onClick={onClick} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${classes}`}>
+        <button type="button" onClick={onClick} disabled={disabled} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${classes}`}>
             {children}
         </button>
     );
