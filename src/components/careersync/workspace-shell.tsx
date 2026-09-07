@@ -27,6 +27,7 @@ import {
     getCareerSyncCandidateProgress,
     getCareerSyncCompanyAnalytics,
     getCareerSyncLeadAssignments,
+    mergeSharedCareerSyncApplications,
     mergeSharedCareerSyncJobs,
     syncCareerSyncWorkspaceUser,
     reviewDemoBlog,
@@ -43,7 +44,7 @@ import {
 } from "@/services/careersync/careersync-service";
 import { signOut } from "@/services/platform/auth-service";
 import { notifyAdminWhatsAppSilently } from "@/lib/admin-whatsapp-notify";
-import { fetchSharedCareerSyncJobs, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
+import { fetchSharedCareerSyncApplications, fetchSharedCareerSyncJobs, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
 import { getRoleLabel } from "@/lib/careersync-rbac";
 import { fallbackCareerSyncMatch } from "@/lib/careersync-match";
 import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
@@ -122,12 +123,17 @@ export function CareerSyncWorkspaceShell() {
     useEffect(() => {
         if (!user || !role || (role !== "admin" && role !== "company")) return;
         let cancelled = false;
-        fetchSharedCareerSyncJobs({ role, userId: user.id, email: user.email })
-            .then((jobs) => {
-                if (!cancelled) mergeSharedCareerSyncJobs(jobs, role === "company" ? user.id : null);
+        Promise.all([
+            fetchSharedCareerSyncJobs({ role, userId: user.id, email: user.email }),
+            fetchSharedCareerSyncApplications({ role, userId: user.id, email: user.email }),
+        ])
+            .then(([jobs, applications]) => {
+                if (cancelled) return;
+                mergeSharedCareerSyncJobs(jobs, role === "company" ? user.id : null);
+                mergeSharedCareerSyncApplications(applications);
             })
             .catch((error) => {
-                console.warn("[CareerSync] Shared jobs sync failed", error);
+                console.warn("[CareerSync] Shared workspace sync failed", error);
             });
         return () => {
             cancelled = true;

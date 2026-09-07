@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Database } from "@/integrations/supabase/types";
-import type { DemoJobRecord } from "@/lib/careersync-demo";
+import type { DemoApplicationRecord, DemoJobRecord } from "@/lib/careersync-demo";
 
+type ApplicationRow = Database["public"]["Tables"]["applications"]["Row"];
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 type JobStatus = DemoJobRecord["status"];
 
@@ -17,6 +18,11 @@ export const Route = createFileRoute("/api/careersync-jobs")({
           const email = clean(url.searchParams.get("email"), 255).toLowerCase();
           const userId = clean(url.searchParams.get("userId"), 160);
           const supabaseAdmin = await getSupabaseAdmin();
+
+          if (url.searchParams.get("resource") === "applications") {
+            const applications = await listApplicationsForRole({ supabaseAdmin, role, email, userId });
+            return Response.json({ applications: applications.map(toDemoApplication) });
+          }
 
           let query = supabaseAdmin
             .from("jobs")
@@ -48,6 +54,28 @@ export const Route = createFileRoute("/api/careersync-jobs")({
         try {
           const payload = await request.json();
           const supabaseAdmin = await getSupabaseAdmin();
+          if (payload?.type === "application") {
+            const application = applicationPayload(payload);
+            const { data: existing, error: existingError } = await supabaseAdmin
+              .from("applications")
+              .select("*")
+              .eq("job_id", application.job_id)
+              .eq("user_id", application.user_id)
+              .maybeSingle();
+
+            if (existingError) throw existingError;
+            if (existing) return Response.json({ application: toDemoApplication(existing) });
+
+            const { data, error } = await supabaseAdmin
+              .from("applications")
+              .insert(application)
+              .select("*")
+              .single();
+
+            if (error) throw error;
+            return Response.json({ application: toDemoApplication(data) });
+          }
+
           const recruiterEmail = clean(payload.recruiterEmail, 255).toLowerCase();
 
           const { data, error } = await supabaseAdmin
@@ -165,6 +193,23 @@ function toDemoJob(job: JobRow, localOwnerId: string | null): DemoJobRecord {
   };
 }
 
+function toDemoApplication(application: ApplicationRow): DemoApplicationRecord {
+  return {
+    id: application.id,
+    job_id: application.job_id,
+    user_id: application.user_id,
+    full_name: application.full_name,
+    email: application.email,
+    phone: application.phone,
+    resume_path: application.resume_path,
+    resume_url: application.resume_url,
+    cover_letter: application.cover_letter,
+    status: application.status,
+    created_at: application.created_at,
+    updated_at: application.updated_at,
+  };
+}
+
 function clean(value: unknown, max = 500) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -194,6 +239,63 @@ function jobPayload(payload: Record<string, unknown>) {
     preferred_skills: toStringArray(payload.preferredSkills).slice(0, 12),
     application_deadline: clean(payload.applicationDeadline, 40) || null,
   };
+}
+
+function applicationPayload(payload: Record<string, unknown>) {
+  return {
+    job_id: requireUuid(payload.jobId, "jobId"),
+    user_id: requireText(payload.userId, "userId", 160),
+    full_name: requireText(payload.fullName, "fullName", 100),
+    email: requireText(payload.email, "email", 255).toLowerCase(),
+    phone: clean(payload.phone, 30) || null,
+    resume_path: clean(payload.resumePath, 500) || null,
+    resume_url: clean(payload.resumeUrl, 1000) || null,
+    cover_letter: clean(payload.coverLetter, 1500) || null,
+    status: "submitted",
+  };
+}
+
+async function listApplicationsForRole({
+  supabaseAdmin,
+  role,
+  email,
+  userId,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  role: string | null;
+  email: string;
+  userId: string;
+}) {
+  let jobQuery = supabaseAdmin.from("jobs").select("id").limit(200);
+  if (role === "company") {
+    if (!email) return [];
+    jobQuery = jobQuery.eq("recruiter_email", email);
+  } else if (role !== "admin") {
+    if (!userId) return [];
+    const applicationQuery = supabaseAdmin
+      .from("applications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const { data, error } = await applicationQuery;
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  const { data: jobs, error: jobsError } = await jobQuery;
+  if (jobsError) throw jobsError;
+  const jobIds = (jobs ?? []).map((job) => job.id).filter(Boolean);
+  if (!jobIds.length) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from("applications")
+    .select("*")
+    .in("job_id", jobIds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return data ?? [];
 }
 
 function toStringArray(value: unknown) {

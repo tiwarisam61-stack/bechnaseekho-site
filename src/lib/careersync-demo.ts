@@ -40,6 +40,7 @@ export type DemoJobRecord = {
     company_overview?: string | null;
     company_website?: string | null;
     recruiter_whatsapp?: string | null;
+    recruiter_email?: string | null;
     recruiter_notes?: string | null;
     application_deadline?: string | null;
     posted_by?: string | null;
@@ -57,6 +58,13 @@ export type DemoApplicationRecord = {
     resume_url: string | null;
     cover_letter: string | null;
     status: string;
+    ai_match_score?: number | null;
+    ai_match_level?: "high" | "medium" | "low" | null;
+    ai_match_reason?: string | null;
+    ai_matched_skills?: string[] | null;
+    ai_missing_skills?: string[] | null;
+    ai_score_source?: "ai" | "fallback" | null;
+    ai_scored_at?: string | null;
     created_at: string;
     updated_at: string;
 };
@@ -230,6 +238,7 @@ function makeJob(job: Omit<DemoJobRecord, "logo" | "created_at" | "updated_at" |
         company_overview: job.company_overview ?? null,
         company_website: job.company_website ?? null,
         recruiter_whatsapp: job.recruiter_whatsapp ?? null,
+        recruiter_email: job.recruiter_email ?? null,
         recruiter_notes: job.recruiter_notes ?? null,
         application_deadline: job.application_deadline ?? null,
         version: job.version ?? 1,
@@ -550,6 +559,15 @@ function addNotificationToUsers(userIds: string[], notification: Omit<DemoNotifi
     });
 }
 
+function pushNotification(state: DemoState, notification: Omit<DemoNotificationRecord, "id" | "created_at" | "read_at"> & Partial<Pick<DemoNotificationRecord, "created_at" | "read_at">>) {
+    state.notifications.unshift({
+        id: demoId("notif"),
+        created_at: notification.created_at ?? nowIso(),
+        read_at: notification.read_at ?? null,
+        ...notification,
+    });
+}
+
 function getRowsForTable(state: DemoState, table: keyof DemoState): Record<string, unknown>[] {
     switch (table) {
         case "users": return state.users as unknown as Record<string, unknown>[];
@@ -635,6 +653,7 @@ function enrichInsertedRow(table: keyof DemoState, row: Record<string, unknown>,
             company_overview: row.company_overview ?? null,
             company_website: row.company_website ?? null,
             recruiter_whatsapp: row.recruiter_whatsapp ?? null,
+            recruiter_email: row.recruiter_email ?? null,
             recruiter_notes: row.recruiter_notes ?? null,
             application_deadline: row.application_deadline ?? null,
             version: typeof row.version === "number" ? row.version : 1,
@@ -654,6 +673,13 @@ function enrichInsertedRow(table: keyof DemoState, row: Record<string, unknown>,
             resume_url: row.resume_url ?? null,
             cover_letter: row.cover_letter ?? null,
             status: String(row.status ?? "submitted"),
+            ai_match_score: typeof row.ai_match_score === "number" ? row.ai_match_score : null,
+            ai_match_level: row.ai_match_level === "high" || row.ai_match_level === "medium" || row.ai_match_level === "low" ? row.ai_match_level : null,
+            ai_match_reason: typeof row.ai_match_reason === "string" ? row.ai_match_reason : null,
+            ai_matched_skills: Array.isArray(row.ai_matched_skills) ? row.ai_matched_skills.map(String) : null,
+            ai_missing_skills: Array.isArray(row.ai_missing_skills) ? row.ai_missing_skills.map(String) : null,
+            ai_score_source: row.ai_score_source === "ai" || row.ai_score_source === "fallback" ? row.ai_score_source : null,
+            ai_scored_at: typeof row.ai_scored_at === "string" ? row.ai_scored_at : null,
             created_at: String(row.created_at ?? now),
             updated_at: String(row.updated_at ?? now),
         };
@@ -711,9 +737,20 @@ function mutateTable(state: DemoState, table: keyof DemoState, config: { filters
             const job = inserted[0] as DemoJobRecord | undefined;
             const current = getCurrentUser(state);
             if (job) {
-                addNotification({ user_id: DEFAULT_ADMIN_ID, title: "New job pending review", message: `${job.role} at ${job.company} was submitted by ${getDisplayName(current)} and is waiting for approval.`, type: "warning", href: "/careersync", metadata: { jobId: job.id, postedBy: current?.id ?? null } });
+                const adminIds = state.users.filter((user) => user.role === "admin").map((user) => user.id);
+                const reviewOwnerIds = adminIds.length ? adminIds : [DEFAULT_ADMIN_ID];
+                reviewOwnerIds.forEach((adminId) => {
+                    pushNotification(state, {
+                        user_id: adminId,
+                        title: "New job pending review",
+                        message: `${job.role} at ${job.company} was submitted by ${getDisplayName(current)} and is waiting for approval.`,
+                        type: "warning",
+                        href: "/careersync?workspace=1#jobs-approval",
+                        metadata: { jobId: job.id, postedBy: current?.id ?? job.posted_by ?? null },
+                    });
+                });
                 if (current?.role === "company") {
-                    addNotification({ user_id: current.id, title: "Job submitted for review", message: `Your ${job.role} listing has been queued for admin approval.`, type: "success", href: "/careersync", metadata: { jobId: job.id } });
+                    pushNotification(state, { user_id: current.id, title: "Job submitted for review", message: `Your ${job.role} listing has been queued for admin approval.`, type: "success", href: "/careersync?workspace=1#my-jobs", metadata: { jobId: job.id } });
                 }
             }
         }
@@ -992,6 +1029,99 @@ export function createLocalDemoSupabaseClient() {
     };
 }
 
+export function syncDemoUserFromAuth(input: {
+    id: string;
+    email?: string | null;
+    role?: DemoRole | null;
+    fullName?: string | null;
+    companyName?: string | null;
+    phone?: string | null;
+}) {
+    if (!input.id || !input.role) return;
+    const currentState = getState();
+    const existing = currentState.users.find((user) => user.id === input.id);
+    const fallbackName = input.email?.split("@")[0] || "User";
+    const nextRecord: DemoUserRecord = {
+        id: input.id,
+        email: input.email || existing?.email || `${input.id}@careersync.local`,
+        password: existing?.password || "",
+        full_name: input.fullName || existing?.full_name || fallbackName,
+        role: input.role,
+        company_name: input.companyName ?? existing?.company_name ?? (input.role === "admin" ? "BechnaSeekho" : null),
+        phone: input.phone ?? existing?.phone ?? null,
+    };
+    const existingProfile = currentState.profiles.find((item) => item.id === input.id);
+    const unchanged =
+        existing?.email === nextRecord.email &&
+        existing?.password === nextRecord.password &&
+        existing?.full_name === nextRecord.full_name &&
+        existing?.role === nextRecord.role &&
+        (existing?.company_name ?? null) === (nextRecord.company_name ?? null) &&
+        (existing?.phone ?? null) === (nextRecord.phone ?? null) &&
+        existingProfile?.full_name === nextRecord.full_name &&
+        (existingProfile?.company_name ?? null) === (nextRecord.company_name ?? null) &&
+        (existingProfile?.phone ?? null) === (nextRecord.phone ?? null);
+    if (unchanged) return;
+
+    setState((state) => {
+        const userIndex = state.users.findIndex((user) => user.id === input.id);
+        if (userIndex >= 0) state.users[userIndex] = nextRecord;
+        else state.users.unshift(nextRecord);
+
+        const profile: DemoProfileRecord = {
+            id: input.id,
+            full_name: nextRecord.full_name,
+            company_name: nextRecord.company_name ?? null,
+            phone: nextRecord.phone ?? null,
+        };
+        const profileIndex = state.profiles.findIndex((item) => item.id === input.id);
+        if (profileIndex >= 0) state.profiles[profileIndex] = profile;
+        else state.profiles.unshift(profile);
+        return state;
+    });
+}
+
+export function mergeSharedDemoJobs(jobs: DemoJobRecord[], localOwnerId?: string | null) {
+    if (!jobs.length) return;
+    setState((state) => {
+        jobs.forEach((incoming) => {
+            const next: DemoJobRecord = {
+                ...incoming,
+                posted_by: incoming.posted_by ?? localOwnerId ?? null,
+                tags: incoming.tags ?? [],
+                responsibilities: incoming.responsibilities ?? [],
+                required_skills: incoming.required_skills ?? incoming.tags ?? [],
+                preferred_skills: incoming.preferred_skills ?? [],
+                benefits: incoming.benefits ?? [],
+            };
+            const index = state.jobs.findIndex((job) => job.id === next.id);
+            if (index >= 0) state.jobs[index] = { ...state.jobs[index], ...next };
+            else state.jobs.unshift(next);
+        });
+        return state;
+    });
+}
+
+export function mergeSharedDemoApplications(applications: DemoApplicationRecord[]) {
+    if (!applications.length) return;
+    setState((state) => {
+        applications.forEach((incoming) => {
+            const next: DemoApplicationRecord = {
+                ...incoming,
+                phone: incoming.phone ?? null,
+                resume_path: incoming.resume_path ?? null,
+                resume_url: incoming.resume_url ?? null,
+                cover_letter: incoming.cover_letter ?? null,
+                status: incoming.status || "submitted",
+            };
+            const index = state.applications.findIndex((application) => application.id === next.id);
+            if (index >= 0) state.applications[index] = { ...state.applications[index], ...next };
+            else state.applications.unshift(next);
+        });
+        return state;
+    });
+}
+
 export function useDemoSnapshot() {
     const [snapshot, setSnapshot] = useState(() => getState());
 
@@ -1129,6 +1259,32 @@ export function recordDemoApplication(input: { jobId: string; userId: string; fu
         const ownerId = job?.posted_by ?? DEFAULT_ADMIN_ID;
         state.notifications.unshift({ id: demoId("notif"), user_id: ownerId, title: "New application received", message: `${input.fullName} applied for ${job?.role ?? "a role"} at ${job?.company ?? "CareerSync"}.`, type: "info", href: "/careersync/jobs", created_at: nowIso(), read_at: null, metadata: { applicationId: application.id, jobId: input.jobId } });
         state.notifications.unshift({ id: demoId("notif"), user_id: input.userId, title: "Application submitted", message: `Your application for ${job?.role ?? "the role"} was submitted successfully.`, type: "success", href: "/careersync/notifications", created_at: nowIso(), read_at: null, metadata: { applicationId: application.id, jobId: input.jobId } });
+        return state;
+    });
+}
+export function updateDemoApplicationMatch(
+    applicationId: string,
+    match: {
+        fitScore: number;
+        matchLevel: "high" | "medium" | "low";
+        matchedSkills: string[];
+        missingSkills: string[];
+        aiReason: string;
+        source: "ai" | "fallback";
+        scoredAt?: string;
+    },
+) {
+    setState((state) => {
+        const application = state.applications.find((item) => item.id === applicationId);
+        if (!application) return state;
+        application.ai_match_score = match.fitScore;
+        application.ai_match_level = match.matchLevel;
+        application.ai_match_reason = match.aiReason;
+        application.ai_matched_skills = match.matchedSkills;
+        application.ai_missing_skills = match.missingSkills;
+        application.ai_score_source = match.source;
+        application.ai_scored_at = match.scoredAt ?? nowIso();
+        application.updated_at = nowIso();
         return state;
     });
 }

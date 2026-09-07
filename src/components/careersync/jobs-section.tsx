@@ -29,8 +29,8 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { applyFilters, hasAnyFilter, type Filters, type SalaryBucket, type ExperienceBucket } from "@/lib/jobs/filter";
 import { ResumeUpload } from "@/components/careersync/resume-upload";
-import { applyCareerSyncJob, listCareerSyncApprovedJobs } from "@/services/careersync/careersync-service";
-import { fetchPublicCareerSyncJobs } from "@/lib/careersync-jobs-api";
+import { applyCareerSyncJob, listCareerSyncApprovedJobs, mergeSharedCareerSyncApplications } from "@/services/careersync/careersync-service";
+import { fetchPublicCareerSyncJobs, persistSharedCareerSyncApplication } from "@/lib/careersync-jobs-api";
 
 
 function timeAgo(iso: string): string {
@@ -1170,6 +1170,17 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
         resumePath: resume.path,
         coverLetter: coverLetter.trim() || null,
       });
+      const sharedApplication = await persistSharedCareerSyncApplication({
+        userId: user.id,
+        jobId: job.id,
+        fullName: name,
+        email: mail,
+        phone: tel || null,
+        resumeUrl: resume.url,
+        resumePath: resume.path,
+        coverLetter: coverLetter.trim() || null,
+      });
+      if (sharedApplication) mergeSharedCareerSyncApplications([sharedApplication]);
     } catch (error) {
       submitError = error instanceof Error ? error.message : "Could not submit application. Please try again.";
     }

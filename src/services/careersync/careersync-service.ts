@@ -1,13 +1,25 @@
 import { InMemoryCareerSyncRepository } from "./repositories/in-memory-careersync-repository";
-import { DEMO_ACCOUNTS } from "@/lib/careersync-demo";
+import { DEMO_ACCOUNTS, mergeSharedDemoApplications, mergeSharedDemoJobs, syncDemoUserFromAuth } from "@/lib/careersync-demo";
 import type {
     ApplyJobRequest,
     CareerSyncRepository,
     ResumeUploadRequest,
     UpsertJobRequest,
 } from "./repositories/careersync-repository";
-export type { DemoJobRecord } from "@/lib/careersync-demo";
+export type { DemoApplicationRecord, DemoJobRecord } from "@/lib/careersync-demo";
 export { DEMO_ACCOUNTS };
+
+export function syncCareerSyncWorkspaceUser(input: Parameters<typeof syncDemoUserFromAuth>[0]) {
+    syncDemoUserFromAuth(input);
+}
+
+export function mergeSharedCareerSyncJobs(jobs: Parameters<typeof mergeSharedDemoJobs>[0], localOwnerId?: string | null) {
+    mergeSharedDemoJobs(jobs, localOwnerId);
+}
+
+export function mergeSharedCareerSyncApplications(applications: Parameters<typeof mergeSharedDemoApplications>[0]) {
+    mergeSharedDemoApplications(applications);
+}
 
 const repo: CareerSyncRepository = new InMemoryCareerSyncRepository();
 
