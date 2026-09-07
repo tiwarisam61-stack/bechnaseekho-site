@@ -8,7 +8,7 @@ type JobStatus = DemoJobRecord["status"];
 
 const JOB_STATUSES = new Set<JobStatus>(["approved", "pending", "rejected", "changes_requested"]);
 const APPLICATION_STATUSES = new Set(["submitted", "under_review", "interview", "offer", "rejected", "withdrawn"]);
-const RESUME_BUCKET = process.env.SUPABASE_RESUME_BUCKET || "careersync-resumes";
+const DEFAULT_RESUME_BUCKET = "careersync-resumes";
 
 export const Route = createFileRoute("/api/careersync-jobs")({
   server: {
@@ -383,8 +383,9 @@ async function uploadResumeFile({
   const extension = getResumeExtension(file.name);
   const body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
   const path = `${safePathSegment(userId)}/${Date.now()}-${randomId()}${extension}`;
+  const bucket = getResumeBucket();
   const upload = await supabaseAdmin.storage
-    .from(RESUME_BUCKET)
+    .from(bucket)
     .upload(path, body, {
       contentType: file.type || "application/octet-stream",
       upsert: false,
@@ -393,7 +394,7 @@ async function uploadResumeFile({
   if (upload.error) throw upload.error;
 
   const signed = await supabaseAdmin.storage
-    .from(RESUME_BUCKET)
+    .from(bucket)
     .createSignedUrl(path, 60 * 60 * 24 * 30);
 
   if (signed.error) throw signed.error;
@@ -402,6 +403,10 @@ async function uploadResumeFile({
     url: signed.data.signedUrl,
     name: clean(file.name, 180) || `resume${extension}`,
   };
+}
+
+function getResumeBucket() {
+  return process.env.SUPABASE_RESUME_BUCKET || DEFAULT_RESUME_BUCKET;
 }
 
 async function listApplicationsForRole({
