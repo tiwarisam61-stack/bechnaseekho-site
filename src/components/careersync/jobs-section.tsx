@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { applyFilters, hasAnyFilter, type Filters, type SalaryBucket, type ExperienceBucket } from "@/lib/jobs/filter";
 import { ResumeUpload } from "@/components/careersync/resume-upload";
 import { applyCareerSyncJob, listCareerSyncApprovedJobs } from "@/services/careersync/careersync-service";
+import { fetchPublicCareerSyncJobs } from "@/lib/careersync-jobs-api";
 
 
 function timeAgo(iso: string): string {
@@ -316,16 +317,31 @@ export function CareerSyncJobsSection({
     let mounted = true;
     (async () => {
       setLoading(true);
-      const data = listCareerSyncApprovedJobs().slice(0, 60);
-      if (mounted) {
-        const normalized = ((data as Job[]) ?? []).map((job) => {
+      try {
+        const sharedJobs = await fetchPublicCareerSyncJobs();
+        const data = sharedJobs.length ? sharedJobs : listCareerSyncApprovedJobs();
+        if (!mounted) return;
+        const normalized = ((data as Job[]) ?? []).slice(0, 60).map((job) => {
           const externalId = job.external_id ?? "";
           const override = VERIFIED_JOB_OVERRIDES[externalId];
           if (!override) return job;
           return { ...job, ...override };
         });
         setJobs(normalized);
-        setLoading(false);
+      } catch (error) {
+        console.warn("[CareerSync] Falling back to local jobs", error);
+        if (!mounted) return;
+        const normalized = ((listCareerSyncApprovedJobs() as Job[]) ?? []).slice(0, 60).map((job) => {
+          const externalId = job.external_id ?? "";
+          const override = VERIFIED_JOB_OVERRIDES[externalId];
+          if (!override) return job;
+          return { ...job, ...override };
+        });
+        setJobs(normalized);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     })();
     return () => {
