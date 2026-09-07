@@ -7,6 +7,8 @@ type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 type JobStatus = DemoJobRecord["status"];
 
 const JOB_STATUSES = new Set<JobStatus>(["approved", "pending", "rejected", "changes_requested"]);
+const APPLICATION_STATUSES = new Set(["submitted", "under_review", "interview", "offer", "rejected", "withdrawn"]);
+const RESUME_BUCKET = process.env.SUPABASE_RESUME_BUCKET || "careersync-resumes";
 
 export const Route = createFileRoute("/api/careersync-jobs")({
   server: {
@@ -52,8 +54,21 @@ export const Route = createFileRoute("/api/careersync-jobs")({
       },
       POST: async ({ request }) => {
         try {
-          const payload = await request.json();
           const supabaseAdmin = await getSupabaseAdmin();
+          const contentType = request.headers.get("content-type") ?? "";
+          if (contentType.includes("multipart/form-data")) {
+            const formData = await request.formData();
+            const file = formData.get("file");
+            if (!(file instanceof File)) throw new Error("Missing required field: file");
+            const resume = await uploadResumeFile({
+              supabaseAdmin,
+              userId: requireText(formData.get("userId"), "userId", 160),
+              file,
+            });
+            return Response.json({ resume });
+          }
+
+          const payload = await request.json();
           if (payload?.type === "application") {
             const application = applicationPayload(payload);
             const { data: existing, error: existingError } = await supabaseAdmin
@@ -64,7 +79,24 @@ export const Route = createFileRoute("/api/careersync-jobs")({
               .maybeSingle();
 
             if (existingError) throw existingError;
-            if (existing) return Response.json({ application: toDemoApplication(existing) });
+            if (existing) {
+              const { data: refreshed, error: refreshError } = await supabaseAdmin
+                .from("applications")
+                .update({
+                  full_name: application.full_name,
+                  email: application.email,
+                  phone: application.phone,
+                  resume_path: application.resume_path,
+                  resume_url: application.resume_url,
+                  cover_letter: application.cover_letter,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", existing.id)
+                .select("*")
+                .single();
+              if (refreshError) throw refreshError;
+              return Response.json({ application: toDemoApplication(refreshed) });
+            }
 
             const { data, error } = await supabaseAdmin
               .from("applications")
@@ -74,6 +106,11 @@ export const Route = createFileRoute("/api/careersync-jobs")({
 
             if (error) throw error;
             return Response.json({ application: toDemoApplication(data) });
+          }
+
+          if (payload?.type === "repair-applications") {
+            const result = await repairApplications(supabaseAdmin, payload.applications);
+            return Response.json(result);
           }
 
           const recruiterEmail = clean(payload.recruiterEmail, 255).toLowerCase();
@@ -126,6 +163,21 @@ export const Route = createFileRoute("/api/careersync-jobs")({
       PATCH: async ({ request }) => {
         try {
           const payload = await request.json();
+          if (payload?.type === "application-status") {
+            const applicationId = requireUuid(payload.applicationId, "applicationId");
+            const status = normalizeApplicationStatus(payload.status);
+            const supabaseAdmin = await getSupabaseAdmin();
+            const { data, error } = await supabaseAdmin
+              .from("applications")
+              .update({ status, updated_at: new Date().toISOString() })
+              .eq("id", applicationId)
+              .select("*")
+              .single();
+
+            if (error) throw error;
+            return Response.json({ application: toDemoApplication(data) });
+          }
+
           const jobId = requireUuid(payload.jobId, "jobId");
           const status = normalizeStatus(payload.status);
           const supabaseAdmin = await getSupabaseAdmin();
@@ -255,6 +307,103 @@ function applicationPayload(payload: Record<string, unknown>) {
   };
 }
 
+function repairApplicationPayload(payload: Record<string, unknown>) {
+  return {
+    job_id: requireUuid(payload.job_id ?? payload.jobId, "jobId"),
+    user_id: requireText(payload.user_id ?? payload.userId, "userId", 160),
+    full_name: requireText(payload.full_name ?? payload.fullName, "fullName", 100),
+    email: requireText(payload.email, "email", 255).toLowerCase(),
+    phone: clean(payload.phone, 30) || null,
+    resume_path: clean(payload.resume_path ?? payload.resumePath, 500) || null,
+    resume_url: clean(payload.resume_url ?? payload.resumeUrl, 1000) || null,
+    cover_letter: clean(payload.cover_letter ?? payload.coverLetter, 1500) || null,
+    status: normalizeApplicationStatus(payload.status || "submitted"),
+  };
+}
+
+async function repairApplications(
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>,
+  value: unknown,
+) {
+  if (!Array.isArray(value)) throw new Error("Missing required field: applications");
+  const repaired: DemoApplicationRecord[] = [];
+  let inserted = 0;
+  let skipped = 0;
+
+  for (const item of value.slice(0, 500)) {
+    if (!item || typeof item !== "object") {
+      skipped += 1;
+      continue;
+    }
+
+    let application: ReturnType<typeof repairApplicationPayload>;
+    try {
+      application = repairApplicationPayload(item as Record<string, unknown>);
+    } catch {
+      skipped += 1;
+      continue;
+    }
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from("applications")
+      .select("*")
+      .eq("job_id", application.job_id)
+      .eq("user_id", application.user_id)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (existing) {
+      repaired.push(toDemoApplication(existing));
+      skipped += 1;
+      continue;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("applications")
+      .insert(application)
+      .select("*")
+      .single();
+    if (error) throw error;
+    repaired.push(toDemoApplication(data));
+    inserted += 1;
+  }
+
+  return { inserted, skipped, applications: repaired };
+}
+
+async function uploadResumeFile({
+  supabaseAdmin,
+  userId,
+  file,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  userId: string;
+  file: File;
+}) {
+  if (file.size > 5 * 1024 * 1024) throw new Error("Resume must be under 5 MB.");
+  const extension = getResumeExtension(file.name);
+  const body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
+  const path = `${safePathSegment(userId)}/${Date.now()}-${randomId()}${extension}`;
+  const upload = await supabaseAdmin.storage
+    .from(RESUME_BUCKET)
+    .upload(path, body, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+
+  if (upload.error) throw upload.error;
+
+  const signed = await supabaseAdmin.storage
+    .from(RESUME_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 30);
+
+  if (signed.error) throw signed.error;
+  return {
+    path,
+    url: signed.data.signedUrl,
+    name: clean(file.name, 180) || `resume${extension}`,
+  };
+}
+
 async function listApplicationsForRole({
   supabaseAdmin,
   role,
@@ -307,6 +456,27 @@ function normalizeStatus(value: unknown): JobStatus {
   const status = clean(value, 40) as JobStatus;
   if (!JOB_STATUSES.has(status)) throw new Error("Invalid job status.");
   return status;
+}
+
+function normalizeApplicationStatus(value: unknown) {
+  const status = clean(value, 40).toLowerCase().replace(/[\s-]+/g, "_");
+  if (!APPLICATION_STATUSES.has(status)) throw new Error("Invalid application status.");
+  return status;
+}
+
+function getResumeExtension(name: string) {
+  const match = clean(name, 220).toLowerCase().match(/\.(pdf|doc|docx)$/);
+  if (!match) throw new Error("Only PDF or Word resumes are allowed.");
+  return `.${match[1]}`;
+}
+
+function randomId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2, 12);
+}
+
+function safePathSegment(value: string) {
+  return value.replace(/[^a-z0-9_-]/gi, "-").slice(0, 120) || "candidate";
 }
 
 function requireUuid(value: unknown, label: string) {

@@ -1106,6 +1106,8 @@ export function mergeSharedDemoApplications(applications: DemoApplicationRecord[
     if (!applications.length) return;
     setState((state) => {
         applications.forEach((incoming) => {
+            const existingIndex = state.applications.findIndex((application) => application.id === incoming.id);
+            const previousStatus = existingIndex >= 0 ? state.applications[existingIndex].status : null;
             const next: DemoApplicationRecord = {
                 ...incoming,
                 phone: incoming.phone ?? null,
@@ -1114,9 +1116,62 @@ export function mergeSharedDemoApplications(applications: DemoApplicationRecord[
                 cover_letter: incoming.cover_letter ?? null,
                 status: incoming.status || "submitted",
             };
-            const index = state.applications.findIndex((application) => application.id === next.id);
-            if (index >= 0) state.applications[index] = { ...state.applications[index], ...next };
+            if (existingIndex >= 0) state.applications[existingIndex] = { ...state.applications[existingIndex], ...next };
             else state.applications.unshift(next);
+
+            const job = state.jobs.find((item) => item.id === next.job_id);
+            const ownerId = job?.posted_by ?? null;
+            const hasNotification = (userId: string, title: string) => state.notifications.some((notification) =>
+                notification.user_id === userId &&
+                notification.title === title &&
+                notification.metadata?.applicationId === next.id
+            );
+
+            if (existingIndex >= 0) {
+                const title = `Application ${next.status}`;
+                if (previousStatus && previousStatus !== next.status && !hasNotification(next.user_id, title)) {
+                    state.notifications.unshift({
+                        id: demoId("notif"),
+                        user_id: next.user_id,
+                        title,
+                        message: `${job?.company ?? "The hiring team"} updated your application for ${job?.role ?? "the role"}.`,
+                        type: next.status === "rejected" ? "warning" : "success",
+                        href: "/careersync?workspace=1#applications",
+                        created_at: nowIso(),
+                        read_at: null,
+                        metadata: { applicationId: next.id, jobId: next.job_id },
+                    });
+                }
+                return;
+            }
+
+            if (ownerId && !hasNotification(ownerId, "New application received")) {
+                state.notifications.unshift({
+                    id: demoId("notif"),
+                    user_id: ownerId,
+                    title: "New application received",
+                    message: `${next.full_name} applied for ${job?.role ?? "a role"} at ${job?.company ?? "CareerSync"}.`,
+                    type: "info",
+                    href: "/careersync?workspace=1#applicants",
+                    created_at: nowIso(),
+                    read_at: null,
+                    metadata: { applicationId: next.id, jobId: next.job_id },
+                });
+            }
+
+            if (!hasNotification(next.user_id, "Application submitted")) {
+                state.notifications.unshift({
+                    id: demoId("notif"),
+                    user_id: next.user_id,
+                    title: "Application submitted",
+                    message: `Your application for ${job?.role ?? "the role"} was submitted successfully.`,
+                    type: "success",
+                    href: "/careersync?workspace=1#applications",
+                    created_at: nowIso(),
+                    read_at: null,
+                    metadata: { applicationId: next.id, jobId: next.job_id },
+                });
+            }
         });
         return state;
     });

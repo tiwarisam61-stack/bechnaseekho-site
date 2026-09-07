@@ -44,7 +44,14 @@ import {
 } from "@/services/careersync/careersync-service";
 import { signOut } from "@/services/platform/auth-service";
 import { notifyAdminWhatsAppSilently } from "@/lib/admin-whatsapp-notify";
-import { fetchSharedCareerSyncApplications, fetchSharedCareerSyncJobs, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
+import {
+    fetchPublicCareerSyncJobs,
+    fetchSharedCareerSyncApplications,
+    fetchSharedCareerSyncJobs,
+    repairSharedCareerSyncApplications,
+    reviewSharedCareerSyncJob,
+    updateSharedCareerSyncApplicationStatus,
+} from "@/lib/careersync-jobs-api";
 import { getRoleLabel } from "@/lib/careersync-rbac";
 import { fallbackCareerSyncMatch } from "@/lib/careersync-match";
 import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
@@ -55,6 +62,7 @@ const ROLE_NAVS = {
         { label: "Jobs Approval", href: "#jobs-approval" },
         { label: "Platform Stats", href: "#platform-stats" },
         { label: "Reports", href: "#reports" },
+        { label: "Applications", href: "#applications-admin" },
         { label: "Lead Assignment", href: "#lead-assignment" },
         { label: "Delete Requests", href: "#delete-requests" },
         { label: "Blog Approval", href: "#blog-approval" },
@@ -121,12 +129,15 @@ export function CareerSyncWorkspaceShell() {
     }, [companyName, fullName, phone, role, user?.email, user?.id]);
 
     useEffect(() => {
-        if (!user || !role || (role !== "admin" && role !== "company")) return;
+        if (!user || !role) return;
         let cancelled = false;
-        Promise.all([
-            fetchSharedCareerSyncJobs({ role, userId: user.id, email: user.email }),
-            fetchSharedCareerSyncApplications({ role, userId: user.id, email: user.email }),
-        ])
+        const jobsPromise = role === "admin" || role === "company"
+            ? fetchSharedCareerSyncJobs({ role, userId: user.id, email: user.email })
+            : fetchPublicCareerSyncJobs();
+        const applicationsPromise = role === "admin" || role === "company" || role === "candidate"
+            ? fetchSharedCareerSyncApplications({ role, userId: user.id, email: user.email })
+            : Promise.resolve([]);
+        Promise.all([jobsPromise, applicationsPromise])
             .then(([jobs, applications]) => {
                 if (cancelled) return;
                 mergeSharedCareerSyncJobs(jobs, role === "company" ? user.id : null);
@@ -238,6 +249,22 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     const activityFeed = getDemoActivityFeed(8);
     const adminAnalytics = getCareerSyncAdminAnalytics();
     const leadAssignments = getCareerSyncLeadAssignments().slice(0, 10);
+    const allApplications = snapshot.applications
+        .map((application) => ({
+            ...application,
+            job: snapshot.jobs.find((job) => job.id === application.job_id),
+        }))
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+    const repairApplications = async () => {
+        try {
+            const result = await repairSharedCareerSyncApplications(snapshot.applications);
+            mergeSharedCareerSyncApplications(result.applications);
+            toast.success(`Repair complete: ${result.inserted} imported, ${result.skipped} already present.`);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Application repair failed.");
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -281,6 +308,38 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                         data={adminAnalytics.topCompanies.map((item) => ({ label: item.company, value: item.approvedJobs }))}
                         tone="violet"
                     />
+                </div>
+            </section>
+
+            <section id="applications-admin" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
+                <SectionHeading title="All Applications" subtitle="Admin view across every company, role, and status." />
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                        <SummaryCard label="Total" value={String(allApplications.length)} icon={<Users className="h-4 w-4" />} />
+                        <SummaryCard label="New" value={String(allApplications.filter((item) => item.status === "submitted").length)} icon={<FileClock className="h-4 w-4" />} />
+                        <SummaryCard label="Interview" value={String(allApplications.filter((item) => recruiterStage(item.status) === "Interview").length)} icon={<CalendarDays className="h-4 w-4" />} />
+                    </div>
+                    <ActionButton tone="success" onClick={() => void repairApplications()}>Repair / sync cached applications</ActionButton>
+                </div>
+                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                    {allApplications.length === 0 ? (
+                        <EmptyState title="No applications yet" message="Applications from candidates will appear here after they apply." />
+                    ) : allApplications.slice(0, 20).map((application) => (
+                        <div key={application.id} className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4 ring-1 ring-emerald-100">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <p className="text-sm font-bold text-slate-900">{application.full_name}</p>
+                                    <p className="mt-1 text-xs text-slate-600">{application.job?.role ?? "Role"} · {application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
+                                    <p className="mt-1 text-xs text-slate-500">{application.email}{application.phone ? ` · ${application.phone}` : ""}</p>
+                                </div>
+                                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">{recruiterStage(application.status)}</span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {application.resume_url ? <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-emerald-100">Resume</a> : null}
+                                <a href={`mailto:${application.email}`} className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#1A2FAE] ring-1 ring-emerald-100">Email</a>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </section>
 
@@ -563,6 +622,18 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
         return acc;
     }, {});
 
+    const updateApplicationStage = async (applicationId: string, status: string) => {
+        try {
+            const application = await updateSharedCareerSyncApplicationStatus({ applicationId, status });
+            if (application) mergeSharedCareerSyncApplications([application]);
+            updateDemoApplicationStatus(applicationId, status);
+            toast.success("Application status updated.");
+        } catch (error) {
+            updateDemoApplicationStatus(applicationId, status);
+            toast.warning(error instanceof Error ? error.message : "Saved locally. Shared status sync failed.");
+        }
+    };
+
     const tabs = [
         ["overview", "Dashboard"],
         ["jobs", "My Jobs"],
@@ -711,9 +782,9 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                                                         <span className="rounded-full bg-[#DCE1FF] px-2 py-1 text-[11px] font-black text-[#1A2FAE]">{application.fit}%</span>
                                                     </div>
                                                     <div className="mt-3 flex flex-wrap gap-1.5">
-                                                        <ActionButton tone="neutral" onClick={() => updateDemoApplicationStatus(application.id, "under_review")}>Screen</ActionButton>
-                                                        <ActionButton tone="success" onClick={() => updateDemoApplicationStatus(application.id, "interview")}>Interview</ActionButton>
-                                                        <ActionButton tone="danger" onClick={() => updateDemoApplicationStatus(application.id, "rejected")}>Reject</ActionButton>
+                                                        <ActionButton tone="neutral" onClick={() => void updateApplicationStage(application.id, "under_review")}>Screen</ActionButton>
+                                                        <ActionButton tone="success" onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
+                                                        <ActionButton tone="danger" onClick={() => void updateApplicationStage(application.id, "rejected")}>Reject</ActionButton>
                                                     </div>
                                                 </div>
                                             ))}
@@ -749,7 +820,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                             />
                         </div>
                         <div className="mt-4 space-y-3">
-                            {filteredApplications.map((application) => <RecruiterCandidateCard key={application.id} application={application} />)}
+                            {filteredApplications.map((application) => <RecruiterCandidateCard key={application.id} application={application} onStatusChange={updateApplicationStage} />)}
                             {filteredApplications.length === 0 && <EmptyState title="No candidates match" message="Try clearing the search or selecting all roles." />}
                         </div>
                     </RecruiterPanel>
@@ -924,6 +995,7 @@ function RoleFilter({
 function RecruiterCandidateCard({
     application,
     compact = false,
+    onStatusChange,
 }: {
     application: {
         id: string;
@@ -941,6 +1013,7 @@ function RecruiterCandidateCard({
         job?: DemoJobRecord;
     };
     compact?: boolean;
+    onStatusChange?: (applicationId: string, status: string) => void | Promise<void>;
 }) {
     const fitTone = application.fit >= 80 ? "text-[#1C7A48]" : application.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
     return (
@@ -980,9 +1053,9 @@ function RecruiterCandidateCard({
                                     <span className="rounded-full bg-[#EEEDE7] px-3 py-1.5 text-xs font-black text-[#5B6172]">No resume</span>
                                 )}
                                 <a href={`mailto:${application.email}`} className="rounded-full bg-[#DCE1FF] px-3 py-1.5 text-xs font-black text-[#1A2FAE]">Email</a>
-                                <ActionButton tone="neutral" onClick={() => updateDemoApplicationStatus(application.id, "under_review")}>Under review</ActionButton>
-                                <ActionButton tone="success" onClick={() => updateDemoApplicationStatus(application.id, "interview")}>Interview</ActionButton>
-                                <ActionButton tone="danger" onClick={() => updateDemoApplicationStatus(application.id, "rejected")}>Reject</ActionButton>
+                                <ActionButton tone="neutral" onClick={() => void onStatusChange?.(application.id, "under_review")}>Under review</ActionButton>
+                                <ActionButton tone="success" onClick={() => void onStatusChange?.(application.id, "interview")}>Interview</ActionButton>
+                                <ActionButton tone="danger" onClick={() => void onStatusChange?.(application.id, "rejected")}>Reject</ActionButton>
                             </div>
                         </>
                     )}
@@ -1181,7 +1254,13 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
 function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
     const savedJobIds = getDemoSavedJobIds(userId);
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
-    const myApplications = snapshot.applications.filter((application) => application.user_id === userId);
+    const myApplications = snapshot.applications
+        .filter((application) => application.user_id === userId)
+        .map((application) => ({
+            ...application,
+            job: snapshot.jobs.find((job) => job.id === application.job_id),
+        }))
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     const myNotifications = getDemoNotificationsForUser(userId);
     const savedJobs = approvedJobs.filter((job) => savedJobIds.includes(job.id));
     const candidateProgress = getCareerSyncCandidateProgress(userId);
@@ -1216,10 +1295,17 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         <EmptyState title="No applications yet" message="Apply to a role to see it here." />
                     ) : myApplications.map((application) => (
                         <div key={application.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
-                            <p className="text-sm font-bold text-slate-900">{application.full_name}</p>
-                            <p className="mt-1 text-xs text-slate-500">{application.email}</p>
+                            <p className="text-sm font-bold text-slate-900">{application.job?.role ?? "Applied role"}</p>
+                            <p className="mt-1 text-xs text-slate-500">{application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
+                            <p className="mt-1 text-xs text-slate-500">Applied as {application.full_name} · {new Date(application.created_at).toLocaleDateString("en-IN")}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {application.resume_url ? (
+                                    <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">Resume</a>
+                                ) : null}
+                                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">{application.email}</span>
+                            </div>
                             <span className="mt-3 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                                {application.status}
+                                {recruiterStage(application.status)}
                             </span>
                         </div>
                     ))}

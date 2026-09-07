@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { FileText, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadCareerSyncResume } from "@/services/careersync/careersync-service";
+import { uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 
 interface Props {
   userId: string;
@@ -23,7 +24,7 @@ export function ResumeUpload({ userId, value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
-    if (!ALLOWED.includes(file.type) && !/\.(pdf|docx?|)$/i.test(file.name)) {
+    if (!ALLOWED.includes(file.type) && !/\.(pdf|docx?)$/i.test(file.name)) {
       toast.error("Only PDF or Word (.doc, .docx) files are allowed.");
       return;
     }
@@ -33,7 +34,13 @@ export function ResumeUpload({ userId, value, onChange }: Props) {
     }
     setBusy(true);
     try {
-      const uploaded = await uploadCareerSyncResume({ userId, file });
+      let uploaded: { path: string; url: string; name: string };
+      try {
+        uploaded = await uploadSharedCareerSyncResume({ userId, file });
+      } catch (error) {
+        console.warn("[CareerSync] Shared resume upload failed, using local fallback", error);
+        uploaded = await uploadCareerSyncResume({ userId, file });
+      }
       onChange(uploaded);
       setJustUploaded(true);
       window.setTimeout(() => setJustUploaded(false), 1800);

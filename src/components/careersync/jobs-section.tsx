@@ -1160,16 +1160,6 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
     setSubmitting(true);
     let submitError: string | null = null;
     try {
-      applyCareerSyncJob({
-        userId: user.id,
-        jobId: job.id,
-        fullName: name,
-        email: mail,
-        phone: tel || null,
-        resumeUrl: resume.url,
-        resumePath: resume.path,
-        coverLetter: coverLetter.trim() || null,
-      });
       const sharedApplication = await persistSharedCareerSyncApplication({
         userId: user.id,
         jobId: job.id,
@@ -1182,7 +1172,24 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
       });
       if (sharedApplication) mergeSharedCareerSyncApplications([sharedApplication]);
     } catch (error) {
-      submitError = error instanceof Error ? error.message : "Could not submit application. Please try again.";
+      try {
+        applyCareerSyncJob({
+          userId: user.id,
+          jobId: job.id,
+          fullName: name,
+          email: mail,
+          phone: tel || null,
+          resumeUrl: resume.url,
+          resumePath: resume.path,
+          coverLetter: coverLetter.trim() || null,
+        });
+      } catch (fallbackError) {
+        submitError = fallbackError instanceof Error
+          ? fallbackError.message
+          : error instanceof Error
+            ? error.message
+            : "Could not submit application. Please try again.";
+      }
     }
     setSubmitting(false);
     if (submitError) {

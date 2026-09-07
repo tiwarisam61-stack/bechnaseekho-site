@@ -30,6 +30,12 @@ export type SharedApplicationInput = {
   coverLetter?: string | null;
 };
 
+export type SharedResumeUpload = {
+  path: string;
+  url: string;
+  name: string;
+};
+
 export async function fetchSharedCareerSyncJobs(input: {
   role: DemoRole;
   userId: string;
@@ -81,6 +87,56 @@ export async function persistSharedCareerSyncApplication(input: SharedApplicatio
   const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
   if (!response.ok) throw new Error(body?.error || "Could not submit application.");
   return body?.application ?? null;
+}
+
+export async function uploadSharedCareerSyncResume(input: { userId: string; file: File }): Promise<SharedResumeUpload> {
+  const formData = new FormData();
+  formData.set("type", "resume");
+  formData.set("userId", input.userId);
+  formData.set("file", input.file);
+
+  const response = await fetch("/api/careersync-jobs", {
+    method: "POST",
+    body: formData,
+  });
+  const body = (await response.json().catch(() => null)) as { resume?: SharedResumeUpload; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not upload resume.");
+  if (!body?.resume) throw new Error("Resume upload did not return a file link.");
+  return body.resume;
+}
+
+export async function updateSharedCareerSyncApplicationStatus(input: {
+  applicationId: string;
+  status: string;
+}) {
+  const response = await fetch("/api/careersync-jobs", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "application-status", ...input }),
+  });
+  const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not update application status.");
+  return body?.application ?? null;
+}
+
+export async function repairSharedCareerSyncApplications(applications: DemoApplicationRecord[]) {
+  const response = await fetch("/api/careersync-jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "repair-applications", applications }),
+  });
+  const body = (await response.json().catch(() => null)) as {
+    inserted?: number;
+    skipped?: number;
+    applications?: DemoApplicationRecord[];
+    error?: string;
+  } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not repair applications.");
+  return {
+    inserted: body?.inserted ?? 0,
+    skipped: body?.skipped ?? 0,
+    applications: body?.applications ?? [],
+  };
 }
 
 export async function persistSharedCareerSyncJob(input: SharedJobInput) {
