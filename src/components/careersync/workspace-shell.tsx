@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, FileClock, LogOut, ShieldCheck, Users, UserRound } from "lucide-react";
+import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, LockKeyhole, LogOut, Mail, MessageSquareText, Phone, ShieldCheck, Users, UserRound, X } from "lucide-react";
 import { CareerSyncDashboard } from "@/components/careersync/dashboard";
 import { NotificationBell } from "@/components/careersync/notification-bell";
 import { CareerSyncJobsSection } from "@/components/careersync/jobs-section";
@@ -266,6 +266,19 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         }
     };
 
+    const reviewApplicationSharing = async (applicationId: string, status: "under_review" | "rejected") => {
+        const action = status === "under_review" ? "approved for recruiter" : "rejected";
+        try {
+            const application = await updateSharedCareerSyncApplicationStatus({ applicationId, status });
+            if (application) mergeSharedCareerSyncApplications([application]);
+            updateDemoApplicationStatus(applicationId, status);
+            toast.success(`Candidate profile ${action}.`);
+        } catch (error) {
+            updateDemoApplicationStatus(applicationId, status);
+            toast.warning(error instanceof Error ? error.message : `Saved locally. Shared ${action} sync failed.`);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <section id="dashboard">
@@ -324,22 +337,34 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {allApplications.length === 0 ? (
                         <EmptyState title="No applications yet" message="Applications from candidates will appear here after they apply." />
-                    ) : allApplications.slice(0, 20).map((application) => (
-                        <div key={application.id} className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4 ring-1 ring-emerald-100">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                    <p className="text-sm font-bold text-slate-900">{application.full_name}</p>
-                                    <p className="mt-1 text-xs text-slate-600">{application.job?.role ?? "Role"} · {application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
-                                    <p className="mt-1 text-xs text-slate-500">{application.email}{application.phone ? ` · ${application.phone}` : ""}</p>
+                    ) : allApplications.slice(0, 20).map((application) => {
+                        const sharingStatus = getProfileSharingStatus(application.status);
+                        return (
+                            <div key={application.id} className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4 ring-1 ring-emerald-100">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-900">{application.full_name}</p>
+                                        <p className="mt-1 text-xs text-slate-600">{application.job?.role ?? "Role"} · {application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
+                                        <p className="mt-1 text-xs text-slate-500">{application.email}{application.phone ? ` · ${application.phone}` : ""}</p>
+                                    </div>
+                                    <div className="flex flex-col items-start gap-1 sm:items-end">
+                                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">{recruiterStage(application.status)}</span>
+                                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${sharingStatus.tone}`}>{sharingStatus.label}</span>
+                                    </div>
                                 </div>
-                                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">{recruiterStage(application.status)}</span>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {application.resume_url ? <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-emerald-100">Resume</a> : null}
+                                    <a href={`mailto:${application.email}`} className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#1A2FAE] ring-1 ring-emerald-100">Email</a>
+                                    {application.status === "submitted" && (
+                                        <>
+                                            <ActionButton tone="success" onClick={() => void reviewApplicationSharing(application.id, "under_review")}>Approve profile sharing</ActionButton>
+                                            <ActionButton tone="danger" onClick={() => void reviewApplicationSharing(application.id, "rejected")}>Reject sharing</ActionButton>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {application.resume_url ? <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-emerald-100">Resume</a> : null}
-                                <a href={`mailto:${application.email}`} className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-[#1A2FAE] ring-1 ring-emerald-100">Email</a>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </section>
 
@@ -545,6 +570,10 @@ function sendAdminApprovalAlert(input: {
 }
 
 type CompanyWorkspaceTab = "overview" | "jobs" | "pipeline" | "candidates" | "analytics" | "notifications" | "profile";
+type RecruiterApplicationView = DemoApplicationRecord & {
+    fit: number;
+    job?: DemoJobRecord;
+};
 
 const COMPANY_SECTION_TABS: Record<string, CompanyWorkspaceTab> = {
     dashboard: "overview",
@@ -570,6 +599,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     });
     const [selectedRoleId, setSelectedRoleId] = useState<string | "all">("all");
     const [candidateQuery, setCandidateQuery] = useState("");
+    const [selectedCandidate, setSelectedCandidate] = useState<RecruiterApplicationView | null>(null);
     const companyName = myJobs[0]?.company || snapshot.users.find((user) => user.id === userId)?.company_name || getDemoDisplayName(userId);
 
     const roleOptions = useMemo(() => myJobs.map((job, index) => {
@@ -623,6 +653,11 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     }, {});
 
     const updateApplicationStage = async (applicationId: string, status: string) => {
+        const current = myApplications.find((application) => application.id === applicationId);
+        if (current && !isProfileSharingApproved(current.status) && status !== "rejected") {
+            toast.warning("Admin approval required before HR can move or contact this candidate.");
+            return;
+        }
         try {
             const application = await updateSharedCareerSyncApplicationStatus({ applicationId, status });
             if (application) mergeSharedCareerSyncApplications([application]);
@@ -750,7 +785,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                             <RecruiterPanel title="Top matched candidates" caption="ranked by fit">
                                 <div className="space-y-2">
                                     {filteredApplications.slice(0, 5).map((application) => (
-                                        <RecruiterCandidateCard key={application.id} application={application} compact />
+                                        <RecruiterCandidateCard key={application.id} application={application} compact onOpen={setSelectedCandidate} />
                                     ))}
                                     {filteredApplications.length === 0 && <EmptyState title="No applicants yet" message="Applicants will appear here after candidates apply to your roles." />}
                                 </div>
@@ -772,22 +807,29 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                                             <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-[#5B6172] ring-1 ring-[#E4E2DA]">{stageItems.length}</span>
                                         </div>
                                         <div className="space-y-2">
-                                            {stageItems.map((application) => (
-                                                <div key={application.id} className="rounded-xl border border-[#E4E2DA] bg-white p-3 shadow-sm">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div>
-                                                            <p className="text-sm font-black text-[#171B2B]">{application.full_name}</p>
-                                                            <p className="mt-0.5 text-[11px] font-semibold text-[#5B6172]">{application.job?.role ?? "Role"}</p>
+                                            {stageItems.map((application) => {
+                                                const locked = !isProfileSharingApproved(application.status);
+                                                return (
+                                                    <div key={application.id} className="rounded-xl border border-[#E4E2DA] bg-white p-3 shadow-sm">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div>
+                                                                <p className="text-sm font-black text-[#171B2B]">{application.full_name}</p>
+                                                                <p className="mt-0.5 text-[11px] font-semibold text-[#5B6172]">{application.job?.role ?? "Role"}</p>
+                                                            </div>
+                                                            <span className="rounded-full bg-[#DCE1FF] px-2 py-1 text-[11px] font-black text-[#1A2FAE]">{application.fit}%</span>
                                                         </div>
-                                                        <span className="rounded-full bg-[#DCE1FF] px-2 py-1 text-[11px] font-black text-[#1A2FAE]">{application.fit}%</span>
+                                                        {locked && (
+                                                            <p className="mt-3 rounded-lg bg-[#FFF7E7] px-2.5 py-2 text-[11px] font-bold text-[#8A5A00]">Resume/contact locked until admin approves profile sharing.</p>
+                                                        )}
+                                                        <div className="mt-3 flex flex-wrap gap-1.5">
+                                                            <ActionButton tone="neutral" onClick={() => setSelectedCandidate(application)}>Details</ActionButton>
+                                                            <ActionButton tone="neutral" disabled={locked} onClick={() => void updateApplicationStage(application.id, "under_review")}>Screen</ActionButton>
+                                                            <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
+                                                            <ActionButton tone="danger" onClick={() => void updateApplicationStage(application.id, "rejected")}>Reject</ActionButton>
+                                                        </div>
                                                     </div>
-                                                    <div className="mt-3 flex flex-wrap gap-1.5">
-                                                        <ActionButton tone="neutral" onClick={() => void updateApplicationStage(application.id, "under_review")}>Screen</ActionButton>
-                                                        <ActionButton tone="success" onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
-                                                        <ActionButton tone="danger" onClick={() => void updateApplicationStage(application.id, "rejected")}>Reject</ActionButton>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -820,7 +862,7 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                             />
                         </div>
                         <div className="mt-4 space-y-3">
-                            {filteredApplications.map((application) => <RecruiterCandidateCard key={application.id} application={application} onStatusChange={updateApplicationStage} />)}
+                            {filteredApplications.map((application) => <RecruiterCandidateCard key={application.id} application={application} onStatusChange={updateApplicationStage} onOpen={setSelectedCandidate} />)}
                             {filteredApplications.length === 0 && <EmptyState title="No candidates match" message="Try clearing the search or selecting all roles." />}
                         </div>
                     </RecruiterPanel>
@@ -875,6 +917,13 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                     </div>
                 )}
             </div>
+            {selectedCandidate && (
+                <CandidateDetailDrawer
+                    application={selectedCandidate}
+                    onClose={() => setSelectedCandidate(null)}
+                    onStatusChange={updateApplicationStage}
+                />
+            )}
         </div>
     );
 }
@@ -913,6 +962,22 @@ function recruiterStage(status: string) {
     if (normalized.includes("interview")) return "Interview";
     if (normalized.includes("review") || normalized.includes("screen")) return "Screening";
     return "Applied";
+}
+
+function isProfileSharingApproved(status: string) {
+    const normalized = status.toLowerCase().replace(/[\s-]+/g, "_");
+    return !["submitted", "rejected", "withdrawn"].includes(normalized);
+}
+
+function getProfileSharingStatus(status: string) {
+    const normalized = status.toLowerCase().replace(/[\s-]+/g, "_");
+    if (normalized === "submitted") {
+        return { label: "Sharing pending", tone: "bg-amber-50 text-amber-700 ring-1 ring-amber-100" };
+    }
+    if (normalized === "rejected" || normalized === "withdrawn") {
+        return { label: "Sharing blocked", tone: "bg-rose-50 text-rose-700 ring-1 ring-rose-100" };
+    }
+    return { label: "Sharing approved", tone: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" };
 }
 
 function RecruiterKpi({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: "blue" | "amber" | "green" | "red" | "slate" }) {
@@ -996,26 +1061,15 @@ function RecruiterCandidateCard({
     application,
     compact = false,
     onStatusChange,
+    onOpen,
 }: {
-    application: {
-        id: string;
-        full_name: string;
-        email: string;
-        phone: string | null;
-        resume_url: string | null;
-        status: string;
-        created_at: string;
-        fit: number;
-        ai_match_reason?: string | null;
-        ai_matched_skills?: string[] | null;
-        ai_missing_skills?: string[] | null;
-        ai_score_source?: "ai" | "fallback" | null;
-        job?: DemoJobRecord;
-    };
+    application: RecruiterApplicationView;
     compact?: boolean;
     onStatusChange?: (applicationId: string, status: string) => void | Promise<void>;
+    onOpen?: (application: RecruiterApplicationView) => void;
 }) {
     const fitTone = application.fit >= 80 ? "text-[#1C7A48]" : application.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
+    const locked = !isProfileSharingApproved(application.status);
     return (
         <article className="rounded-2xl border border-[#E4E2DA] bg-white p-4">
             <div className="flex gap-3">
@@ -1032,7 +1086,13 @@ function RecruiterCandidateCard({
                             <h3 className="text-sm font-black text-[#171B2B]">{application.full_name}</h3>
                             <p className="mt-0.5 text-xs font-semibold text-[#5B6172]">{application.job?.role ?? "Role"} · {application.job?.location ?? "Location open"}</p>
                         </div>
-                        <span className="rounded-full bg-[#F6F5F1] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6172] ring-1 ring-[#E4E2DA]">{recruiterStage(application.status)}</span>
+                        <div className="flex flex-col items-start gap-1 sm:items-end">
+                            <span className="rounded-full bg-[#F6F5F1] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6172] ring-1 ring-[#E4E2DA]">{recruiterStage(application.status)}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${locked ? "bg-[#FFF7E7] text-[#8A5A00]" : "bg-[#DBF3E5] text-[#1C7A48]"}`}>
+                                {locked ? <LockKeyhole className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                                {locked ? "Locked" : "Unlocked"}
+                            </span>
+                        </div>
                     </div>
                     {!compact && (
                         <>
@@ -1047,21 +1107,205 @@ function RecruiterCandidateCard({
                                 </p>
                             )}
                             <div className="mt-3 flex flex-wrap items-center gap-2">
-                                {application.resume_url ? (
+                                <ActionButton tone="neutral" onClick={() => onOpen?.(application)}>Details</ActionButton>
+                                {application.resume_url && !locked ? (
                                     <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-[#F6F5F1] px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA] transition hover:bg-white">Resume</a>
                                 ) : (
-                                    <span className="rounded-full bg-[#EEEDE7] px-3 py-1.5 text-xs font-black text-[#5B6172]">No resume</span>
+                                    <span className="rounded-full bg-[#EEEDE7] px-3 py-1.5 text-xs font-black text-[#5B6172]">{locked ? "Resume locked" : "No resume"}</span>
                                 )}
-                                <a href={`mailto:${application.email}`} className="rounded-full bg-[#DCE1FF] px-3 py-1.5 text-xs font-black text-[#1A2FAE]">Email</a>
-                                <ActionButton tone="neutral" onClick={() => void onStatusChange?.(application.id, "under_review")}>Under review</ActionButton>
-                                <ActionButton tone="success" onClick={() => void onStatusChange?.(application.id, "interview")}>Interview</ActionButton>
+                                {!locked && <a href={`mailto:${application.email}`} className="rounded-full bg-[#DCE1FF] px-3 py-1.5 text-xs font-black text-[#1A2FAE]">Email</a>}
+                                <ActionButton tone="neutral" disabled={locked} onClick={() => void onStatusChange?.(application.id, "under_review")}>Under review</ActionButton>
+                                <ActionButton tone="success" disabled={locked} onClick={() => void onStatusChange?.(application.id, "interview")}>Interview</ActionButton>
                                 <ActionButton tone="danger" onClick={() => void onStatusChange?.(application.id, "rejected")}>Reject</ActionButton>
                             </div>
                         </>
                     )}
+                    {compact && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <ActionButton tone="neutral" onClick={() => onOpen?.(application)}>Details</ActionButton>
+                            {locked && <span className="rounded-full bg-[#FFF7E7] px-3 py-1.5 text-xs font-black text-[#8A5A00]">Waiting admin approval</span>}
+                        </div>
+                    )}
                 </div>
             </div>
         </article>
+    );
+}
+
+function CandidateDetailDrawer({
+    application,
+    onClose,
+    onStatusChange,
+}: {
+    application: RecruiterApplicationView;
+    onClose: () => void;
+    onStatusChange: (applicationId: string, status: string) => void | Promise<void>;
+}) {
+    const noteKey = `careersync-recruiter-note-${application.id}`;
+    const [note, setNote] = useState(() => (typeof window === "undefined" ? "" : window.localStorage.getItem(noteKey) ?? ""));
+    const locked = !isProfileSharingApproved(application.status);
+    const sharingStatus = getProfileSharingStatus(application.status);
+    const phoneDigits = (application.phone ?? "").replace(/[^\d]/g, "");
+    const whatsappUrl = phoneDigits ? `https://wa.me/${phoneDigits.startsWith("91") ? phoneDigits : `91${phoneDigits}`}` : "";
+    const moveCandidate = (status: string) => {
+        void Promise.resolve(onStatusChange(application.id, status)).then(() => onClose());
+    };
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        window.localStorage.setItem(noteKey, note);
+    }, [note, noteKey]);
+
+    const timeline = [
+        {
+            title: "Candidate applied",
+            text: `${application.full_name} applied for ${application.job?.role ?? "this role"}.`,
+            date: application.created_at,
+            done: true,
+        },
+        {
+            title: locked ? "Admin approval pending" : "Admin approved profile sharing",
+            text: locked ? "Contact and resume stay hidden from company until CareerSync admin approves." : "Recruiter can now view contact details and resume.",
+            date: application.updated_at,
+            done: !locked,
+        },
+        {
+            title: `Current stage: ${recruiterStage(application.status)}`,
+            text: application.ai_match_reason || "Pipeline status is synced with the shared application record.",
+            date: application.updated_at,
+            done: true,
+        },
+    ];
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end bg-[#0F1424]/45 p-3 backdrop-blur-sm sm:p-5">
+            <button type="button" aria-label="Close candidate details" className="absolute inset-0 cursor-default" onClick={onClose} />
+            <aside className="relative flex h-full w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-[#E4E2DA] p-5">
+                    <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${sharingStatus.tone}`}>
+                                {locked ? <LockKeyhole className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                                {sharingStatus.label}
+                            </span>
+                            <span className="rounded-full bg-[#F6F5F1] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6172] ring-1 ring-[#E4E2DA]">{recruiterStage(application.status)}</span>
+                        </div>
+                        <h2 className="mt-3 font-display text-2xl font-black tracking-tight text-[#171B2B]">{application.full_name}</h2>
+                        <p className="mt-1 text-sm font-semibold text-[#5B6172]">{application.job?.role ?? "Applied role"} · {application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
+                    </div>
+                    <button type="button" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F6F5F1] text-[#5B6172] ring-1 ring-[#E4E2DA] transition hover:bg-white hover:text-[#171B2B]">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                        <ProfileMetric label="Fit score" value={`${application.fit}%`} />
+                        <ProfileMetric label="Applied" value={new Date(application.created_at).toLocaleDateString("en-IN")} />
+                        <ProfileMetric label="AI source" value={application.ai_score_source || "fallback"} />
+                    </div>
+
+                    <section className="mt-5 rounded-2xl border border-[#E4E2DA] bg-[#F6F5F1] p-4">
+                        <h3 className="text-sm font-black text-[#171B2B]">Candidate details</h3>
+                        <div className="mt-3 grid gap-2 text-sm font-semibold text-[#5B6172]">
+                            <CandidateInfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={locked ? "Hidden until admin approval" : application.email} locked={locked} />
+                            <CandidateInfoRow icon={<Phone className="h-4 w-4" />} label="Phone" value={locked ? "Hidden until admin approval" : application.phone || "Not provided"} locked={locked} />
+                            <CandidateInfoRow icon={<Briefcase className="h-4 w-4" />} label="Role interest" value={application.job?.role ?? "Not mapped"} />
+                            <CandidateInfoRow icon={<CalendarDays className="h-4 w-4" />} label="Experience" value={application.job?.experience ?? "Not specified"} />
+                        </div>
+                    </section>
+
+                    <section className="mt-5 rounded-2xl border border-[#E4E2DA] bg-white p-4">
+                        <h3 className="text-sm font-black text-[#171B2B]">Resume access</h3>
+                        {locked ? (
+                            <div className="mt-3 rounded-xl bg-[#FFF7E7] p-3 text-sm font-semibold leading-6 text-[#8A5A00]">
+                                Resume is locked. Ask CareerSync admin to approve profile sharing before viewing or downloading.
+                            </div>
+                        ) : application.resume_url ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <a href={application.resume_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 rounded-full bg-[#DCE1FF] px-3 py-2 text-xs font-black text-[#1A2FAE]">
+                                    <Eye className="h-3.5 w-3.5" />
+                                    View resume
+                                </a>
+                                <a href={application.resume_url} download className="inline-flex items-center gap-1.5 rounded-full bg-[#F6F5F1] px-3 py-2 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA]">
+                                    <Download className="h-3.5 w-3.5" />
+                                    Download
+                                </a>
+                            </div>
+                        ) : (
+                            <p className="mt-3 rounded-xl bg-[#F6F5F1] p-3 text-sm font-semibold text-[#5B6172]">No resume uploaded for this application.</p>
+                        )}
+                    </section>
+
+                    <section className="mt-5 rounded-2xl border border-[#E4E2DA] bg-white p-4">
+                        <h3 className="text-sm font-black text-[#171B2B]">Screening notes</h3>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6172]">{application.cover_letter || "No candidate message added with this application."}</p>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                            {(application.ai_matched_skills?.length ? application.ai_matched_skills : application.job?.required_skills ?? application.job?.tags ?? []).slice(0, 6).map((skill) => (
+                                <span key={skill} className="rounded-full bg-[#DBF3E5] px-2.5 py-1 text-[11px] font-black text-[#1C7A48]">{skill}</span>
+                            ))}
+                        </div>
+                        {application.ai_missing_skills?.length ? (
+                            <p className="mt-3 text-xs font-semibold text-[#A32D2D]">Weak areas: {application.ai_missing_skills.slice(0, 5).join(", ")}</p>
+                        ) : null}
+                        <textarea
+                            value={note}
+                            onChange={(event) => setNote(event.target.value)}
+                            placeholder="Add recruiter note for call, screening, or follow-up..."
+                            className="mt-4 min-h-24 w-full rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 py-2 text-sm font-semibold outline-none transition focus:border-[#3D5AFE] focus:bg-white"
+                        />
+                    </section>
+
+                    <section className="mt-5 rounded-2xl border border-[#E4E2DA] bg-white p-4">
+                        <h3 className="text-sm font-black text-[#171B2B]">Activity timeline</h3>
+                        <div className="mt-4 space-y-3">
+                            {timeline.map((item) => (
+                                <div key={item.title} className="flex gap-3">
+                                    <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${item.done ? "bg-[#2FBF71]" : "bg-[#F5A623]"}`} />
+                                    <div>
+                                        <p className="text-sm font-black text-[#171B2B]">{item.title}</p>
+                                        <p className="mt-0.5 text-xs font-semibold leading-5 text-[#5B6172]">{item.text}</p>
+                                        <p className="mt-0.5 text-[11px] font-semibold text-[#8A8F9E]">{new Date(item.date).toLocaleString("en-IN")}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+
+                <div className="border-t border-[#E4E2DA] bg-[#F6F5F1] p-4">
+                    <div className="flex flex-wrap gap-2">
+                        {!locked && application.phone && (
+                            <a href={`tel:${application.phone}`} className="inline-flex items-center gap-1.5 rounded-full bg-[#0F1424] px-3 py-2 text-xs font-black text-white">
+                                <Phone className="h-3.5 w-3.5" />
+                                Call now
+                            </a>
+                        )}
+                        {!locked && whatsappUrl && (
+                            <a href={whatsappUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 rounded-full bg-[#DBF3E5] px-3 py-2 text-xs font-black text-[#1C7A48]">
+                                <MessageSquareText className="h-3.5 w-3.5" />
+                                WhatsApp
+                            </a>
+                        )}
+                        <ActionButton tone="neutral" disabled={locked} onClick={() => moveCandidate("under_review")}>Move to screening</ActionButton>
+                        <ActionButton tone="success" disabled={locked} onClick={() => moveCandidate("interview")}>Schedule interview</ActionButton>
+                        <ActionButton tone="danger" onClick={() => moveCandidate("rejected")}>Reject</ActionButton>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    );
+}
+
+function CandidateInfoRow({ icon, label, value, locked = false }: { icon: ReactNode; label: string; value: string; locked?: boolean }) {
+    return (
+        <div className="flex items-start gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-[#E4E2DA]">
+            <span className="mt-0.5 text-[#5B6172]">{locked ? <LockKeyhole className="h-4 w-4" /> : icon}</span>
+            <span>
+                <span className="block text-[11px] font-black uppercase tracking-wide text-[#8A8F9E]">{label}</span>
+                <span className="block break-words text-sm font-bold text-[#171B2B]">{value}</span>
+            </span>
+        </div>
     );
 }
 
