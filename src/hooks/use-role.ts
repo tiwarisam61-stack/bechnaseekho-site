@@ -1,14 +1,22 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "candidate" | "company" | "employee" | "admin" | null;
+
+function normalizeRole(value: unknown): Role {
+  if (value === "admin" || value === "company" || value === "employee" || value === "candidate") {
+    return value;
+  }
+  return null;
+}
 
 export function useRole() {
   const { user, loading: authLoading } = useAuth();
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
 
-  const sessionRole = (user?.user_metadata?.role ?? user?.app_metadata?.role) as Role | undefined;
+  const sessionRole = normalizeRole(user?.user_metadata?.role ?? user?.app_metadata?.role);
 
   useEffect(() => {
     if (authLoading) return;
@@ -17,15 +25,36 @@ export function useRole() {
       setLoading(false);
       return;
     }
-    const preferred: Role =
-      sessionRole === "admin" ? "admin" :
-        sessionRole === "company" ? "company" :
-          sessionRole === "employee" ? "employee" :
-            sessionRole === "candidate" ? "candidate" :
-              null;
-    setRole(preferred);
-    setLoading(false);
-  }, [user, authLoading, sessionRole]);
+
+    let cancelled = false;
+    setLoading(true);
+
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("[CareerSync] Unable to load user role", error);
+        }
+
+        const roles = (data ?? []).map((item) => normalizeRole(item.role)).filter(Boolean) as Exclude<Role, null>[];
+        const dbRole: Role =
+          roles.includes("admin") ? "admin" :
+            roles.includes("company") ? "company" :
+              roles.includes("employee") ? "employee" :
+                roles.includes("candidate") ? "candidate" :
+                  null;
+
+        setRole(dbRole ?? sessionRole);
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, authLoading, sessionRole]);
 
   return {
     role,
