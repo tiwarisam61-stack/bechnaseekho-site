@@ -91,7 +91,15 @@ export async function signInWithPassword(input: { email: string; password: strin
 
     if (error) return { data: { user: null, session: null }, error };
 
-    const session = await enrichSession(data.session);
+    let session = await enrichSession(data.session);
+    if (session?.user && !session.user.user_metadata?.role && isSignupRole(input.role)) {
+        const metadata = { ...session.user.user_metadata, role: input.role };
+        const { data: updated } = await supabase.auth.updateUser({ data: metadata });
+        if (updated.user) {
+            session = await enrichSession({ ...session, user: updated.user } as Session);
+        }
+    }
+
     return { data: { user: session?.user ?? null, session }, error: null };
 }
 
