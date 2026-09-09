@@ -7,6 +7,8 @@ import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
+const ADMIN_EMAILS = new Set(["contact@bechnaseekho.com"]);
+
 export type AuthUser = (User & {
     user_metadata: Record<string, unknown>;
     app_metadata: Record<string, unknown>;
@@ -22,6 +24,19 @@ function isSignupRole(value: unknown): value is SignupRole {
 
 function isAppRole(value: unknown): value is AppRole {
     return value === "candidate" || value === "company" || value === "employee" || value === "admin";
+}
+
+function getEmailAdminRole(user: User): AppRole | null {
+    const email = user.email?.trim().toLowerCase();
+    return email && ADMIN_EMAILS.has(email) ? "admin" : null;
+}
+
+function getHighestPriorityRole(roles: AppRole[]): AppRole | null {
+    if (roles.includes("admin")) return "admin";
+    if (roles.includes("company")) return "company";
+    if (roles.includes("employee")) return "employee";
+    if (roles.includes("candidate")) return "candidate";
+    return null;
 }
 
 function getPendingOAuthRole(): SignupRole | null {
@@ -43,16 +58,19 @@ function clearPendingOAuthRole() {
 }
 
 async function getRoleForUser(user: User): Promise<AppRole | null> {
-    const metadataRole = user.user_metadata?.role ?? user.app_metadata?.role;
-    if (isAppRole(metadataRole)) return metadataRole;
+    const emailAdminRole = getEmailAdminRole(user);
+    if (emailAdminRole) return emailAdminRole;
 
     const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
 
-    return isAppRole(data?.role) ? data.role : null;
+    const databaseRole = getHighestPriorityRole((data ?? []).map((item) => item.role).filter(isAppRole));
+    if (databaseRole) return databaseRole;
+
+    const metadataRole = user.user_metadata?.role ?? user.app_metadata?.role;
+    return isAppRole(metadataRole) ? metadataRole : null;
 }
 
 async function enrichSession(session: Session | null): Promise<AuthSession | null> {

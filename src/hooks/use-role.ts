@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "candidate" | "company" | "employee" | "admin" | null;
 
+const ADMIN_EMAILS = new Set(["contact@bechnaseekho.com"]);
+
 function normalizeRole(value: unknown): Role {
   if (value === "admin" || value === "company" || value === "employee" || value === "candidate") {
     return value;
@@ -28,6 +30,7 @@ export function useRole() {
 
     let cancelled = false;
     setLoading(true);
+    const email = user.email?.trim().toLowerCase();
 
     supabase
       .from("user_roles")
@@ -41,7 +44,8 @@ export function useRole() {
 
         const roles = (data ?? []).map((item) => normalizeRole(item.role)).filter(Boolean) as Exclude<Role, null>[];
         const dbRole: Role =
-          roles.includes("admin") ? "admin" :
+          email && ADMIN_EMAILS.has(email) ? "admin" :
+            roles.includes("admin") ? "admin" :
             roles.includes("company") ? "company" :
               roles.includes("employee") ? "employee" :
                 roles.includes("candidate") ? "candidate" :
@@ -54,7 +58,7 @@ export function useRole() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, authLoading, sessionRole]);
+  }, [user?.email, user?.id, authLoading, sessionRole]);
 
   return {
     role,
