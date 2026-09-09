@@ -252,7 +252,7 @@ function makeJob(job: Omit<DemoJobRecord, "logo" | "created_at" | "updated_at" |
 const DEFAULT_STATE: DemoState = {
     sessionUserId: null,
     users: [
-        { id: DEFAULT_ADMIN_ID, email: "admin@gmail.com", password: "129", full_name: "CareerSync Admin", role: "admin", company_name: "BechnaSeekho", phone: "+91 90000 00001" },
+        { id: DEFAULT_ADMIN_ID, email: "contact@bechnaseekho.com", password: "129", full_name: "CareerSync Admin", role: "admin", company_name: "BechnaSeekho", phone: "+91 90000 00001" },
         { id: DEFAULT_COMPANY_ID, email: "prateek.tyagi1@wipro.com", password: "129", full_name: "Prateek Tyagi", role: "company", company_name: "Wipro", phone: "+91 90000 00002" },
         { id: DEFAULT_EMPLOYEE_ID, email: "employee@wipro.com", password: "129", full_name: "Riya Malhotra", role: "employee", company_name: "Wipro", phone: "+91 90000 00004" },
         { id: DEFAULT_CANDIDATE_ID, email: "vasu.tyagi1@gmail.com", password: "129", full_name: "Vasu Tyagi", role: "candidate", company_name: null, phone: "+91 90000 00003" },
@@ -1607,7 +1607,7 @@ export function reviewDemoBlog(blogId: string, adminId: string, approve: boolean
 }
 
 export const DEMO_ACCOUNTS = [
-    { role: "Admin", email: "admin@gmail.com", password: "129", note: "Approve jobs, review submissions, manage notifications" },
+    { role: "Admin", email: "contact@bechnaseekho.com", password: "129", note: "Approve jobs, review submissions, manage notifications" },
     { role: "HR / Company", email: "prateek.tyagi1@wipro.com", password: "129", note: "Submit jobs, review applications, request changes" },
     { role: "Employee", email: "employee@wipro.com", password: "129", note: "Submit timesheets, manage tasks, request leave, and write blogs" },
     { role: "Candidate", email: "vasu.tyagi1@gmail.com", password: "129", note: "Apply to jobs and track notifications" },
