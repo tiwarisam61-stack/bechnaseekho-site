@@ -32,6 +32,14 @@ export function useRole() {
     setLoading(true);
     const email = user.email?.trim().toLowerCase();
 
+    if (email && ADMIN_EMAILS.has(email)) {
+      setRole("admin");
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     supabase
       .from("user_roles")
       .select("role")
