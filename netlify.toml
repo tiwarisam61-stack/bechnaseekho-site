@@ -19,14 +19,21 @@
 
 [[redirects]]
   from   = "/careersync/journey"
-  to     = "/mock-interview-practice"
+  to     = "/interview-practice.html"
   status = 301
   force  = true
 
 [[redirects]]
-  from   = "/mock-interview-practice"
-  to     = "/mock-interview-practice.html"
+  from   = "/ai-arena"
+  to     = "/interview-practice.html"
   status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/mock-interview-practice"
+  to     = "/interview-practice.html"
+  status = 200
+  force  = true
 
 # Serve the SSR handler for every request
 [[redirects]]

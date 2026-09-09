@@ -31,23 +31,23 @@ type SubItem = {
 
 type NavLink = {
   label: string;
-  to:
-  | "/"
-  | "/bechnaseekho"
-  | "/careersync"
-  | "/careersync-academy"
-  | "/ats-score-checker"
-  | "/services"
-  | "/resources"
-  | "/about";
+  to?:
+    | "/"
+    | "/bechnaseekho"
+    | "/careersync"
+    | "/careersync-academy"
+    | "/ai-arena"
+    | "/ats-score-checker"
+    | "/services"
+    | "/resources"
+    | "/about";
+  href?: string;
   hash?: string;
   isNew?: boolean;
   newTab?: boolean;
   children?: SubItem[];
   featured?: { title: string; desc: string; cta: string; to: string };
 };
-
-
 
 const links: NavLink[] = [
   {
@@ -61,7 +61,7 @@ const links: NavLink[] = [
   },
   {
     label: "AI Arena",
-    to: "/ats-score-checker",
+    href: "/interview-practice.html",
   },
   {
     label: "BechnaSeekho Academy",
@@ -100,10 +100,9 @@ export function Navbar() {
   useEffect(() => {
     const el = document.getElementById("courses");
     if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setCoursesInView(entry.isIntersecting),
-      { threshold: 0.1 },
-    );
+    const obs = new IntersectionObserver(([entry]) => setCoursesInView(entry.isIntersecting), {
+      threshold: 0.1,
+    });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -114,7 +113,9 @@ export function Navbar() {
       if (!navRef.current) return;
       if (!navRef.current.contains(e.target as Node)) setActive(null);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setActive(null); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(null);
+    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -123,7 +124,9 @@ export function Navbar() {
     };
   }, []);
 
-  useEffect(() => { setActive(null); }, [pathname]);
+  useEffect(() => {
+    setActive(null);
+  }, [pathname]);
 
   const openMenu = (label: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -139,15 +142,14 @@ export function Navbar() {
   };
 
   return (
-    <header
-      className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-4"
-    >
+    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-4">
       <div className="mx-auto max-w-[1400px]">
         <div
-          className={`relative flex items-center justify-between rounded-full pl-2 pr-2 py-3 transition-all duration-500 ${scrolled
-            ? "bg-white/60 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_24px_70px_-24px_oklch(0.55_0.22_264/0.4)]"
-            : "bg-white/50 backdrop-blur-xl ring-1 ring-white/60 shadow-[0_12px_44px_-22px_oklch(0.55_0.22_264/0.25)]"
-            }`}
+          className={`relative flex items-center justify-between rounded-full pl-2 pr-2 py-3 transition-all duration-500 ${
+            scrolled
+              ? "bg-white/60 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_24px_70px_-24px_oklch(0.55_0.22_264/0.4)]"
+              : "bg-white/50 backdrop-blur-xl ring-1 ring-white/60 shadow-[0_12px_44px_-22px_oklch(0.55_0.22_264/0.25)]"
+          }`}
         >
           <div className="pointer-events-none absolute inset-0 rounded-full opacity-70 [background:linear-gradient(120deg,transparent,color-mix(in_oklab,var(--brand)_10%,transparent),transparent)]" />
 
@@ -179,7 +181,8 @@ export function Navbar() {
             onMouseLeave={scheduleClose}
           >
             {links.map((l) => {
-              const isActive = l.hash ? coursesInView : pathname === l.to;
+              const targetPath = l.href ?? l.to;
+              const isActive = l.hash ? coursesInView : pathname === targetPath || (l.label === "AI Arena" && pathname === "/ai-arena");
               const isOpen = active === l.label;
               const hasMenu = !!l.children?.length;
 
@@ -210,8 +213,9 @@ export function Navbar() {
                 </>
               );
 
-              const baseCls = `relative flex items-center gap-1 rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${isActive ? "text-ink" : "text-ink-soft hover:text-ink"
-                }`;
+              const baseCls = `relative flex items-center gap-1 rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${
+                isActive ? "text-ink" : "text-ink-soft hover:text-ink"
+              }`;
 
               return (
                 <div
@@ -222,7 +226,6 @@ export function Navbar() {
                     else setActive(null);
                   }}
                 >
-
                   {hasMenu ? (
                     <button
                       type="button"
@@ -233,6 +236,10 @@ export function Navbar() {
                     >
                       {pill}
                     </button>
+                  ) : l.href ? (
+                    <a href={l.href} className={baseCls} onClick={() => setActive(null)}>
+                      {pill}
+                    </a>
                   ) : l.hash ? (
                     <a
                       href={l.hash}
@@ -246,15 +253,20 @@ export function Navbar() {
                       {pill}
                     </a>
                   ) : l.newTab ? (
-                    <a href={l.to} target="_blank" rel="noopener noreferrer" className={baseCls} onClick={() => setActive(null)}>
+                    <a
+                      href={l.to!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={baseCls}
+                      onClick={() => setActive(null)}
+                    >
                       {pill}
                     </a>
                   ) : (
-                    <Link to={l.to} className={baseCls} onClick={() => setActive(null)}>
+                    <Link to={l.to!} className={baseCls} onClick={() => setActive(null)}>
                       {pill}
                     </Link>
                   )}
-
                 </div>
               );
             })}
@@ -263,7 +275,7 @@ export function Navbar() {
               {active && (
                 <MegaMenu
                   link={links.find((l) => l.label === active)!}
-                  parentTo={links.find((l) => l.label === active)!.to}
+                  parentTo={links.find((l) => l.label === active)!.to!}
                   onEnter={() => openMenu(active)}
                   onLeave={scheduleClose}
                   onClose={() => setActive(null)}
@@ -283,7 +295,11 @@ export function Navbar() {
                   </div>
                   <span className="max-w-[120px] truncate">{user?.email}</span>
                 </div>
-                <button onClick={handleSignOut} className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-sm font-semibold text-ink ring-1 ring-line hover:bg-surface" aria-label="Sign out">
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-sm font-semibold text-ink ring-1 ring-line hover:bg-surface"
+                  aria-label="Sign out"
+                >
                   <LogOut className="h-3.5 w-3.5" />
                 </button>
               </>
@@ -306,7 +322,6 @@ export function Navbar() {
             )}
           </div>
 
-
           <button
             className="mr-1 grid h-10 w-10 place-items-center rounded-full bg-white ring-1 ring-line lg:hidden"
             onClick={() => setMobileOpen((v) => !v)}
@@ -328,7 +343,12 @@ export function Navbar() {
           >
             <div className="flex flex-col gap-1">
               {links.map((l) => (
-                <MobileLink key={l.label} link={l} onClose={() => setMobileOpen(false)} active={l.hash ? coursesInView : pathname === l.to} />
+                <MobileLink
+                  key={l.label}
+                  link={l}
+                  onClose={() => setMobileOpen(false)}
+                  active={l.hash ? coursesInView : pathname === (l.href ?? l.to)}
+                />
               ))}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Link
@@ -362,7 +382,7 @@ function MegaMenu({
   onClose,
 }: {
   link: NavLink;
-  parentTo: NavLink["to"];
+  parentTo: NonNullable<NavLink["to"]>;
   onEnter: () => void;
   onLeave: () => void;
   onClose: () => void;
@@ -430,7 +450,9 @@ function MegaMenu({
               <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
               <div className="pointer-events-none absolute -bottom-8 -left-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
               <div className="relative">
-                <p className="font-display text-base font-bold leading-tight">{link.featured!.title}</p>
+                <p className="font-display text-base font-bold leading-tight">
+                  {link.featured!.title}
+                </p>
                 <p className="mt-1.5 text-xs text-white/85">{link.featured!.desc}</p>
               </div>
               <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-semibold">
@@ -462,13 +484,16 @@ function MobileLink({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
-            }`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${
+            active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
+          }`}
         >
           <span className="flex items-center gap-2">
             {link.label}
             {link.isNew && (
-              <span className="rounded-full bg-gradient-to-r from-brand to-brand-2 px-1.5 py-0.5 text-[9px] font-semibold text-white">NEW</span>
+              <span className="rounded-full bg-gradient-to-r from-brand to-brand-2 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                NEW
+              </span>
             )}
           </span>
           <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -481,33 +506,55 @@ function MobileLink({
             document.querySelector(link.hash!)?.scrollIntoView({ behavior: "smooth" });
             onClose();
           }}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
-            }`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${
+            active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
+          }`}
         >
           <span className="flex items-center gap-2">{link.label}</span>
         </a>
+      ) : link.href ? (
+        <a
+          href={link.href}
+          onClick={onClose}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${
+            active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            {link.label}
+            {link.isNew && (
+              <span className="rounded-full bg-gradient-to-r from-brand to-brand-2 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                NEW
+              </span>
+            )}
+          </span>
+        </a>
       ) : link.newTab ? (
         <a
-          href={link.to}
+          href={link.to!}
           target="_blank"
           rel="noopener noreferrer"
           onClick={onClose}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
-            }`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${
+            active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
+          }`}
         >
           <span className="flex items-center gap-2">{link.label}</span>
         </a>
       ) : (
         <Link
-          to={link.to}
+          to={link.to!}
           onClick={onClose}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
-            }`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium hover:bg-surface ${
+            active ? "bg-white text-brand ring-1 ring-line" : "text-ink"
+          }`}
         >
           <span className="flex items-center gap-2">
             {link.label}
             {link.isNew && (
-              <span className="rounded-full bg-gradient-to-r from-brand to-brand-2 px-1.5 py-0.5 text-[9px] font-semibold text-white">NEW</span>
+              <span className="rounded-full bg-gradient-to-r from-brand to-brand-2 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                NEW
+              </span>
             )}
           </span>
         </Link>
@@ -524,7 +571,7 @@ function MobileLink({
           >
             <div className="my-1 space-y-0.5 border-l border-line pl-2">
               <Link
-                to={link.to}
+                to={link.to!}
                 onClick={onClose}
                 className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider text-brand hover:bg-surface"
               >
