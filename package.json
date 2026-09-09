@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:node22": "PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run build",
     "build:dev": "vite build --mode development",
     "deploy:prod": "node scripts/deploy-production-mirror.mjs",
+    "deploy:quick": "PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run deploy:prod",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
