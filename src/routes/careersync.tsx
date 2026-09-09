@@ -461,6 +461,13 @@ function AuthArea() {
 
     return (
       <>
+        <a
+          href="/careersync?workspace=1"
+          className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3.5 py-2 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700"
+        >
+          <BarChart2 className="h-3.5 w-3.5" />
+          Dashboard
+        </a>
         <NotificationBell compact className="hidden lg:block" />
         <div className="inline-flex min-w-0 max-w-[170px] items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1.5 text-[13px] font-semibold text-[#1a2a4a]" title={displayName}>
           <UserCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
@@ -519,6 +526,13 @@ function MobileAuthArea({ onClose }: { onClose: () => void }) {
 
     return (
       <div className="mt-2 space-y-2">
+        <a
+          href="/careersync?workspace=1"
+          onClick={onClose}
+          className="flex items-center justify-center gap-1.5 rounded-full bg-blue-600 px-4 py-3 text-sm font-bold text-white"
+        >
+          <BarChart2 className="h-4 w-4" /> Open Dashboard
+        </a>
         {postJobButton}
         <div className="flex justify-end">
           <NotificationBell />
@@ -569,7 +583,16 @@ function CareerSyncPage() {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading } = useRole();
   const [showResumeModal, setShowResumeModal] = useState(false);
-  const [showWorkspace, setShowWorkspace] = useState(false);
+  const [showWorkspace, setShowWorkspace] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("workspace") === "1";
+  });
+
+  useEffect(() => {
+    if (user && role === "admin") {
+      setShowWorkspace(true);
+    }
+  }, [role, user]);
 
   if (showWorkspace && user && role) {
     return <CareerSyncWorkspaceShell />;
