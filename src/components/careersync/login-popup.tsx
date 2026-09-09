@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, ArrowRight, Sparkles } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -74,7 +74,7 @@ export function CareerSyncLoginPopup() {
 
             <div className="relative px-8 pt-16 pb-8">
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-lg ring-1 ring-blue-100">
-                <Sparkles className="h-6 w-6 text-blue-600" />
+                <img src="/favicon.png" alt="BechnaSeekho logo" className="h-10 w-10 rounded-xl object-cover" />
               </div>
 
               <h2 className="mt-5 text-center text-2xl font-extrabold tracking-tight text-[#1a2a4a]">
