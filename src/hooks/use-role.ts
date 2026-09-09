@@ -40,6 +40,14 @@ export function useRole() {
       };
     }
 
+    if (sessionRole) {
+      setRole(sessionRole);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     supabase
       .from("user_roles")
       .select("role")
