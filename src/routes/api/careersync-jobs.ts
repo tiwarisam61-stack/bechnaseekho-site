@@ -466,12 +466,24 @@ async function uploadResumeFile({
   const body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
   const path = `${safePathSegment(userId)}/${Date.now()}-${randomId()}${extension}`;
   const bucket = getResumeBucket();
-  const upload = await supabaseAdmin.storage
-    .from(bucket)
-    .upload(path, body, {
+  let upload = await uploadResumeBlob({
+    supabaseAdmin,
+    bucket,
+    path,
+    body,
+    contentType: file.type || "application/octet-stream",
+  });
+
+  if (upload.error && isMissingStorageBucket(upload.error)) {
+    await ensureResumeBucket(supabaseAdmin, bucket);
+    upload = await uploadResumeBlob({
+      supabaseAdmin,
+      bucket,
+      path,
+      body,
       contentType: file.type || "application/octet-stream",
-      upsert: false,
     });
+  }
 
   if (upload.error) {
     throw new Error(`Could not save resume in Supabase Storage bucket "${bucket}": ${getErrorMessage(upload.error)}`);
@@ -495,9 +507,45 @@ function getResumeBucket() {
   return process.env.SUPABASE_RESUME_BUCKET || DEFAULT_RESUME_BUCKET;
 }
 
+async function uploadResumeBlob({
+  supabaseAdmin,
+  bucket,
+  path,
+  body,
+  contentType,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  bucket: string;
+  path: string;
+  body: Blob;
+  contentType: string;
+}) {
+  return supabaseAdmin.storage
+    .from(bucket)
+    .upload(path, body, {
+      contentType,
+      upsert: false,
+    });
+}
+
+async function ensureResumeBucket(supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>, bucket: string) {
+  const create = await supabaseAdmin.storage.createBucket(bucket, { public: false });
+  if (create.error && !/already exists|duplicate/i.test(getErrorMessage(create.error))) {
+    throw new Error(`Could not create Supabase Storage bucket "${bucket}": ${getErrorMessage(create.error)}`);
+  }
+}
+
+function isMissingStorageBucket(error: unknown) {
+  return /bucket not found|not found/i.test(getErrorMessage(error));
+}
+
 async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>) {
   const bucket = getResumeBucket();
-  const root = await supabaseAdmin.storage.from(bucket).list("", { limit: 1000 });
+  let root = await supabaseAdmin.storage.from(bucket).list("", { limit: 1000 });
+  if (root.error && isMissingStorageBucket(root.error)) {
+    await ensureResumeBucket(supabaseAdmin, bucket);
+    root = await supabaseAdmin.storage.from(bucket).list("", { limit: 1000 });
+  }
   if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
 
   let storageCount = 0;
