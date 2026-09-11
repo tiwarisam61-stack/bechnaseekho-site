@@ -467,13 +467,17 @@ async function uploadResumeFile({
       upsert: false,
     });
 
-  if (upload.error) throw upload.error;
+  if (upload.error) {
+    throw new Error(`Could not save resume in Supabase Storage bucket "${bucket}": ${getErrorMessage(upload.error)}`);
+  }
 
   const signed = await supabaseAdmin.storage
     .from(bucket)
     .createSignedUrl(path, 60 * 60 * 24 * 30);
 
-  if (signed.error) throw signed.error;
+  if (signed.error) {
+    throw new Error(`Resume was uploaded, but signed link could not be created from bucket "${bucket}": ${getErrorMessage(signed.error)}`);
+  }
   return {
     path,
     url: signed.data.signedUrl,

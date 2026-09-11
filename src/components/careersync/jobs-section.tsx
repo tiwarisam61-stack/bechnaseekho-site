@@ -29,7 +29,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { applyFilters, hasAnyFilter, type Filters, type SalaryBucket, type ExperienceBucket } from "@/lib/jobs/filter";
 import { ResumeUpload, type ResumeUploadValue } from "@/components/careersync/resume-upload";
-import { applyCareerSyncJob, listCareerSyncApprovedJobs, mergeSharedCareerSyncApplications } from "@/services/careersync/careersync-service";
+import { listCareerSyncApprovedJobs, mergeSharedCareerSyncApplications } from "@/services/careersync/careersync-service";
 import { fetchPublicCareerSyncJobs, persistSharedCareerSyncApplication } from "@/lib/careersync-jobs-api";
 
 
@@ -1204,24 +1204,9 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
       });
       if (sharedApplication) mergeSharedCareerSyncApplications([sharedApplication]);
     } catch (error) {
-      try {
-        applyCareerSyncJob({
-          userId: user.id,
-          jobId: job.id,
-          fullName: name,
-          email: mail,
-          phone: tel || null,
-          resumeUrl: resume.url,
-          resumePath: resume.path,
-          coverLetter: candidateNote,
-        });
-      } catch (fallbackError) {
-        submitError = fallbackError instanceof Error
-          ? fallbackError.message
-          : error instanceof Error
-            ? error.message
-            : "Could not submit application. Please try again.";
-      }
+      submitError = error instanceof Error
+        ? error.message
+        : "Could not submit application. Please try again.";
     }
     setSubmitting(false);
     if (submitError) {

@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { FileText, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { uploadCareerSyncResume } from "@/services/careersync/careersync-service";
 import { parseSharedCareerSyncResume, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 import { extractResumeText } from "@/lib/resume-extract";
 import { extractResumeProfile, type ResumeProfileExtract } from "@/lib/resume-profile-extract";
@@ -57,13 +56,7 @@ export function ResumeUpload({ userId, value, onChange }: Props) {
         }
       }
 
-      let uploaded: ResumeUploadValue;
-      try {
-        uploaded = await uploadSharedCareerSyncResume({ userId, file });
-      } catch (error) {
-        console.warn("[CareerSync] Shared resume upload failed, using local fallback", error);
-        uploaded = await uploadCareerSyncResume({ userId, file });
-      }
+      const uploaded = await uploadSharedCareerSyncResume({ userId, file });
       const next = { ...uploaded, extracted };
       onChange(next);
       if (extracted?.phone || extracted?.totalExperience || extracted?.skills?.length) {
