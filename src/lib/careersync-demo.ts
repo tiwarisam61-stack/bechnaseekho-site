@@ -1306,6 +1306,75 @@ export function approveDemoJobDeletion(requestId: string, adminUserId: string, a
     });
 }
 export function updateDemoApplicationStatus(applicationId: string, status: string) { updateApplicationStatus(applicationId, status); }
+
+const DEMO_APPLICATION_NOTE_LIMIT = 6000;
+
+function appendDemoApplicationMeta(current: string | null, lines: string[]) {
+    const replaceableLabels = lines
+        .map((line) => line.match(/^([^:]+):/)?.[1]?.trim())
+        .filter((label): label is string => Boolean(label) && label.toLowerCase() !== "admin log");
+    const existing = (current ?? "")
+        .split("\n")
+        .filter((line) => {
+            const label = line.match(/^([^:]+):/)?.[1]?.trim();
+            return !label || !replaceableLabels.some((item) => item.toLowerCase() === label.toLowerCase());
+        })
+        .join("\n")
+        .trim();
+    return [existing, ...lines].filter(Boolean).join("\n").slice(0, DEMO_APPLICATION_NOTE_LIMIT);
+}
+
+export function requestDemoApplicationProfileUnlock(applicationId: string, requestedBy: string, note?: string) {
+    setState((state) => {
+        const application = state.applications.find((item) => item.id === applicationId);
+        if (!application) return state;
+        const timestamp = nowIso();
+        application.cover_letter = appendDemoApplicationMeta(application.cover_letter, [
+            "Unlock Requested: true",
+            "Unlock Status: requested",
+            `Unlock Requested By: ${requestedBy || "Company recruiter"}`,
+            `Unlock Requested At: ${timestamp}`,
+            `Admin Log: ${timestamp} | unlock_requested | ${note || "Recruiter requested profile unlock."}`,
+        ]);
+        application.updated_at = timestamp;
+        appendAuditMessage(state, application.user_id, "application.unlock_requested", `${application.full_name} profile unlock requested by ${requestedBy || "company recruiter"}.`, "application", application.id);
+        return state;
+    });
+}
+
+export function reviewDemoApplicationProfileUnlock(applicationId: string, approved: boolean, reviewedBy: string) {
+    setState((state) => {
+        const application = state.applications.find((item) => item.id === applicationId);
+        if (!application) return state;
+        const timestamp = nowIso();
+        application.status = approved ? "under_review" : application.status || "submitted";
+        application.cover_letter = appendDemoApplicationMeta(application.cover_letter, [
+            `Unlock Status: ${approved ? "approved" : "rejected"}`,
+            `Unlock Reviewed By: ${getDisplayName(state.users.find((user) => user.id === reviewedBy)) || "CareerSync admin"}`,
+            `Unlock Reviewed At: ${timestamp}`,
+            `Admin Log: ${timestamp} | unlock_${approved ? "approved" : "rejected"} | ${approved ? "Profile sharing approved for recruiter." : "Profile sharing request rejected."}`,
+        ]);
+        application.updated_at = timestamp;
+        const job = state.jobs.find((item) => item.id === application.job_id);
+        if (job?.posted_by) {
+            state.notifications.unshift({
+                id: demoId("notif"),
+                user_id: job.posted_by,
+                title: approved ? "Candidate profile unlocked" : "Candidate unlock rejected",
+                message: approved
+                    ? `${application.full_name}'s contact details and resume are now available.`
+                    : `${application.full_name}'s profile unlock request was rejected by admin.`,
+                type: approved ? "success" : "warning",
+                href: "/careersync?workspace=1#candidates",
+                created_at: timestamp,
+                read_at: null,
+                metadata: { applicationId, jobId: application.job_id },
+            });
+        }
+        appendAuditMessage(state, reviewedBy, approved ? "application.unlock_approved" : "application.unlock_rejected", `${application.full_name} profile unlock ${approved ? "approved" : "rejected"}.`, "application", application.id);
+        return state;
+    });
+}
 export function recordDemoApplication(input: { jobId: string; userId: string; fullName: string; email: string; phone: string | null; resumePath: string | null; resumeUrl: string | null; coverLetter: string | null; }) {
     setState((state) => {
         const job = state.jobs.find((item) => item.id === input.jobId);

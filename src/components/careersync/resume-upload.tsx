@@ -2,12 +2,21 @@ import { useRef, useState } from "react";
 import { FileText, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadCareerSyncResume } from "@/services/careersync/careersync-service";
-import { uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
+import { parseSharedCareerSyncResume, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
+import { extractResumeText } from "@/lib/resume-extract";
+import { extractResumeProfile, type ResumeProfileExtract } from "@/lib/resume-profile-extract";
+
+export type ResumeUploadValue = {
+  path: string;
+  url: string;
+  name: string;
+  extracted?: ResumeProfileExtract;
+};
 
 interface Props {
   userId: string;
-  value: { path: string; url: string; name: string } | null;
-  onChange: (v: { path: string; url: string; name: string } | null) => void;
+  value: ResumeUploadValue | null;
+  onChange: (v: ResumeUploadValue | null) => void;
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -34,14 +43,32 @@ export function ResumeUpload({ userId, value, onChange }: Props) {
     }
     setBusy(true);
     try {
-      let uploaded: { path: string; url: string; name: string };
+      let extracted: ResumeProfileExtract | undefined;
+      try {
+        const text = await extractResumeText(file);
+        extracted = (await parseSharedCareerSyncResume({ text, fileName: file.name })) ?? extractResumeProfile(text);
+      } catch (error) {
+        console.warn("[CareerSync] AI resume profile extraction skipped, using local parser", error);
+        try {
+          const text = await extractResumeText(file);
+          extracted = extractResumeProfile(text);
+        } catch (fallbackError) {
+          console.warn("[CareerSync] Resume profile extraction skipped", fallbackError);
+        }
+      }
+
+      let uploaded: ResumeUploadValue;
       try {
         uploaded = await uploadSharedCareerSyncResume({ userId, file });
       } catch (error) {
         console.warn("[CareerSync] Shared resume upload failed, using local fallback", error);
         uploaded = await uploadCareerSyncResume({ userId, file });
       }
-      onChange(uploaded);
+      const next = { ...uploaded, extracted };
+      onChange(next);
+      if (extracted?.phone || extracted?.totalExperience || extracted?.skills?.length) {
+        toast.success(extracted.source === "ai" ? "AI resume details picked automatically." : "Resume details picked automatically.");
+      }
       setJustUploaded(true);
       window.setTimeout(() => setJustUploaded(false), 1800);
     } catch (error) {

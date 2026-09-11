@@ -9,6 +9,7 @@ type JobStatus = DemoJobRecord["status"];
 const JOB_STATUSES = new Set<JobStatus>(["approved", "pending", "rejected", "changes_requested"]);
 const APPLICATION_STATUSES = new Set(["submitted", "under_review", "interview", "offer", "rejected", "withdrawn"]);
 const DEFAULT_RESUME_BUCKET = "careersync-resumes";
+const APPLICATION_NOTE_LIMIT = 6000;
 
 export const Route = createFileRoute("/api/careersync-jobs")({
   server: {
@@ -34,7 +35,6 @@ export const Route = createFileRoute("/api/careersync-jobs")({
 
           if (role === "company") {
             if (!email) return Response.json({ jobs: [] });
-            query = query.eq("recruiter_email", email);
           } else if (role !== "admin") {
             query = query
               .eq("status", "approved")
@@ -45,8 +45,12 @@ export const Route = createFileRoute("/api/careersync-jobs")({
           const { data, error } = await query;
           if (error) throw error;
 
+          const jobs = role === "company"
+            ? (data ?? []).filter((job) => isCompanyJobMatch(job, email))
+            : (data ?? []);
+
           return Response.json({
-            jobs: (data ?? []).map((job) => toDemoJob(job, role === "company" ? userId : null)),
+            jobs: jobs.map((job) => toDemoJob(job, role === "company" ? userId : null)),
           });
         } catch (error) {
           return sharedJobError(error);
@@ -163,13 +167,85 @@ export const Route = createFileRoute("/api/careersync-jobs")({
       PATCH: async ({ request }) => {
         try {
           const payload = await request.json();
+          if (payload?.type === "application-unlock-request") {
+            const applicationId = requireUuid(payload.applicationId, "applicationId");
+            const supabaseAdmin = await getSupabaseAdmin();
+            const { data: existing, error: existingError } = await supabaseAdmin
+              .from("applications")
+              .select("*")
+              .eq("id", applicationId)
+              .single();
+            if (existingError) throw existingError;
+
+            const nextCoverLetter = appendApplicationMeta(existing.cover_letter, [
+              `Unlock Requested: true`,
+              `Unlock Status: requested`,
+              `Unlock Requested By: ${clean(payload.requestedBy, 120) || "Company recruiter"}`,
+              `Unlock Requested At: ${new Date().toISOString()}`,
+              `Admin Log: ${new Date().toISOString()} | unlock_requested | ${clean(payload.note, 240) || "Recruiter requested full profile and resume access."}`,
+            ]);
+
+            const { data, error } = await supabaseAdmin
+              .from("applications")
+              .update({ cover_letter: nextCoverLetter, updated_at: new Date().toISOString() })
+              .eq("id", applicationId)
+              .select("*")
+              .single();
+
+            if (error) throw error;
+            return Response.json({ application: toDemoApplication(data) });
+          }
+
+          if (payload?.type === "application-unlock-review") {
+            const applicationId = requireUuid(payload.applicationId, "applicationId");
+            const approved = Boolean(payload.approved);
+            const supabaseAdmin = await getSupabaseAdmin();
+            const { data: existing, error: existingError } = await supabaseAdmin
+              .from("applications")
+              .select("*")
+              .eq("id", applicationId)
+              .single();
+            if (existingError) throw existingError;
+
+            const status = approved ? "under_review" : existing.status || "submitted";
+            const nextCoverLetter = appendApplicationMeta(existing.cover_letter, [
+              `Unlock Status: ${approved ? "approved" : "rejected"}`,
+              `Unlock Reviewed By: ${clean(payload.reviewedBy, 120) || "CareerSync admin"}`,
+              `Unlock Reviewed At: ${new Date().toISOString()}`,
+              `Admin Log: ${new Date().toISOString()} | unlock_${approved ? "approved" : "rejected"} | ${clean(payload.note, 240) || (approved ? "Profile sharing approved for recruiter." : "Profile sharing request rejected.")}`,
+            ]);
+
+            const { data, error } = await supabaseAdmin
+              .from("applications")
+              .update({ status, cover_letter: nextCoverLetter, updated_at: new Date().toISOString() })
+              .eq("id", applicationId)
+              .select("*")
+              .single();
+
+            if (error) throw error;
+            return Response.json({ application: toDemoApplication(data) });
+          }
+
           if (payload?.type === "application-status") {
             const applicationId = requireUuid(payload.applicationId, "applicationId");
             const status = normalizeApplicationStatus(payload.status);
             const supabaseAdmin = await getSupabaseAdmin();
+            const { data: existing, error: existingError } = await supabaseAdmin
+              .from("applications")
+              .select("cover_letter")
+              .eq("id", applicationId)
+              .single();
+            if (existingError) throw existingError;
+
             const { data, error } = await supabaseAdmin
               .from("applications")
-              .update({ status, updated_at: new Date().toISOString() })
+              .update({
+                status,
+                cover_letter: appendApplicationMeta(existing.cover_letter, [
+                  `Admin Log: ${new Date().toISOString()} | status_${status} | Application moved to ${status}.`,
+                ]),
+                updated_at: new Date().toISOString(),
+              })
               .eq("id", applicationId)
               .select("*")
               .single();
@@ -302,7 +378,7 @@ function applicationPayload(payload: Record<string, unknown>) {
     phone: clean(payload.phone, 30) || null,
     resume_path: clean(payload.resumePath, 500) || null,
     resume_url: clean(payload.resumeUrl, 1000) || null,
-    cover_letter: clean(payload.coverLetter, 1500) || null,
+    cover_letter: clean(payload.coverLetter, APPLICATION_NOTE_LIMIT) || null,
     status: "submitted",
   };
 }
@@ -316,7 +392,7 @@ function repairApplicationPayload(payload: Record<string, unknown>) {
     phone: clean(payload.phone, 30) || null,
     resume_path: clean(payload.resume_path ?? payload.resumePath, 500) || null,
     resume_url: clean(payload.resume_url ?? payload.resumeUrl, 1000) || null,
-    cover_letter: clean(payload.cover_letter ?? payload.coverLetter, 1500) || null,
+    cover_letter: clean(payload.cover_letter ?? payload.coverLetter, APPLICATION_NOTE_LIMIT) || null,
     status: normalizeApplicationStatus(payload.status || "submitted"),
   };
 }
@@ -420,10 +496,9 @@ async function listApplicationsForRole({
   email: string;
   userId: string;
 }) {
-  let jobQuery = supabaseAdmin.from("jobs").select("id").limit(200);
+  let jobQuery = supabaseAdmin.from("jobs").select("id, company, recruiter_email").limit(200);
   if (role === "company") {
     if (!email) return [];
-    jobQuery = jobQuery.eq("recruiter_email", email);
   } else if (role !== "admin") {
     if (!userId) return [];
     const applicationQuery = supabaseAdmin
@@ -439,7 +514,10 @@ async function listApplicationsForRole({
 
   const { data: jobs, error: jobsError } = await jobQuery;
   if (jobsError) throw jobsError;
-  const jobIds = (jobs ?? []).map((job) => job.id).filter(Boolean);
+  const companyJobs = role === "company"
+    ? (jobs ?? []).filter((job) => isCompanyJobMatch(job as Pick<JobRow, "company" | "recruiter_email">, email))
+    : (jobs ?? []);
+  const jobIds = companyJobs.map((job) => job.id).filter(Boolean);
   if (!jobIds.length) return [];
 
   const { data, error } = await supabaseAdmin
@@ -450,6 +528,45 @@ async function listApplicationsForRole({
     .limit(500);
   if (error) throw error;
   return data ?? [];
+}
+
+function isCompanyJobMatch(job: Pick<JobRow, "company" | "recruiter_email">, email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return false;
+  const recruiterEmail = (job.recruiter_email ?? "").trim().toLowerCase();
+  if (recruiterEmail && recruiterEmail === normalizedEmail) return true;
+
+  const domain = getCompanyEmailDomain(normalizedEmail);
+  if (!domain) return false;
+  const recruiterDomain = getCompanyEmailDomain(recruiterEmail);
+  if (recruiterDomain && recruiterDomain === domain) return true;
+
+  const companyKey = normalizeCompanyKey(job.company);
+  return Boolean(companyKey && companyKey === normalizeCompanyKey(domain));
+}
+
+function getCompanyEmailDomain(email: string) {
+  const domain = email.split("@")[1]?.trim().toLowerCase() ?? "";
+  if (!domain || FREE_EMAIL_DOMAINS.has(domain)) return "";
+  return domain.replace(/^www\./, "");
+}
+
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+  "rediffmail.com",
+  "proton.me",
+]);
+
+function normalizeCompanyKey(value: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .replace(/\.(co\.in|com|in|net|org|io)$/i, "")
+    .replace(/[^a-z0-9]+/g, "");
 }
 
 function toStringArray(value: unknown) {
@@ -467,6 +584,24 @@ function normalizeApplicationStatus(value: unknown) {
   const status = clean(value, 40).toLowerCase().replace(/[\s-]+/g, "_");
   if (!APPLICATION_STATUSES.has(status)) throw new Error("Invalid application status.");
   return status;
+}
+
+function appendApplicationMeta(current: string | null, lines: string[]) {
+  const visibleText = (current ?? "").trim();
+  const replaceLabels = new Set(
+    lines
+      .map((line) => line.split(":")[0]?.trim().toLowerCase())
+      .filter((label) => label && label !== "admin log"),
+  );
+  const withoutOldMeta = visibleText
+    .split("\n")
+    .filter((line) => {
+      const label = line.split(":")[0]?.trim().toLowerCase() ?? "";
+      return !replaceLabels.has(label);
+    })
+    .join("\n")
+    .trim();
+  return [withoutOldMeta, ...lines].filter(Boolean).join("\n").slice(0, APPLICATION_NOTE_LIMIT);
 }
 
 function getResumeExtension(name: string) {

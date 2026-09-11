@@ -36,6 +36,28 @@ export type SharedResumeUpload = {
   name: string;
 };
 
+export type SharedResumeParseResult = {
+  phone: string | null;
+  email: string | null;
+  name: string | null;
+  city: string | null;
+  totalExperience: string | null;
+  lastRole: string | null;
+  companies: string[];
+  skills: string[];
+  education: string[];
+  noticePeriod: string | null;
+  currentCtc: string | null;
+  expectedCtc: string | null;
+  languages: string[];
+  summary?: string | null;
+  jobGaps?: string[];
+  roleFit?: string[];
+  recruiterRecommendation?: string;
+  confidence?: number;
+  source?: "ai" | "fallback";
+};
+
 export async function fetchSharedCareerSyncJobs(input: {
   role: DemoRole;
   userId: string;
@@ -105,6 +127,17 @@ export async function uploadSharedCareerSyncResume(input: { userId: string; file
   return body.resume;
 }
 
+export async function parseSharedCareerSyncResume(input: { text: string; fileName?: string }): Promise<SharedResumeParseResult | null> {
+  const response = await fetch("/api/careersync-resume-parse", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body = (await response.json().catch(() => null)) as { resume?: SharedResumeParseResult; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not parse resume.");
+  return body?.resume ?? null;
+}
+
 export async function updateSharedCareerSyncApplicationStatus(input: {
   applicationId: string;
   status: string;
@@ -116,6 +149,37 @@ export async function updateSharedCareerSyncApplicationStatus(input: {
   });
   const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
   if (!response.ok) throw new Error(body?.error || "Could not update application status.");
+  return body?.application ?? null;
+}
+
+export async function requestSharedCareerSyncProfileUnlock(input: {
+  applicationId: string;
+  requestedBy?: string | null;
+  note?: string | null;
+}) {
+  const response = await fetch("/api/careersync-jobs", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "application-unlock-request", ...input }),
+  });
+  const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not request profile unlock.");
+  return body?.application ?? null;
+}
+
+export async function reviewSharedCareerSyncProfileUnlock(input: {
+  applicationId: string;
+  approved: boolean;
+  reviewedBy?: string | null;
+  note?: string | null;
+}) {
+  const response = await fetch("/api/careersync-jobs", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "application-unlock-review", ...input }),
+  });
+  const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not review profile unlock.");
   return body?.application ?? null;
 }
 

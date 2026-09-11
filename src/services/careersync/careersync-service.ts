@@ -1,5 +1,5 @@
 import { InMemoryCareerSyncRepository } from "./repositories/in-memory-careersync-repository";
-import { DEMO_ACCOUNTS, mergeSharedDemoApplications, mergeSharedDemoJobs, syncDemoUserFromAuth } from "@/lib/careersync-demo";
+import { DEMO_ACCOUNTS, mergeSharedDemoApplications, mergeSharedDemoJobs, requestDemoApplicationProfileUnlock, reviewDemoApplicationProfileUnlock, syncDemoUserFromAuth } from "@/lib/careersync-demo";
 import type {
     ApplyJobRequest,
     CareerSyncRepository,
@@ -355,6 +355,7 @@ export const requestDemoJobChanges = requestCareerSyncJobChanges;
 export const deleteDemoJob = requestCareerSyncJobDeletion;
 export const approveDemoJobDeletion = approveCareerSyncJobDeletion;
 export const updateDemoApplicationStatus = updateCareerSyncApplicationStatus;
+export { requestDemoApplicationProfileUnlock, reviewDemoApplicationProfileUnlock };
 export const getDemoActivityFeed = listCareerSyncActivity;
 export const getDemoJobDeletionRequests = listCareerSyncDeletionRequests;
 export const getDemoEmployeeSnapshot = getCareerSyncEmployeeSnapshot;

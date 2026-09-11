@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { applyFilters, hasAnyFilter, type Filters, type SalaryBucket, type ExperienceBucket } from "@/lib/jobs/filter";
-import { ResumeUpload } from "@/components/careersync/resume-upload";
+import { ResumeUpload, type ResumeUploadValue } from "@/components/careersync/resume-upload";
 import { applyCareerSyncJob, listCareerSyncApprovedJobs, mergeSharedCareerSyncApplications } from "@/services/careersync/careersync-service";
 import { fetchPublicCareerSyncJobs, persistSharedCareerSyncApplication } from "@/lib/careersync-jobs-api";
 
@@ -1117,8 +1117,10 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [totalExperience, setTotalExperience] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const [resume, setResume] = useState<{ path: string; url: string; name: string } | null>(null);
+  const [resume, setResume] = useState<ResumeUploadValue | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -1141,6 +1143,8 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
       setDone(false);
       setSubmitting(false);
       setCoverLetter("");
+      setCity("");
+      setTotalExperience("");
       setResume(null);
     }
   }, [job]);
@@ -1150,12 +1154,40 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
     if (!job || !user) return;
     const name = fullName.trim();
     const mail = email.trim();
-    const tel = phone.trim();
+    const tel = phone.trim() || resume?.extracted?.phone?.trim() || "";
+    const candidateCity = city.trim();
+    const candidateExperience = totalExperience.trim() || resume?.extracted?.totalExperience?.trim() || "";
     if (name.length < 2 || name.length > 100) return toast.error("Please enter your full name.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) || mail.length > 255) return toast.error("Please enter a valid email.");
     if (tel && !/^[+\d][\d\s()-]{6,20}$/.test(tel)) return toast.error("Please enter a valid phone number.");
+    if (candidateCity.length < 2 || candidateCity.length > 80) return toast.error("Please enter your city.");
     if (!resume) return toast.error("Please upload your resume (PDF or Word).");
+    if (candidateExperience.length < 1 || candidateExperience.length > 40) return toast.error("We could not pick your total experience from resume. Please enter it manually.");
     if (coverLetter.length > 1500) return toast.error("Cover letter is too long.");
+    const parsed = resume.extracted;
+    const candidateNote = [
+      `Candidate City: ${candidateCity}`,
+      `Total Experience: ${candidateExperience}`,
+      parsed?.name ? `Resume Name: ${parsed.name}` : "",
+      parsed?.email ? `Resume Email: ${parsed.email}` : "",
+      parsed?.phone ? `Resume Phone: ${parsed.phone}` : "",
+      parsed?.city ? `Resume City: ${parsed.city}` : "",
+      parsed?.lastRole ? `Resume Last Role: ${parsed.lastRole}` : "",
+      parsed?.companies?.length ? `Resume Companies: ${parsed.companies.join(", ")}` : "",
+      parsed?.skills?.length ? `Resume Skills: ${parsed.skills.join(", ")}` : "",
+      parsed?.education?.length ? `Resume Education: ${parsed.education.join(" | ")}` : "",
+      parsed?.noticePeriod ? `Resume Notice Period: ${parsed.noticePeriod}` : "",
+      parsed?.currentCtc ? `Resume Current CTC: ${parsed.currentCtc}` : "",
+      parsed?.expectedCtc ? `Resume Expected CTC: ${parsed.expectedCtc}` : "",
+      parsed?.languages?.length ? `Resume Languages: ${parsed.languages.join(", ")}` : "",
+      parsed?.summary ? `Resume Summary: ${parsed.summary}` : "",
+      parsed?.jobGaps?.length ? `Resume Job Gaps: ${parsed.jobGaps.join(" | ")}` : "",
+      parsed?.roleFit?.length ? `Resume Role Fit: ${parsed.roleFit.join(", ")}` : "",
+      parsed?.recruiterRecommendation ? `Recruiter Recommendation: ${parsed.recruiterRecommendation}` : "",
+      parsed?.confidence != null ? `Resume Parse Confidence: ${parsed.confidence}` : "",
+      parsed?.source ? `Resume Parse Source: ${parsed.source}` : "",
+      coverLetter.trim() ? `Candidate Message: ${coverLetter.trim()}` : "",
+    ].filter(Boolean).join("\n");
 
     setSubmitting(true);
     let submitError: string | null = null;
@@ -1168,7 +1200,7 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
         phone: tel || null,
         resumeUrl: resume.url,
         resumePath: resume.path,
-        coverLetter: coverLetter.trim() || null,
+        coverLetter: candidateNote,
       });
       if (sharedApplication) mergeSharedCareerSyncApplications([sharedApplication]);
     } catch (error) {
@@ -1181,7 +1213,7 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
           phone: tel || null,
           resumeUrl: resume.url,
           resumePath: resume.path,
-          coverLetter: coverLetter.trim() || null,
+          coverLetter: candidateNote,
         });
       } catch (fallbackError) {
         submitError = fallbackError instanceof Error
@@ -1212,6 +1244,16 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
       const url = `https://wa.me/${digits}?text=${msg}`;
       window.open(url, "_blank", "noopener");
     }
+  }
+
+  function handleResumeChange(next: ResumeUploadValue | null) {
+    setResume(next);
+    if (!next) return;
+    if (!phone.trim() && next.extracted?.phone) setPhone(next.extracted.phone);
+    if (!email.trim() && next.extracted?.email) setEmail(next.extracted.email);
+    if (!fullName.trim() && next.extracted?.name) setFullName(next.extracted.name);
+    if (!city.trim() && next.extracted?.city) setCity(next.extracted.city);
+    if (!totalExperience.trim() && next.extracted?.totalExperience) setTotalExperience(next.extracted.totalExperience);
   }
 
 
@@ -1288,10 +1330,26 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
                   <Field label="Phone / WhatsApp">
                     <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} placeholder="+91 98xxxxxxxx"
                       className="w-full rounded-xl bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 focus:bg-white px-3.5 py-2.5 text-sm outline-none transition" />
+                    {resume?.extracted?.phone && (
+                      <p className="mt-1 text-[11px] font-semibold text-emerald-600">Picked from resume. You can edit if needed.</p>
+                    )}
+                  </Field>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <Field label="Current city" required>
+                    <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={80} required placeholder="Gurgaon"
+                      className="w-full rounded-xl bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 focus:bg-white px-3.5 py-2.5 text-sm outline-none transition" />
+                  </Field>
+                  <Field label="Total experience" required>
+                    <input value={totalExperience} onChange={(e) => setTotalExperience(e.target.value)} maxLength={40} required placeholder="2 years / Fresher"
+                      className="w-full rounded-xl bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 focus:bg-white px-3.5 py-2.5 text-sm outline-none transition" />
+                    {resume?.extracted?.totalExperience && (
+                      <p className="mt-1 text-[11px] font-semibold text-emerald-600">Picked from resume. You can edit if needed.</p>
+                    )}
                   </Field>
                 </div>
                 <Field label="Resume" required>
-                  <ResumeUpload userId={user!.id} value={resume} onChange={setResume} />
+                  <ResumeUpload userId={user!.id} value={resume} onChange={handleResumeChange} />
                 </Field>
 
                 <Field label="Why are you a great fit? (optional)">
