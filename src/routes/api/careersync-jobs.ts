@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/careersync-jobs")({
 
           if (url.searchParams.get("resource") === "applications") {
             const applications = await listApplicationsForRole({ supabaseAdmin, role, email, userId });
-            return Response.json({ applications: applications.map(toDemoApplication) });
+            return Response.json({ applications: applications.map((application) => toDemoApplication(application)) });
           }
 
           if (url.searchParams.get("resource") === "resume-insights") {
