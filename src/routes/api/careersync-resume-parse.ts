@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/careersync-resume-parse")({
               ? await parseWithLovable(input.text, input.fileName, lovableKey)
               : null;
 
-          return Response.json({ resume: ai ?? fallback });
+          return Response.json({ resume: ai ? mergeAiWithFallback(fallback, ai) : fallback });
         } catch (error) {
           return Response.json(
             { error: error instanceof Error ? error.message : "Could not parse resume." },
@@ -159,6 +159,42 @@ function normalizeAiExtract(content: string | undefined): AiResumeExtract | null
   } catch {
     return null;
   }
+}
+
+function mergeAiWithFallback(fallback: AiResumeExtract, ai: AiResumeExtract): AiResumeExtract {
+  const usefulAiFacts = Boolean(
+    ai.phone ||
+      ai.email ||
+      ai.name ||
+      ai.city ||
+      ai.totalExperience ||
+      ai.lastRole ||
+      ai.skills.length ||
+      ai.education.length,
+  );
+  return {
+    phone: ai.phone ?? fallback.phone,
+    email: ai.email ?? fallback.email,
+    name: ai.name ?? fallback.name,
+    city: ai.city ?? fallback.city,
+    totalExperience: ai.totalExperience ?? fallback.totalExperience,
+    lastRole: ai.lastRole ?? fallback.lastRole,
+    companies: ai.companies.length ? ai.companies : fallback.companies,
+    skills: ai.skills.length ? ai.skills : fallback.skills,
+    education: ai.education.length ? ai.education : fallback.education,
+    noticePeriod: ai.noticePeriod ?? fallback.noticePeriod,
+    currentCtc: ai.currentCtc ?? fallback.currentCtc,
+    expectedCtc: ai.expectedCtc ?? fallback.expectedCtc,
+    languages: ai.languages.length ? ai.languages : fallback.languages,
+    summary: ai.summary ?? fallback.summary,
+    jobGaps: ai.jobGaps.length ? ai.jobGaps : fallback.jobGaps,
+    roleFit: ai.roleFit.length ? ai.roleFit : fallback.roleFit,
+    recruiterRecommendation: ai.recruiterRecommendation !== "Not ready"
+      ? ai.recruiterRecommendation
+      : fallback.recruiterRecommendation,
+    confidence: Math.max(usefulAiFacts ? 0 : fallback.confidence, ai.confidence, fallback.confidence ?? 0),
+    source: usefulAiFacts ? "ai" : "fallback",
+  };
 }
 
 function stringOrNull(value: unknown) {
