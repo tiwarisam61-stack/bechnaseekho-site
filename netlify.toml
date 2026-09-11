@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION  = "22"
   NITRO_PRESET  = "netlify"
+  SECRETS_SCAN_OMIT_PATHS = "src/lib/firebase-auth.ts"
 
 # Static standalone pages
 [[redirects]]
