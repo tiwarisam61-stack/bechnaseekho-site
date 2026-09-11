@@ -80,7 +80,8 @@ export const Route = createFileRoute("/api/careersync-jobs")({
 
           const payload = await request.json();
           if (payload?.type === "application") {
-            const application = applicationPayload(payload);
+            const originalUserId = requireText(payload.userId, "userId", 160);
+            const application = await applicationPayload(supabaseAdmin, payload);
             const { data: existing, error: existingError } = await supabaseAdmin
               .from("applications")
               .select("*")
@@ -105,7 +106,7 @@ export const Route = createFileRoute("/api/careersync-jobs")({
                 .select("*")
                 .single();
               if (refreshError) throw refreshError;
-              return Response.json({ application: toDemoApplication(refreshed) });
+              return Response.json({ application: toDemoApplication(refreshed, originalUserId) });
             }
 
             const { data, error } = await supabaseAdmin
@@ -115,7 +116,7 @@ export const Route = createFileRoute("/api/careersync-jobs")({
               .single();
 
             if (error) throw error;
-            return Response.json({ application: toDemoApplication(data) });
+            return Response.json({ application: toDemoApplication(data, originalUserId) });
           }
 
           if (payload?.type === "repair-applications") {
@@ -327,11 +328,11 @@ function toDemoJob(job: JobRow, localOwnerId: string | null): DemoJobRecord {
   };
 }
 
-function toDemoApplication(application: ApplicationRow): DemoApplicationRecord {
+function toDemoApplication(application: ApplicationRow, displayUserId = application.user_id): DemoApplicationRecord {
   return {
     id: application.id,
     job_id: application.job_id,
-    user_id: application.user_id,
+    user_id: displayUserId,
     full_name: application.full_name,
     email: application.email,
     phone: application.phone,
@@ -375,12 +376,19 @@ function jobPayload(payload: Record<string, unknown>) {
   };
 }
 
-function applicationPayload(payload: Record<string, unknown>) {
+async function applicationPayload(
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>,
+  payload: Record<string, unknown>,
+) {
+  const email = requireText(payload.email, "email", 255).toLowerCase();
+  const fullName = requireText(payload.fullName, "fullName", 100);
+  const rawUserId = requireText(payload.userId, "userId", 160);
+
   return {
     job_id: requireUuid(payload.jobId, "jobId"),
-    user_id: requireText(payload.userId, "userId", 160),
-    full_name: requireText(payload.fullName, "fullName", 100),
-    email: requireText(payload.email, "email", 255).toLowerCase(),
+    user_id: await resolveApplicationUserId({ supabaseAdmin, userId: rawUserId, email, fullName }),
+    full_name: fullName,
+    email,
     phone: clean(payload.phone, 30) || null,
     resume_path: clean(payload.resumePath, 500) || null,
     resume_url: clean(payload.resumeUrl, 1000) || null,
@@ -450,6 +458,69 @@ async function repairApplications(
   }
 
   return { inserted, skipped, applications: repaired };
+}
+
+async function resolveApplicationUserId({
+  supabaseAdmin,
+  userId,
+  email,
+  fullName,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  userId: string;
+  email: string;
+  fullName: string;
+}) {
+  if (isUuid(userId)) return userId;
+
+  const existing = await findApplicationUserId({ supabaseAdmin, userId, email });
+  if (existing) return existing;
+
+  const created = await supabaseAdmin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    password: randomAuthPassword(),
+    user_metadata: {
+      full_name: fullName,
+      careersync_external_user_id: userId,
+    },
+  });
+
+  if (created.error) {
+    const message = getErrorMessage(created.error);
+    if (/already.*registered|already.*exists|duplicate|email_exists/i.test(message)) {
+      const retry = await findApplicationUserId({ supabaseAdmin, userId, email });
+      if (retry) return retry;
+    }
+    throw new Error(`Could not prepare candidate profile in Supabase Auth: ${message}`);
+  }
+
+  if (!created.data.user?.id) throw new Error("Supabase Auth did not return a candidate profile id.");
+  return created.data.user.id;
+}
+
+async function findApplicationUserId({
+  supabaseAdmin,
+  userId,
+  email,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  userId: string;
+  email: string;
+}) {
+  if (isUuid(userId)) return userId;
+  const normalizedEmail = clean(email, 255).toLowerCase();
+  if (!normalizedEmail) return "";
+
+  for (let page = 1; page <= 10; page += 1) {
+    const users = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (users.error) throw new Error(`Could not read Supabase Auth users: ${getErrorMessage(users.error)}`);
+    const match = users.data.users.find((authUser) => authUser.email?.toLowerCase() === normalizedEmail);
+    if (match) return match.id;
+    if (users.data.users.length < 1000) break;
+  }
+
+  return "";
 }
 
 async function uploadResumeFile({
@@ -591,16 +662,21 @@ async function listApplicationsForRole({
   if (role === "company") {
     if (!email) return [];
   } else if (role !== "admin") {
-    if (!userId) return [];
+    if (!userId && !email) return [];
+    const resolvedUserId = await findApplicationUserId({ supabaseAdmin, userId, email });
+    if (!resolvedUserId) return [];
     const applicationQuery = supabaseAdmin
       .from("applications")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", resolvedUserId)
       .order("created_at", { ascending: false })
       .limit(200);
     const { data, error } = await applicationQuery;
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map((application) => ({
+      ...application,
+      user_id: userId || application.user_id,
+    }));
   }
 
   const { data: jobs, error: jobsError } = await jobQuery;
@@ -706,13 +782,21 @@ function randomId() {
   return Math.random().toString(36).slice(2, 12);
 }
 
+function randomAuthPassword() {
+  return `CareerSync-${randomId()}-${Date.now()}!`;
+}
+
 function safePathSegment(value: string) {
   return value.replace(/[^a-z0-9_-]/gi, "-").slice(0, 120) || "candidate";
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function requireUuid(value: unknown, label: string) {
   const text = clean(value, 80);
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {
+  if (!isUuid(text)) {
     throw new Error(`Invalid ${label}.`);
   }
   return text;
