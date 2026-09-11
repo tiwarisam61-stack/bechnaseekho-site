@@ -18,6 +18,11 @@
   status = 200
 
 [[redirects]]
+  from   = "/api/careersync-resume-parse"
+  to     = "/.netlify/functions/careersync-resume-parse"
+  status = 200
+
+[[redirects]]
   from   = "/careersync/journey"
   to     = "/interview-practice.html"
   status = 301
