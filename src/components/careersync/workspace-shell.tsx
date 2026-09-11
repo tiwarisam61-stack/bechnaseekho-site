@@ -316,12 +316,13 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
 
             <section id="platform-stats" className="rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(139,92,246,0.2)] sm:p-7">
                 <SectionHeading title="Platform Statistics" subtitle="Enterprise-wide usage and pipeline counters." />
-                <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+                <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-7">
                     <SummaryCard label="Users" value={String(adminAnalytics.totals.totalUsers)} icon={<Users className="h-4 w-4" />} />
                     <SummaryCard label="HR" value={String(adminAnalytics.totals.totalHrUsers)} icon={<Building2 className="h-4 w-4" />} />
                     <SummaryCard label="Employees" value={String(adminAnalytics.totals.totalEmployees)} icon={<UserRound className="h-4 w-4" />} />
                     <SummaryCard label="Candidates" value={String(adminAnalytics.totals.totalCandidates)} icon={<UserRound className="h-4 w-4" />} />
                     <SummaryCard label="Applications" value={String(adminAnalytics.totals.totalApplications)} icon={<Briefcase className="h-4 w-4" />} />
+                    <SummaryCard label="Resumes" value={String(adminAnalytics.totals.totalResumes)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Pending Leaves" value={String(adminAnalytics.totals.pendingLeaves)} icon={<CalendarDays className="h-4 w-4" />} />
                 </div>
             </section>
@@ -373,7 +374,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="grid gap-2 sm:grid-cols-3">
                         <SummaryCard label="Total" value={String(allApplications.length)} icon={<Users className="h-4 w-4" />} />
-                        <SummaryCard label="New" value={String(allApplications.filter((item) => item.status === "submitted").length)} icon={<FileClock className="h-4 w-4" />} />
+                        <SummaryCard label="Resumes" value={String(allApplications.filter((item) => item.resume_url || item.resume_path).length)} icon={<FileClock className="h-4 w-4" />} />
                         <SummaryCard label="Interview" value={String(allApplications.filter((item) => recruiterStage(item.status) === "Interview").length)} icon={<CalendarDays className="h-4 w-4" />} />
                     </div>
                     <ActionButton tone="success" onClick={() => void repairApplications()}>Repair / sync cached applications</ActionButton>

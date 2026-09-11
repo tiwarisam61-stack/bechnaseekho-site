@@ -60,10 +60,12 @@ export function getCareerSyncDashboardSummary(userId: string | null) {
     const notifications = repo.listNotifications(userId);
     const jobs = snapshot.jobs;
     const applications = repo.listApplications();
+    const totalResumes = applications.filter((application) => Boolean(application.resume_url || application.resume_path)).length;
     return {
         role: userId ? repo.getUserById(userId)?.role ?? null : null,
         totalJobs: jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified).length,
         pendingJobs: jobs.filter((job) => job.status === "pending").length,
+        totalResumes,
         myJobs: jobs.filter((job) => job.posted_by === userId),
         myApplications: applications.filter((application) => application.user_id === userId),
         unreadNotifications: notifications.filter((notification) => !notification.read_at).length,
@@ -80,6 +82,7 @@ export function getCareerSyncAdminAnalytics() {
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
     const totalApplications = snapshot.applications.length;
+    const totalResumes = snapshot.applications.filter((application) => Boolean(application.resume_url || application.resume_path)).length;
     const applicationStatusCounts = snapshot.applications.reduce<Record<string, number>>((acc, application) => {
         const key = application.status || "submitted";
         acc[key] = (acc[key] ?? 0) + 1;
@@ -106,6 +109,7 @@ export function getCareerSyncAdminAnalytics() {
             approvedJobs: approvedJobs.length,
             pendingJobs: pendingJobs.length,
             totalApplications,
+            totalResumes,
             totalUsers: snapshot.users.length,
             totalHrUsers: snapshot.users.filter((user) => user.role === "company").length,
             totalEmployees: snapshot.users.filter((user) => user.role === "employee").length,

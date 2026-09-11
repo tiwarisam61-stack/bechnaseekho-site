@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, CircleAlert, Clock3, Layers3, MessageSquareText, PlusCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleAlert, Clock3, FileText, Layers3, MessageSquareText, PlusCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -56,7 +56,11 @@ export function CareerSyncDashboard() {
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
                     <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
-                    <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
+                    {isAdmin ? (
+                        <MetricCard title="Total resumes" value={String(summary.totalResumes)} note="Saved in Supabase applications" icon={<FileText className="h-4 w-4" />} />
+                    ) : (
+                        <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
+                    )}
                     <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="New local updates" icon={<MessageSquareText className="h-4 w-4" />} />
                 </div>
 
