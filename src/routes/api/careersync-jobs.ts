@@ -27,6 +27,12 @@ export const Route = createFileRoute("/api/careersync-jobs")({
             return Response.json({ applications: applications.map(toDemoApplication) });
           }
 
+          if (url.searchParams.get("resource") === "resume-insights") {
+            if (role !== "admin") return Response.json({ error: "Admin access required." }, { status: 403 });
+            const insights = await getResumeStorageInsights(supabaseAdmin);
+            return Response.json({ resumeInsights: insights });
+          }
+
           let query = supabaseAdmin
             .from("jobs")
             .select("*")
@@ -487,6 +493,39 @@ async function uploadResumeFile({
 
 function getResumeBucket() {
   return process.env.SUPABASE_RESUME_BUCKET || DEFAULT_RESUME_BUCKET;
+}
+
+async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>) {
+  const bucket = getResumeBucket();
+  const root = await supabaseAdmin.storage.from(bucket).list("", { limit: 1000 });
+  if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
+
+  let storageCount = 0;
+  const paths: string[] = [];
+
+  for (const item of root.data ?? []) {
+    if (!item.name) continue;
+    if (item.metadata) {
+      storageCount += 1;
+      paths.push(item.name);
+      continue;
+    }
+
+    const nested = await supabaseAdmin.storage.from(bucket).list(item.name, { limit: 1000 });
+    if (nested.error) continue;
+    for (const file of nested.data ?? []) {
+      if (!file.name || !file.metadata) continue;
+      storageCount += 1;
+      paths.push(`${item.name}/${file.name}`);
+    }
+  }
+
+  return {
+    bucket,
+    storageCount,
+    samplePaths: paths.slice(0, 20),
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 async function listApplicationsForRole({

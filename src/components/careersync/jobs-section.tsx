@@ -1186,6 +1186,9 @@ function ApplyModal({ job, onClose }: { job: Job | null; onClose: () => void }) 
       parsed?.recruiterRecommendation ? `Recruiter Recommendation: ${parsed.recruiterRecommendation}` : "",
       parsed?.confidence != null ? `Resume Parse Confidence: ${parsed.confidence}` : "",
       parsed?.source ? `Resume Parse Source: ${parsed.source}` : "",
+      `Resume File: ${resume.name}`,
+      `Resume Path: ${resume.path}`,
+      `Resume Uploaded At: ${new Date().toISOString()}`,
       coverLetter.trim() ? `Candidate Message: ${coverLetter.trim()}` : "",
     ].filter(Boolean).join("\n");
 

@@ -51,6 +51,7 @@ import {
     fetchPublicCareerSyncJobs,
     fetchSharedCareerSyncApplications,
     fetchSharedCareerSyncJobs,
+    fetchSharedCareerSyncResumeInsights,
     repairSharedCareerSyncApplications,
     requestSharedCareerSyncProfileUnlock,
     reviewSharedCareerSyncProfileUnlock,
@@ -69,6 +70,7 @@ const ROLE_NAVS = {
         { label: "Reports", href: "#reports" },
         { label: "Approval Inbox", href: "#approval-inbox" },
         { label: "Applications", href: "#applications-admin" },
+        { label: "Resume Intelligence", href: "#resume-intelligence" },
         { label: "Approval Log", href: "#approval-log" },
         { label: "Data Health", href: "#data-health" },
         { label: "Lead Assignment", href: "#lead-assignment" },
@@ -245,6 +247,8 @@ export function CareerSyncWorkspaceShell() {
 }
 
 function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
+    const [storageInsight, setStorageInsight] = useState<{ bucket: string; storageCount: number; samplePaths: string[]; checkedAt: string } | null>(null);
+    const [storageInsightError, setStorageInsightError] = useState("");
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
@@ -268,6 +272,30 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         getApplicationAdminLog(application).map((entry) => ({ ...entry, application })),
     ).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     const dataHealth = getApplicationDataHealth(allApplications);
+    const resumeInsights = getResumeStorageInsights(allApplications);
+    const duplicateGroups = getDuplicateCandidateGroups(allApplications);
+    const qualityRankings = allApplications
+        .map((application) => ({ application, score: getCandidateQualityScore(application) }))
+        .sort((a, b) => b.score - a.score || (a.application.created_at < b.application.created_at ? 1 : -1));
+    const resumeStorageCount = storageInsight?.storageCount ?? resumeInsights.storageCount;
+
+    useEffect(() => {
+        let cancelled = false;
+        fetchSharedCareerSyncResumeInsights({ role: "admin", userId })
+            .then((insight) => {
+                if (cancelled) return;
+                setStorageInsight(insight);
+                setStorageInsightError("");
+            })
+            .catch((error) => {
+                if (cancelled) return;
+                setStorageInsight(null);
+                setStorageInsightError(error instanceof Error ? error.message : "Could not load Supabase Storage count.");
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [userId]);
 
     const repairApplications = async () => {
         try {
@@ -449,6 +477,96 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                             <p className="mt-1 text-xs font-semibold text-rose-700">{issue.label}</p>
                         </div>
                     ))}
+                </div>
+            </section>
+
+            <section id="resume-intelligence" className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.2)] sm:p-7">
+                <SectionHeading title="Resume Intelligence" subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores." />
+                <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                    <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Unique Resumes" value={String(resumeInsights.uniqueResumeCount)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Upload Logs" value={String(resumeInsights.uploadLog.length)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Failed Alerts" value={String(resumeInsights.failedAlerts.length)} icon={<X className="h-4 w-4" />} />
+                    <SummaryCard label="Duplicates" value={String(duplicateGroups.length)} icon={<Users className="h-4 w-4" />} />
+                </div>
+                <p className="mt-3 text-xs font-semibold text-slate-500">
+                    {storageInsight
+                        ? `Supabase bucket ${storageInsight.bucket} checked ${new Date(storageInsight.checkedAt).toLocaleString("en-IN")}.`
+                        : storageInsightError
+                            ? `Storage count fallback: ${storageInsightError}`
+                            : "Checking Supabase Storage count..."}
+                </p>
+
+                <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                    <div className="rounded-3xl border border-blue-100 bg-blue-50/40 p-4">
+                        <h3 className="text-sm font-black text-slate-900">Resume Upload Log</h3>
+                        <div className="mt-3 space-y-2">
+                            {resumeInsights.uploadLog.length === 0 ? (
+                                <EmptyState title="No resume uploads yet" message="Uploaded resumes will appear here after candidates apply." />
+                            ) : resumeInsights.uploadLog.slice(0, 8).map((entry) => (
+                                <div key={entry.id} className="rounded-2xl bg-white p-3 ring-1 ring-blue-100">
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900">{entry.candidateName}</p>
+                                            <p className="mt-1 text-xs text-slate-500">{entry.role} · {entry.company}</p>
+                                            <p className="mt-1 text-xs font-semibold text-blue-700">{entry.fileName}</p>
+                                        </div>
+                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">{entry.status}</span>
+                                    </div>
+                                    <p className="mt-2 text-[11px] font-semibold text-slate-500">{new Date(entry.uploadedAt).toLocaleString("en-IN")}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-rose-100 bg-rose-50/40 p-4">
+                        <h3 className="text-sm font-black text-slate-900">Failed Upload Alerts</h3>
+                        <div className="mt-3 space-y-2">
+                            {resumeInsights.failedAlerts.length === 0 ? (
+                                <EmptyState title="No failed resume alerts" message="Every submitted application has a stored resume reference." />
+                            ) : resumeInsights.failedAlerts.slice(0, 8).map((alert) => (
+                                <div key={alert.application.id} className="rounded-2xl bg-white p-3 ring-1 ring-rose-100">
+                                    <p className="text-sm font-bold text-slate-900">{alert.application.full_name}</p>
+                                    <p className="mt-1 text-xs text-slate-500">{alert.application.job?.role ?? "Role"} · {alert.application.email}</p>
+                                    <p className="mt-1 text-xs font-semibold text-rose-700">{alert.reason}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-amber-100 bg-amber-50/40 p-4">
+                        <h3 className="text-sm font-black text-slate-900">Duplicate Candidate Detection</h3>
+                        <div className="mt-3 space-y-2">
+                            {duplicateGroups.length === 0 ? (
+                                <EmptyState title="No duplicates found" message="Candidates look unique by email and phone." />
+                            ) : duplicateGroups.slice(0, 8).map((group) => (
+                                <div key={group.key} className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
+                                    <p className="text-sm font-bold text-slate-900">{group.label}</p>
+                                    <p className="mt-1 text-xs font-semibold text-amber-700">{group.items.length} applications found</p>
+                                    <p className="mt-1 text-xs text-slate-500">{group.items.map((item) => item.full_name).join(", ")}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4">
+                        <h3 className="text-sm font-black text-slate-900">Candidate Quality Score</h3>
+                        <div className="mt-3 space-y-2">
+                            {qualityRankings.length === 0 ? (
+                                <EmptyState title="No candidates scored yet" message="Scores will appear once applications are submitted." />
+                            ) : qualityRankings.slice(0, 8).map(({ application, score }) => (
+                                <div key={application.id} className="rounded-2xl bg-white p-3 ring-1 ring-emerald-100">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900">{application.full_name}</p>
+                                            <p className="mt-1 text-xs text-slate-500">{application.job?.role ?? "Role"} · {extractCity(application as RecruiterApplicationView)}</p>
+                                        </div>
+                                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700 ring-1 ring-emerald-100">{score}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1313,6 +1431,83 @@ function getApplicationDataHealth(applications: Array<DemoApplicationRecord & { 
     };
 }
 
+function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { job?: DemoJobRecord }>) {
+    const withResume = applications.filter((application) => application.resume_url || application.resume_path);
+    const uniqueKeys = new Set(withResume.map((application) => application.resume_path || application.resume_url || application.id));
+    const uploadLog = withResume
+        .map((application) => ({
+            id: application.id,
+            candidateName: application.full_name,
+            role: application.job?.role ?? "Role",
+            company: application.job?.company ?? "Company",
+            fileName: getApplicationMetaLine(application, "Resume File") || application.resume_path?.split("/").pop() || "Resume uploaded",
+            uploadedAt: getApplicationMetaLine(application, "Resume Uploaded At") || application.updated_at || application.created_at,
+            status: application.resume_url ? "stored" : "path only",
+        }))
+        .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
+    const failedAlerts = applications
+        .filter((application) => !application.resume_url && !application.resume_path)
+        .map((application) => ({
+            application,
+            reason: "Application exists but no resume_url or resume_path was saved.",
+        }));
+
+    return {
+        storageCount: withResume.length,
+        uniqueResumeCount: uniqueKeys.size,
+        uploadLog,
+        failedAlerts,
+    };
+}
+
+function getDuplicateCandidateGroups(applications: Array<DemoApplicationRecord & { job?: DemoJobRecord }>) {
+    const groups = new Map<string, Array<DemoApplicationRecord & { job?: DemoJobRecord }>>();
+    for (const application of applications) {
+        const emailKey = application.email.trim().toLowerCase();
+        const phoneKey = (application.phone ?? getApplicationMetaLine(application, "Resume Phone")).replace(/\D/g, "");
+        const keys = [
+            emailKey ? `email:${emailKey}` : "",
+            phoneKey.length >= 8 ? `phone:${phoneKey}` : "",
+        ].filter(Boolean);
+        keys.forEach((key) => {
+            groups.set(key, [...(groups.get(key) ?? []), application]);
+        });
+    }
+
+    return [...groups.entries()]
+        .filter(([, items]) => items.length > 1)
+        .map(([key, items]) => ({
+            key,
+            label: key.startsWith("phone:") ? `Same phone ending ${key.slice(-4)}` : `Same email ${items[0]?.email ?? ""}`,
+            items,
+        }))
+        .sort((a, b) => b.items.length - a.items.length);
+}
+
+function getCandidateQualityScore(application: DemoApplicationRecord & { job?: DemoJobRecord }) {
+    const parsed = getParsedResumeSummary(application);
+    const hasResume = Boolean(application.resume_url || application.resume_path);
+    const hasPhone = Boolean(application.phone || parsed.phone);
+    const hasEmail = Boolean(application.email || parsed.email);
+    const hasCity = extractCity(application as RecruiterApplicationView) !== "Not shared";
+    const hasExperience = extractCandidateExperience(application as RecruiterApplicationView) !== "Not shared";
+    const skillCount = new Set([...(parsed.skills ?? []), ...(application.ai_matched_skills ?? [])].map((skill) => skill.toLowerCase())).size;
+    const fitScore = getApplicationFit(application, application.job);
+    const parseConfidence = Number(parsed.confidence);
+
+    const score =
+        (hasResume ? 20 : 0) +
+        (hasPhone ? 12 : 0) +
+        (hasEmail ? 8 : 0) +
+        (hasCity ? 10 : 0) +
+        (hasExperience ? 14 : 0) +
+        Math.min(12, skillCount * 2) +
+        Math.min(18, Math.round(fitScore * 0.18)) +
+        (Number.isFinite(parseConfidence) ? Math.min(6, Math.round(parseConfidence * 0.06)) : 0);
+
+    return Math.max(0, Math.min(100, score));
+}
+
 function RecruiterKpi({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: "blue" | "amber" | "green" | "red" | "slate" }) {
     const tones = {
         blue: "bg-[#DCE1FF] text-[#1A2FAE]",
@@ -1457,7 +1652,7 @@ function getCandidateMessage(application: RecruiterApplicationView) {
     if (messageMatch?.[1]?.trim()) return messageMatch[1].trim();
     return text
         .split("\n")
-        .filter((line) => !/^\s*(candidate city|total experience|resume name|resume email|resume phone|resume city|resume last role|resume companies|resume skills|resume education|resume notice period|resume current ctc|resume expected ctc|resume languages|resume summary|resume job gaps|resume role fit|recruiter recommendation|resume parse confidence|resume parse source|unlock|admin log):/i.test(line))
+        .filter((line) => !/^\s*(candidate city|total experience|resume name|resume email|resume phone|resume city|resume last role|resume companies|resume skills|resume education|resume notice period|resume current ctc|resume expected ctc|resume languages|resume summary|resume job gaps|resume role fit|recruiter recommendation|resume parse confidence|resume parse source|resume file|resume path|resume uploaded at|unlock|admin log):/i.test(line))
         .join("\n")
         .trim();
 }

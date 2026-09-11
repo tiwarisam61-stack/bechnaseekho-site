@@ -100,6 +100,32 @@ export async function fetchSharedCareerSyncApplications(input: {
   return body?.applications ?? [];
 }
 
+export async function fetchSharedCareerSyncResumeInsights(input: {
+  role: DemoRole;
+  userId: string;
+  email?: string | null;
+}) {
+  const params = new URLSearchParams({
+    resource: "resume-insights",
+    role: input.role,
+    userId: input.userId,
+  });
+  if (input.email) params.set("email", input.email);
+
+  const response = await fetch(`/api/careersync-jobs?${params.toString()}`);
+  const body = (await response.json().catch(() => null)) as {
+    resumeInsights?: {
+      bucket: string;
+      storageCount: number;
+      samplePaths: string[];
+      checkedAt: string;
+    };
+    error?: string;
+  } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not load resume storage insights.");
+  return body?.resumeInsights ?? null;
+}
+
 export async function persistSharedCareerSyncApplication(input: SharedApplicationInput) {
   const response = await fetch("/api/careersync-jobs", {
     method: "POST",
