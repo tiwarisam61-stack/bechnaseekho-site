@@ -692,13 +692,13 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
   if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
 
   let storageCount = 0;
-  const files: StorageFileInsight[] = [];
+  const fileTasks: Array<Promise<StorageFileInsight>> = [];
 
   for (const item of root.data ?? []) {
     if (!item.name) continue;
     if (item.metadata) {
       storageCount += 1;
-      files.push(await toStorageFileInsight({ supabaseAdmin, bucket, path: item.name, folder: item.name, item }));
+      fileTasks.push(toStorageFileInsight({ supabaseAdmin, bucket, path: item.name, folder: item.name, item }));
       continue;
     }
 
@@ -708,10 +708,11 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
       if (!file.name || !file.metadata) continue;
       storageCount += 1;
       const path = `${item.name}/${file.name}`;
-      files.push(await toStorageFileInsight({ supabaseAdmin, bucket, path, folder: item.name, item: file }));
+      fileTasks.push(toStorageFileInsight({ supabaseAdmin, bucket, path, folder: item.name, item: file }));
     }
   }
 
+  const files = await Promise.all(fileTasks);
   const sortedFiles = files.sort((a, b) => ((a.uploadedAt ?? "") < (b.uploadedAt ?? "") ? 1 : -1));
 
   return {
