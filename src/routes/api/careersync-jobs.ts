@@ -56,9 +56,9 @@ export const Route = createFileRoute("/api/careersync-jobs")({
           }
 
           if (url.searchParams.get("resource") === "resume-insights") {
-            if (role !== "admin") return Response.json({ error: "Admin access required." }, { status: 403 });
+            if (role !== "admin" && role !== "company") return Response.json({ error: "Admin or company access required." }, { status: 403 });
             const insights = await getResumeStorageInsights(supabaseAdmin);
-            return Response.json({ resumeInsights: insights });
+            return Response.json({ resumeInsights: role === "company" ? sanitizeResumeInsightsForCompany(insights) : insights });
           }
 
           let query = supabaseAdmin
@@ -725,6 +725,18 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
     samplePaths: finalFiles.map((file) => file.path).slice(0, 100),
     storageFiles: finalFiles.slice(0, 200),
     checkedAt: new Date().toISOString(),
+  };
+}
+
+function sanitizeResumeInsightsForCompany(insights: Awaited<ReturnType<typeof getResumeStorageInsights>>) {
+  return {
+    ...insights,
+    storageFiles: insights.storageFiles?.map((file) => ({
+      ...file,
+      candidateEmail: null,
+      candidatePhone: null,
+      downloadUrl: null,
+    })),
   };
 }
 

@@ -1161,6 +1161,42 @@ type RecruiterApplicationView = DemoApplicationRecord & {
     fit: number;
     job?: DemoJobRecord;
 };
+type ResumeStorageInsight = {
+    bucket: string;
+    storageCount: number;
+    samplePaths: string[];
+    storageFiles?: Array<{
+        path: string;
+        fileName: string;
+        folder: string;
+        downloadUrl: string | null;
+        uploadedAt: string | null;
+        size: number | null;
+        originalFileName?: string | null;
+        candidateName?: string | null;
+        candidateEmail?: string | null;
+        candidatePhone?: string | null;
+        candidateCity?: string | null;
+        candidateExperience?: string | null;
+        candidateLastRole?: string | null;
+        source?: string | null;
+    }>;
+    checkedAt: string;
+};
+type ResumeStorageFileInsight = NonNullable<ResumeStorageInsight["storageFiles"]>[number];
+type RecruiterDatabaseProfile = {
+    id: string;
+    candidateName: string;
+    fileName: string;
+    path: string;
+    role: string;
+    city: string;
+    experience: string;
+    source: string;
+    fit: number;
+    matchedJob: DemoJobRecord | null;
+    uploadedAt: string;
+};
 
 const COMPANY_SECTION_TABS: Record<string, CompanyWorkspaceTab> = {
     dashboard: "overview",
@@ -1191,6 +1227,8 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     const [cityFilter, setCityFilter] = useState("");
     const [candidateQuery, setCandidateQuery] = useState("");
     const [selectedCandidate, setSelectedCandidate] = useState<RecruiterApplicationView | null>(null);
+    const [databaseResumeInsight, setDatabaseResumeInsight] = useState<ResumeStorageInsight | null>(null);
+    const [databaseResumeError, setDatabaseResumeError] = useState("");
     const [unlockRequests, setUnlockRequests] = useState<Set<string>>(() => {
         if (typeof window === "undefined") return new Set();
         try {
@@ -1215,7 +1253,8 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
         };
     }), [myApplications, myJobs]);
 
-    const selectedJobIds = selectedRoleId === "all" ? new Set(myJobs.map((job) => job.id)) : new Set([selectedRoleId]);
+    const selectedJobIds = useMemo(() => selectedRoleId === "all" ? new Set(myJobs.map((job) => job.id)) : new Set([selectedRoleId]), [myJobs, selectedRoleId]);
+    const selectedJobs = useMemo(() => selectedRoleId === "all" ? myJobs : myJobs.filter((job) => job.id === selectedRoleId), [myJobs, selectedRoleId]);
     const filteredApplications = useMemo(() => {
         const query = candidateQuery.trim().toLowerCase();
         return myApplications
@@ -1254,6 +1293,14 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
             .filter((application) => !cityFilter.trim() || extractCity(application).toLowerCase().includes(cityFilter.trim().toLowerCase()))
             .sort((a, b) => b.fit - a.fit || (a.created_at < b.created_at ? 1 : -1));
     }, [candidateQuery, cityFilter, minFitFilter, myApplications, myJobs, selectedJobIds, stageFilter, unlockFilter]);
+    const databaseRecommendedProfiles = useMemo(() => getRecruiterDatabaseProfiles({
+        storageInsight: databaseResumeInsight,
+        jobs: selectedJobs.length ? selectedJobs : myJobs,
+        existingApplications: myApplications,
+        query: candidateQuery,
+        cityFilter,
+        minFitFilter,
+    }), [candidateQuery, cityFilter, databaseResumeInsight, minFitFilter, myApplications, myJobs, selectedJobs]);
 
     const openRoles = myJobs.filter((job) => job.is_active && job.status !== "rejected").length;
     const avgFit = filteredApplications.length ? Math.round(filteredApplications.reduce((sum, application) => sum + application.fit, 0) / filteredApplications.length) : 0;
@@ -1346,6 +1393,24 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
             window.removeEventListener("careersync-company-section", applySection);
         };
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        void fetchSharedCareerSyncResumeInsights({ role: "company", userId })
+            .then((insight) => {
+                if (cancelled) return;
+                setDatabaseResumeInsight(insight);
+                setDatabaseResumeError("");
+            })
+            .catch((error) => {
+                if (cancelled) return;
+                setDatabaseResumeInsight(null);
+                setDatabaseResumeError(error instanceof Error ? error.message : "Could not load database profiles.");
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [userId]);
 
     return (
         <div className="min-h-screen rounded-[1.25rem] bg-[#F6F5F1] p-3 text-[#171B2B] sm:p-5">
@@ -1510,41 +1575,56 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                 )}
 
                 {activeTab === "candidates" && (
-                    <RecruiterPanel title="AI-matched candidates" caption={`${filteredApplications.length} shown`}>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <RoleFilter roles={roleOptions} selectedRoleId={selectedRoleId} onSelect={setSelectedRoleId} />
-                            <input
-                                value={candidateQuery}
-                                onChange={(event) => setCandidateQuery(event.target.value)}
-                                placeholder="Search by name, skill, or role..."
-                                className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-sm font-semibold outline-none transition focus:border-[#3D5AFE] focus:bg-white sm:w-80"
-                            />
-                        </div>
-                        <div className="mt-3 grid gap-2 md:grid-cols-4">
-                            <RecruiterSelectFilter label="Stage" value={stageFilter} onChange={setStageFilter} options={["all", "Applied", "Screening", "Interview", "Offer", "Rejected"]} />
-                            <RecruiterSelectFilter label="Profile" value={unlockFilter} onChange={setUnlockFilter} options={["all", "locked", "requested", "approved", "rejected", "unlocked"]} />
-                            <RecruiterSelectFilter label="Fit score" value={minFitFilter} onChange={setMinFitFilter} options={["all", "60", "70", "80"]} />
-                            <input
-                                value={cityFilter}
-                                onChange={(event) => setCityFilter(event.target.value)}
-                                placeholder="City filter"
-                                className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-xs font-bold outline-none transition focus:border-[#3D5AFE] focus:bg-white"
-                            />
-                        </div>
-                        <div className="mt-4 space-y-3">
-                            {filteredApplications.map((application) => (
-                                <RecruiterCandidateCard
-                                    key={application.id}
-                                    application={application}
-                                    unlockRequested={unlockRequests.has(application.id) || getUnlockStatus(application) === "requested"}
-                                    onStatusChange={updateApplicationStage}
-                                    onRequestUnlock={requestProfileUnlock}
-                                    onOpen={setSelectedCandidate}
+                    <div className="space-y-5">
+                        <RecruiterPanel title="Recommended profiles from database" caption={`${databaseRecommendedProfiles.length} of 20 shown from Supabase resume pool`}>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <RoleFilter roles={roleOptions} selectedRoleId={selectedRoleId} onSelect={setSelectedRoleId} />
+                                <input
+                                    value={candidateQuery}
+                                    onChange={(event) => setCandidateQuery(event.target.value)}
+                                    placeholder="Search by name, skill, or role..."
+                                    className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-sm font-semibold outline-none transition focus:border-[#3D5AFE] focus:bg-white sm:w-80"
                                 />
-                            ))}
-                            {filteredApplications.length === 0 && <EmptyState title="No candidates match" message="Try clearing the search or selecting all roles." />}
-                        </div>
-                    </RecruiterPanel>
+                            </div>
+                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                                <RecruiterSelectFilter label="Fit score" value={minFitFilter} onChange={setMinFitFilter} options={["all", "60", "70", "80"]} />
+                                <input
+                                    value={cityFilter}
+                                    onChange={(event) => setCityFilter(event.target.value)}
+                                    placeholder="City filter"
+                                    className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-xs font-bold outline-none transition focus:border-[#3D5AFE] focus:bg-white"
+                                />
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {databaseRecommendedProfiles.map((profile) => (
+                                    <RecruiterDatabaseProfileCard key={profile.id} profile={profile} />
+                                ))}
+                                {!databaseResumeInsight && !databaseResumeError && <EmptyState title="Loading database profiles" message="Checking Supabase resumes and matching the best profiles to this job." />}
+                                {databaseResumeError && <EmptyState title="Could not load database profiles" message={databaseResumeError} />}
+                                {databaseResumeInsight && databaseRecommendedProfiles.length === 0 && <EmptyState title="No database matches yet" message="Try clearing filters or select all roles to see more stored resumes." />}
+                            </div>
+                        </RecruiterPanel>
+
+                        <RecruiterPanel title="People who applied for this job" caption={`${filteredApplications.length} applicants shown`}>
+                            <div className="grid gap-2 md:grid-cols-2">
+                                <RecruiterSelectFilter label="Stage" value={stageFilter} onChange={setStageFilter} options={["all", "Applied", "Screening", "Interview", "Offer", "Rejected"]} />
+                                <RecruiterSelectFilter label="Profile" value={unlockFilter} onChange={setUnlockFilter} options={["all", "locked", "requested", "approved", "rejected", "unlocked"]} />
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {filteredApplications.map((application) => (
+                                    <RecruiterCandidateCard
+                                        key={application.id}
+                                        application={application}
+                                        unlockRequested={unlockRequests.has(application.id) || getUnlockStatus(application) === "requested"}
+                                        onStatusChange={updateApplicationStage}
+                                        onRequestUnlock={requestProfileUnlock}
+                                        onOpen={setSelectedCandidate}
+                                    />
+                                ))}
+                                {filteredApplications.length === 0 && <EmptyState title="No applicants match" message="Actual job applicants will appear here separately from database recommendations." />}
+                            </div>
+                        </RecruiterPanel>
+                    </div>
                 )}
 
                 {activeTab === "analytics" && (
@@ -2214,6 +2294,116 @@ function extractCandidateExperience(application: RecruiterApplicationView) {
     return "Not shared";
 }
 
+function getStorageProfileName(file: ResumeStorageFileInsight) {
+    const metadataName = file.candidateName?.trim();
+    if (metadataName && !/candidate name not saved/i.test(metadataName)) return metadataName;
+    const fileName = file.originalFileName || file.fileName;
+    const humanName = humanizeResumeStorageName(fileName);
+    return humanName || "Candidate profile";
+}
+
+function getStorageProfileRole(file: ResumeStorageFileInsight) {
+    const role = file.candidateLastRole?.trim();
+    if (role) return role;
+    const sourceLabel = getResumeSourceLabel(file.folder, file.source);
+    if (/job application/i.test(sourceLabel)) return "Applied candidate";
+    if (/admin whatsapp/i.test(sourceLabel)) return "Resume from WhatsApp";
+    return "Resume profile";
+}
+
+function getStorageProfileCity(file: ResumeStorageFileInsight) {
+    return file.candidateCity?.trim() || "City not shared";
+}
+
+function getStorageProfileExperience(file: ResumeStorageFileInsight) {
+    return file.candidateExperience?.trim() || "Experience not shared";
+}
+
+function getStorageProfileSearchText(file: ResumeStorageFileInsight) {
+    return [
+        getStorageProfileName(file),
+        getStorageProfileRole(file),
+        getStorageProfileCity(file),
+        getStorageProfileExperience(file),
+        file.originalFileName,
+        file.fileName,
+        file.path,
+        getResumeSourceLabel(file.folder, file.source),
+    ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function scoreResumeProfileForJob(file: ResumeStorageFileInsight, job?: DemoJobRecord | null) {
+    if (!job) return 35;
+    const result = fallbackCareerSyncMatch({
+        job,
+        candidate: {
+            full_name: getStorageProfileName(file),
+            email: file.candidateEmail || "",
+            phone: file.candidatePhone || null,
+            cover_letter: [
+                `Last role: ${getStorageProfileRole(file)}`,
+                `City: ${getStorageProfileCity(file)}`,
+                `Experience: ${getStorageProfileExperience(file)}`,
+                `Source: ${getResumeSourceLabel(file.folder, file.source)}`,
+            ].join("\n"),
+            resume_path: file.path,
+            resume_url: null,
+            resumeName: file.originalFileName || file.fileName,
+        },
+    });
+    return result.fitScore;
+}
+
+function getRecruiterDatabaseProfiles({
+    storageInsight,
+    jobs,
+    existingApplications,
+    query,
+    cityFilter,
+    minFitFilter,
+}: {
+    storageInsight: ResumeStorageInsight | null;
+    jobs: DemoJobRecord[];
+    existingApplications: DemoApplicationRecord[];
+    query: string;
+    cityFilter: string;
+    minFitFilter: string;
+}) {
+    const files = storageInsight?.storageFiles ?? [];
+    const existingResumePaths = new Set(existingApplications.map((application) => application.resume_path).filter(Boolean));
+    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedCity = cityFilter.trim().toLowerCase();
+    const minFit = minFitFilter === "all" ? 0 : Number(minFitFilter);
+
+    return files
+        .filter((file) => !existingResumePaths.has(file.path))
+        .filter((file) => !normalizedQuery || getStorageProfileSearchText(file).includes(normalizedQuery))
+        .map((file) => {
+            const matches = (jobs.length ? jobs : [null]).map((job) => ({
+                job,
+                fit: scoreResumeProfileForJob(file, job),
+            }));
+            const best = matches.sort((a, b) => b.fit - a.fit)[0] ?? { job: null, fit: 35 };
+            return {
+                id: file.path,
+                candidateName: getStorageProfileName(file),
+                fileName: file.originalFileName || file.fileName,
+                path: file.path,
+                role: getStorageProfileRole(file),
+                city: getStorageProfileCity(file),
+                experience: getStorageProfileExperience(file),
+                source: getResumeSourceLabel(file.folder, file.source),
+                fit: best.fit,
+                matchedJob: best.job,
+                uploadedAt: file.uploadedAt ?? "",
+            } satisfies RecruiterDatabaseProfile;
+        })
+        .filter((profile) => !normalizedCity || profile.city.toLowerCase().includes(normalizedCity))
+        .filter((profile) => profile.fit >= minFit)
+        .sort((a, b) => b.fit - a.fit || (a.uploadedAt < b.uploadedAt ? 1 : -1))
+        .slice(0, 20);
+}
+
 function getCandidateMessage(application: RecruiterApplicationView) {
     const text = application.cover_letter ?? "";
     const messageMatch = text.match(/candidate message:\s*([\s\S]*)/i);
@@ -2235,6 +2425,68 @@ function getRecruiterRecommendation(application: RecruiterApplicationView) {
     if (/sales|lead generation|negotiation/.test(skills)) return "Good for sales";
     if (/counselling|counsel/.test(skills)) return "Good for counselling";
     return "Needs training";
+}
+
+function RecruiterDatabaseProfileCard({ profile }: { profile: RecruiterDatabaseProfile }) {
+    const fitTone = profile.fit >= 80 ? "text-[#1C7A48]" : profile.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
+    const previewRows = [
+        { label: "Experience", value: profile.experience, icon: <Briefcase className="h-3.5 w-3.5" /> },
+        { label: "City", value: profile.city, icon: <MapPin className="h-3.5 w-3.5" /> },
+        { label: "Phone", value: "xxxxxx----", icon: <Phone className="h-3.5 w-3.5" /> },
+        { label: "Email", value: "hidden until approval", icon: <Mail className="h-3.5 w-3.5" /> },
+    ];
+    return (
+        <article className="rounded-2xl border border-[#D8E6FF] bg-white p-4 shadow-[0_14px_36px_-30px_rgba(61,90,254,0.45)]">
+            <div className="flex gap-3">
+                <div className="relative h-14 w-14 shrink-0">
+                    <svg viewBox="0 0 44 44" className="h-14 w-14 -rotate-90">
+                        <circle cx="22" cy="22" r="18" fill="none" stroke="#EEEDE7" strokeWidth="5" />
+                        <circle cx="22" cy="22" r="18" fill="none" stroke={profile.fit >= 80 ? "#2FBF71" : profile.fit >= 68 ? "#F5A623" : "#E2504A"} strokeWidth="5" strokeDasharray={`${profile.fit * 1.13} 113`} strokeLinecap="round" />
+                    </svg>
+                    <span className={`absolute inset-0 grid place-items-center font-display text-sm font-black ${fitTone}`}>{profile.fit}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <h3 className="text-sm font-black text-[#171B2B]">{profile.candidateName}</h3>
+                            <p className="mt-0.5 text-xs font-semibold text-[#5B6172]">
+                                {profile.role} · {profile.matchedJob?.role ?? "Best matching role"}
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-start gap-1 sm:items-end">
+                            <span className="rounded-full bg-[#DCE1FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#1A2FAE] ring-1 ring-[#C8D2FF]">Database profile</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF7E7] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#8A5A00]">
+                                <LockKeyhole className="h-3 w-3" />
+                                Resume locked
+                            </span>
+                        </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {previewRows.map((row) => (
+                            <div key={row.label} className="rounded-xl bg-[#F6F5F1] px-3 py-2 ring-1 ring-[#E4E2DA]">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[#8A8F9E]">
+                                    {row.icon}
+                                    {row.label}
+                                </div>
+                                <p className="mt-1 truncate text-xs font-black text-[#171B2B]">{row.value}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-[#F6F5F1] px-3 py-1.5 text-xs font-black text-[#5B6172] ring-1 ring-[#E4E2DA]">{profile.source}</span>
+                        <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#EEF3FF] px-3 py-1.5 text-xs font-black text-[#1A2FAE] ring-1 ring-[#D8E6FF]">
+                            <FileClock className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{profile.fileName}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EEEDE7] px-3 py-1.5 text-xs font-black text-[#5B6172]">
+                            <LockKeyhole className="h-3.5 w-3.5" />
+                            Contact CareerSync admin to unlock
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </article>
+    );
 }
 
 function RecruiterCandidateCard({
