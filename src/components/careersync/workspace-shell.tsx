@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, ShieldCheck, Unlock, Users, UserRound, X } from "lucide-react";
+import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, ShieldCheck, Unlock, Upload, Users, UserRound, X } from "lucide-react";
 import { CareerSyncDashboard } from "@/components/careersync/dashboard";
 import { NotificationBell } from "@/components/careersync/notification-bell";
 import { CareerSyncJobsSection } from "@/components/careersync/jobs-section";
@@ -57,6 +57,7 @@ import {
     reviewSharedCareerSyncProfileUnlock,
     reviewSharedCareerSyncJob,
     updateSharedCareerSyncApplicationStatus,
+    uploadSharedCareerSyncResume,
 } from "@/lib/careersync-jobs-api";
 import { getRoleLabel } from "@/lib/careersync-rbac";
 import { fallbackCareerSyncMatch } from "@/lib/careersync-match";
@@ -266,6 +267,14 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         checkedAt: string;
     } | null>(null);
     const [storageInsightError, setStorageInsightError] = useState("");
+    const [adminResumeUpload, setAdminResumeUpload] = useState({
+        fullName: "",
+        phone: "",
+        email: "",
+        note: "",
+    });
+    const [adminResumeFile, setAdminResumeFile] = useState<File | null>(null);
+    const [adminResumeUploading, setAdminResumeUploading] = useState(false);
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
@@ -299,23 +308,82 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         .sort((a, b) => b.score - a.score || (a.application.created_at < b.application.created_at ? 1 : -1));
     const resumeStorageCount = storageInsight?.storageCount ?? resumeInsights.storageCount;
 
+    const loadStorageInsights = async (cancelled?: () => boolean) => {
+        try {
+            const insight = await fetchSharedCareerSyncResumeInsights({ role: "admin", userId });
+            if (cancelled?.()) return;
+            setStorageInsight(insight);
+            setStorageInsightError("");
+        } catch (error) {
+            if (cancelled?.()) return;
+            setStorageInsight(null);
+            setStorageInsightError(error instanceof Error ? error.message : "Could not load Supabase Storage count.");
+        }
+    };
+
     useEffect(() => {
         let cancelled = false;
-        fetchSharedCareerSyncResumeInsights({ role: "admin", userId })
-            .then((insight) => {
-                if (cancelled) return;
-                setStorageInsight(insight);
-                setStorageInsightError("");
-            })
-            .catch((error) => {
-                if (cancelled) return;
-                setStorageInsight(null);
-                setStorageInsightError(error instanceof Error ? error.message : "Could not load Supabase Storage count.");
-            });
+        void loadStorageInsights(() => cancelled);
         return () => {
             cancelled = true;
         };
     }, [userId]);
+
+    const uploadAdminResume = async () => {
+        const fullName = adminResumeUpload.fullName.trim();
+        const phone = adminResumeUpload.phone.trim();
+        const email = adminResumeUpload.email.trim().toLowerCase();
+        if (!fullName) {
+            toast.error("Candidate name is required.");
+            return;
+        }
+        if (!phone) {
+            toast.error("Phone number is required for WhatsApp resumes.");
+            return;
+        }
+        if (!adminResumeFile) {
+            toast.error("Please choose a resume file.");
+            return;
+        }
+        setAdminResumeUploading(true);
+        try {
+            const uploaded = await uploadSharedCareerSyncResume({
+                userId: `admin-whatsapp-resume-${Date.now()}`,
+                file: adminResumeFile,
+                candidateName: fullName,
+                candidateEmail: email,
+                candidatePhone: phone,
+                source: "admin-whatsapp-resume",
+            });
+
+            try {
+                await submitToGoogleSheet({
+                    type: "resume",
+                    fullName,
+                    email,
+                    phone,
+                    resumeName: adminResumeFile.name,
+                    resumeType: adminResumeFile.type || "application/octet-stream",
+                    resumeSize: adminResumeFile.size,
+                    resumePath: uploaded.path,
+                    resumeUrl: uploaded.url,
+                });
+            } catch (sheetError) {
+                toast.warning(sheetError instanceof Error ? `Resume stored, but Sheet update failed: ${sheetError.message}` : "Resume stored, but Sheet update failed.");
+            }
+
+            setAdminResumeUpload({ fullName: "", phone: "", email: "", note: "" });
+            setAdminResumeFile(null);
+            const input = document.getElementById("admin-whatsapp-resume-file") as HTMLInputElement | null;
+            if (input) input.value = "";
+            await loadStorageInsights();
+            toast.success("Resume uploaded to Supabase Storage.");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Could not upload resume.");
+        } finally {
+            setAdminResumeUploading(false);
+        }
+    };
 
     const repairApplications = async () => {
         try {
@@ -516,6 +584,69 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                             ? `Storage count fallback: ${storageInsightError}`
                             : "Checking Supabase Storage count..."}
                 </p>
+
+                <div className="mt-5 rounded-3xl border border-sky-100 bg-sky-50/50 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-900">Upload WhatsApp Resume</h3>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">Save resumes received on WhatsApp directly into Supabase and the admin upload log.</p>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-sky-700 ring-1 ring-sky-100">Admin upload</span>
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-4">
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Candidate name
+                            <input
+                                value={adminResumeUpload.fullName}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, fullName: event.target.value }))}
+                                placeholder="Prince Kumar"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
+                            />
+                        </label>
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            WhatsApp / phone
+                            <input
+                                value={adminResumeUpload.phone}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, phone: event.target.value }))}
+                                placeholder="98XXXXXXXX"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
+                            />
+                        </label>
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Email optional
+                            <input
+                                value={adminResumeUpload.email}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, email: event.target.value }))}
+                                placeholder="candidate@email.com"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
+                            />
+                        </label>
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Resume file
+                            <input
+                                id="admin-whatsapp-resume-file"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(event) => setAdminResumeFile(event.target.files?.[0] ?? null)}
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-sky-50 file:px-3 file:py-1 file:text-xs file:font-black file:text-sky-700"
+                            />
+                        </label>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs font-semibold text-slate-500">
+                            {adminResumeFile ? `${adminResumeFile.name} selected` : "PDF, DOC, and DOCX files up to 5 MB are supported."}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => void uploadAdminResume()}
+                            disabled={adminResumeUploading}
+                            className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            <Upload className="h-4 w-4" />
+                            {adminResumeUploading ? "Uploading..." : "Upload resume"}
+                        </button>
+                    </div>
+                </div>
 
                 <div className="mt-5 grid gap-5 xl:grid-cols-2">
                     <div className="rounded-3xl border border-blue-100 bg-blue-50/40 p-4">
@@ -1569,6 +1700,7 @@ function humanizeResumeStorageName(fileName: string) {
 function getResumeSourceLabel(folder: string, source?: string | null) {
     if (source === "careersync-home-resume" || folder.startsWith("careersync-home-resume")) return "Homepage resume upload";
     if (source === "careersync-job-application") return "Job application";
+    if (source === "admin-whatsapp-resume" || folder.startsWith("admin-whatsapp-resume")) return "Admin WhatsApp resume";
     if (folder.startsWith("ats-score-checker")) return "ATS score checker";
     if (folder.startsWith("resume-template")) return "Resume template upload";
     if (folder.startsWith("firebase-")) return "Job application";

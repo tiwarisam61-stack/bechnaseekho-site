@@ -67,7 +67,7 @@ function buildRow(payload: SubmitPayload) {
   const iso = now.toISOString();
 
   if (payload.type === "resume") {
-    requireFields(payload, ["fullName", "email", "phone", "resumeName"]);
+    requireFields(payload, ["fullName", "phone", "resumeName"]);
     return [
       timestamp,
       payload.fullName || "",
