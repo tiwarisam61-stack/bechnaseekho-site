@@ -592,7 +592,8 @@ async function uploadResumeFile({
   if (file.size > 5 * 1024 * 1024) throw new Error("Resume must be under 5 MB.");
   const extension = getResumeExtension(file.name);
   const body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
-  const path = `${safePathSegment(userId)}/${Date.now()}-${randomId()}${extension}`;
+  const nameSegment = safePathSegment(candidateName || file.name.replace(/\.(pdf|doc|docx)$/i, ""));
+  const path = `${safePathSegment(userId)}/${Date.now()}-${nameSegment}-${randomId()}${extension}`;
   const bucket = getResumeBucket();
   const metadata = {
     originalFileName: clean(file.name, 180) || `resume${extension}`,
@@ -714,14 +715,71 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
 
   const files = await Promise.all(fileTasks);
   const sortedFiles = files.sort((a, b) => ((a.uploadedAt ?? "") < (b.uploadedAt ?? "") ? 1 : -1));
+  const enrichedFiles = await enrichVisibleStorageFiles({ supabaseAdmin, bucket, files: sortedFiles.slice(0, 16) });
+  const enrichedByPath = new Map(enrichedFiles.map((file) => [file.path, file]));
+  const finalFiles = sortedFiles.map((file) => enrichedByPath.get(file.path) ?? file);
 
   return {
     bucket,
     storageCount,
-    samplePaths: sortedFiles.map((file) => file.path).slice(0, 100),
-    storageFiles: sortedFiles.slice(0, 200),
+    samplePaths: finalFiles.map((file) => file.path).slice(0, 100),
+    storageFiles: finalFiles.slice(0, 200),
     checkedAt: new Date().toISOString(),
   };
+}
+
+async function enrichVisibleStorageFiles({
+  supabaseAdmin,
+  bucket,
+  files,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  bucket: string;
+  files: StorageFileInsight[];
+}) {
+  return Promise.all(files.map((file) => withTimeout(readStorageFileDetails({ supabaseAdmin, bucket, file }), 2200, file)));
+}
+
+async function readStorageFileDetails({
+  supabaseAdmin,
+  bucket,
+  file,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  bucket: string;
+  file: StorageFileInsight;
+}): Promise<StorageFileInsight> {
+  const info = await supabaseAdmin.storage.from(bucket).info(file.path);
+  if (info.error) return file;
+  const detailed = info.data as unknown as Record<string, unknown>;
+  const detailedMetadata = detailed.metadata && typeof detailed.metadata === "object" && !Array.isArray(detailed.metadata)
+    ? (detailed.metadata as Record<string, unknown>)
+    : null;
+  if (!detailedMetadata) return file;
+
+  const detailedSize = typeof detailed.size === "number" ? detailed.size : null;
+  return {
+    ...file,
+    size: file.size ?? detailedSize,
+    originalFileName: file.originalFileName ?? getStorageMetadataText(detailedMetadata, "originalFileName"),
+    candidateName: file.candidateName ?? getStorageMetadataText(detailedMetadata, "candidateName"),
+    candidateEmail: file.candidateEmail ?? getStorageMetadataText(detailedMetadata, "candidateEmail"),
+    candidatePhone: file.candidatePhone ?? getStorageMetadataText(detailedMetadata, "candidatePhone"),
+    candidateCity: file.candidateCity ?? getStorageMetadataText(detailedMetadata, "candidateCity"),
+    candidateExperience: file.candidateExperience ?? getStorageMetadataText(detailedMetadata, "candidateExperience"),
+    candidateLastRole: file.candidateLastRole ?? getStorageMetadataText(detailedMetadata, "candidateLastRole"),
+    source: file.source ?? getStorageMetadataText(detailedMetadata, "source"),
+  };
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), timeoutMs);
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(fallback))
+      .finally(() => clearTimeout(timer));
+  });
 }
 
 async function toStorageFileInsight({

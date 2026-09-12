@@ -1936,7 +1936,11 @@ function getAdminResumeDownloadUrl(path: string, fileName?: string | null) {
 }
 
 function humanizeResumeStorageName(fileName: string) {
-    const raw = fileName.replace(/\.(pdf|doc|docx)$/i, "").trim();
+    const raw = fileName
+        .replace(/\.(pdf|doc|docx)$/i, "")
+        .replace(/^\d{10,}[-_]+/i, "")
+        .replace(/[-_]+[0-9a-f]{8,}(?:-[0-9a-f]{4,}){2,}$/i, "")
+        .trim();
     if (!raw || /^\d{10,}-[0-9a-f-]+$/i.test(raw) || /^[0-9a-f-]{20,}$/i.test(raw)) return "";
     return raw
         .replace(/[-_]+/g, " ")
