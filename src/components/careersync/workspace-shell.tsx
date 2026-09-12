@@ -297,6 +297,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     const [adminResumeParseMessage, setAdminResumeParseMessage] = useState("");
     const [adminResumeParsing, setAdminResumeParsing] = useState(false);
     const [adminResumeUploading, setAdminResumeUploading] = useState(false);
+    const [adminStoredResumeLog, setAdminStoredResumeLog] = useState(() => getStoredAdminResumeUploadLog());
     const [activeUserSummary, setActiveUserSummary] = useState<"all" | "hr" | "candidate" | "employee" | null>(null);
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
@@ -322,8 +323,9 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     ).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     const dataHealth = getApplicationDataHealth(allApplications);
     const resumeInsights = getResumeStorageInsights(allApplications);
-    const storageOnlyResumeLog = getStorageOnlyResumeLog(storageInsight, resumeInsights.uploadLog);
-    const combinedResumeUploadLog = [...resumeInsights.uploadLog, ...storageOnlyResumeLog]
+    const knownResumeUploadLog = [...resumeInsights.uploadLog, ...adminStoredResumeLog];
+    const storageOnlyResumeLog = getStorageOnlyResumeLog(storageInsight, knownResumeUploadLog);
+    const combinedResumeUploadLog = [...knownResumeUploadLog, ...storageOnlyResumeLog]
         .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
     const duplicateGroups = getDuplicateCandidateGroups(allApplications);
     const qualityRankings = allApplications
@@ -479,6 +481,20 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 toast.warning(sheetError instanceof Error ? `Resume stored, but Sheet update failed: ${sheetError.message}` : "Resume stored, but Sheet update failed.");
             }
 
+            setAdminStoredResumeLog(persistAdminResumeUploadLog({
+                id: `admin-upload-${uploaded.path}`,
+                candidateName: fullName,
+                role: "Admin WhatsApp resume",
+                company: "Supabase Storage",
+                fileName: uploaded.name || adminResumeFile.name,
+                uploadedAt: new Date().toISOString(),
+                status: `${formatBytes(adminResumeFile.size)} stored`,
+                path: uploaded.path,
+                downloadUrl: getAdminResumeDownloadUrl(uploaded.path, uploaded.name || adminResumeFile.name),
+                city,
+                experience: totalExperience,
+                lastRole,
+            }));
             setAdminResumeUpload({ fullName: "", phone: "", email: "", city: "", totalExperience: "", lastRole: "", note: "" });
             setAdminResumeFile(null);
             setAdminResumeParsed(null);
@@ -1933,6 +1949,53 @@ function getAdminResumeDownloadUrl(path: string, fileName?: string | null) {
     });
     if (fileName?.trim()) params.set("fileName", fileName.trim());
     return `/api/careersync-jobs?${params.toString()}`;
+}
+
+type StoredAdminResumeUploadLog = {
+    id: string;
+    candidateName: string;
+    role: string;
+    company: string;
+    fileName: string;
+    uploadedAt: string;
+    status: string;
+    path: string;
+    downloadUrl: string;
+    city: string;
+    experience: string;
+    lastRole: string;
+};
+
+const ADMIN_RESUME_UPLOAD_LOG_KEY = "careersync-admin-resume-upload-log";
+
+function getStoredAdminResumeUploadLog(): StoredAdminResumeUploadLog[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(ADMIN_RESUME_UPLOAD_LOG_KEY) || "[]");
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .filter((entry): entry is StoredAdminResumeUploadLog =>
+                entry &&
+                typeof entry === "object" &&
+                typeof entry.path === "string" &&
+                typeof entry.candidateName === "string" &&
+                typeof entry.fileName === "string",
+            )
+            .slice(0, 100);
+    } catch {
+        return [];
+    }
+}
+
+function persistAdminResumeUploadLog(entry: StoredAdminResumeUploadLog) {
+    const next = [
+        entry,
+        ...getStoredAdminResumeUploadLog().filter((item) => item.path !== entry.path),
+    ].slice(0, 100);
+    if (typeof window !== "undefined") {
+        window.localStorage.setItem(ADMIN_RESUME_UPLOAD_LOG_KEY, JSON.stringify(next));
+    }
+    return next;
 }
 
 function humanizeResumeStorageName(fileName: string) {
