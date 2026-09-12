@@ -74,6 +74,10 @@ export const Route = createFileRoute("/api/careersync-jobs")({
               supabaseAdmin,
               userId: requireText(formData.get("userId"), "userId", 160),
               file,
+              candidateName: clean(formData.get("candidateName"), 160),
+              candidateEmail: clean(formData.get("candidateEmail"), 255).toLowerCase(),
+              candidatePhone: clean(formData.get("candidatePhone"), 30),
+              source: clean(formData.get("source"), 80),
             });
             return Response.json({ resume });
           }
@@ -527,22 +531,38 @@ async function uploadResumeFile({
   supabaseAdmin,
   userId,
   file,
+  candidateName,
+  candidateEmail,
+  candidatePhone,
+  source,
 }: {
   supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
   userId: string;
   file: File;
+  candidateName?: string;
+  candidateEmail?: string;
+  candidatePhone?: string;
+  source?: string;
 }) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Resume must be under 5 MB.");
   const extension = getResumeExtension(file.name);
   const body = new Blob([await file.arrayBuffer()], { type: file.type || "application/octet-stream" });
   const path = `${safePathSegment(userId)}/${Date.now()}-${randomId()}${extension}`;
   const bucket = getResumeBucket();
+  const metadata = {
+    originalFileName: clean(file.name, 180) || `resume${extension}`,
+    candidateName: clean(candidateName, 160),
+    candidateEmail: clean(candidateEmail, 255).toLowerCase(),
+    candidatePhone: clean(candidatePhone, 30),
+    source: clean(source, 80) || "resume-upload",
+  };
   let upload = await uploadResumeBlob({
     supabaseAdmin,
     bucket,
     path,
     body,
     contentType: file.type || "application/octet-stream",
+    metadata,
   });
 
   if (upload.error && isMissingStorageBucket(upload.error)) {
@@ -553,6 +573,7 @@ async function uploadResumeFile({
       path,
       body,
       contentType: file.type || "application/octet-stream",
+      metadata,
     });
   }
 
@@ -570,7 +591,7 @@ async function uploadResumeFile({
   return {
     path,
     url: signed.data.signedUrl,
-    name: clean(file.name, 180) || `resume${extension}`,
+    name: metadata.originalFileName,
   };
 }
 
@@ -584,18 +605,21 @@ async function uploadResumeBlob({
   path,
   body,
   contentType,
+  metadata,
 }: {
   supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
   bucket: string;
   path: string;
   body: Blob;
   contentType: string;
+  metadata?: Record<string, string>;
 }) {
   return supabaseAdmin.storage
     .from(bucket)
     .upload(path, body, {
       contentType,
       upsert: false,
+      metadata,
     });
 }
 
@@ -620,7 +644,7 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
   if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
 
   let storageCount = 0;
-  const files: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }> = [];
+  const files: Array<ReturnType<typeof toStorageFileInsight>> = [];
 
   for (const item of root.data ?? []) {
     if (!item.name) continue;
@@ -653,7 +677,7 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
 function toStorageFileInsight(
   path: string,
   folder: string,
-  item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: { size?: unknown } | null },
+  item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null },
 ) {
   const size = typeof item.metadata?.size === "number" ? item.metadata.size : null;
   return {
@@ -662,7 +686,24 @@ function toStorageFileInsight(
     folder,
     uploadedAt: item.updated_at ?? item.created_at ?? null,
     size,
+    originalFileName: getStorageMetadataText(item.metadata, "originalFileName"),
+    candidateName: getStorageMetadataText(item.metadata, "candidateName"),
+    candidateEmail: getStorageMetadataText(item.metadata, "candidateEmail"),
+    candidatePhone: getStorageMetadataText(item.metadata, "candidatePhone"),
+    source: getStorageMetadataText(item.metadata, "source"),
   };
+}
+
+function getStorageMetadataText(metadata: Record<string, unknown> | null | undefined, key: string) {
+  if (!metadata) return null;
+  const direct = metadata[key];
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  const nested = metadata.metadata;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const value = (nested as Record<string, unknown>)[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
 }
 
 async function listApplicationsForRole({

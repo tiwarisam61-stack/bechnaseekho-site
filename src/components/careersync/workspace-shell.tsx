@@ -251,7 +251,18 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         bucket: string;
         storageCount: number;
         samplePaths: string[];
-        storageFiles?: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }>;
+        storageFiles?: Array<{
+            path: string;
+            fileName: string;
+            folder: string;
+            uploadedAt: string | null;
+            size: number | null;
+            originalFileName?: string | null;
+            candidateName?: string | null;
+            candidateEmail?: string | null;
+            candidatePhone?: string | null;
+            source?: string | null;
+        }>;
         checkedAt: string;
     } | null>(null);
     const [storageInsightError, setStorageInsightError] = useState("");
@@ -1453,6 +1464,7 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
             fileName: getApplicationMetaLine(application, "Resume File") || application.resume_path?.split("/").pop() || "Resume uploaded",
             uploadedAt: getApplicationMetaLine(application, "Resume Uploaded At") || application.updated_at || application.created_at,
             status: application.resume_url ? "stored" : "path only",
+            path: application.resume_path || null,
         }))
         .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
     const failedAlerts = applications
@@ -1472,12 +1484,32 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
 
 function getStorageOnlyResumeLog(
     storageInsight: {
-        storageFiles?: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }>;
+        storageFiles?: Array<{
+            path: string;
+            fileName: string;
+            folder: string;
+            uploadedAt: string | null;
+            size: number | null;
+            originalFileName?: string | null;
+            candidateName?: string | null;
+            candidateEmail?: string | null;
+            candidatePhone?: string | null;
+            source?: string | null;
+        }>;
         samplePaths: string[];
     } | null,
-    applicationUploadLog: Array<{ fileName: string }>,
+    applicationUploadLog: Array<{ fileName: string; path?: string | null; candidateName: string; role: string; company: string }>,
 ) {
-    const applicationFileNames = new Set(applicationUploadLog.map((entry) => entry.fileName.trim().toLowerCase()));
+    const applicationKeys = new Set(
+        applicationUploadLog.flatMap((entry) => [entry.fileName, entry.path ?? ""])
+            .map((value) => value.trim().toLowerCase())
+            .filter(Boolean),
+    );
+    const applicationByPath = new Map(
+        applicationUploadLog
+            .filter((entry) => entry.path)
+            .map((entry) => [entry.path!.trim().toLowerCase(), entry]),
+    );
     const storageFiles = storageInsight?.storageFiles?.length
         ? storageInsight.storageFiles
         : (storageInsight?.samplePaths ?? []).map((path) => ({
@@ -1486,34 +1518,57 @@ function getStorageOnlyResumeLog(
             folder: path.split("/")[0] || "storage",
             uploadedAt: null,
             size: null,
+            originalFileName: null,
+            candidateName: null,
+            candidateEmail: null,
+            candidatePhone: null,
+            source: null,
         }));
 
     return storageFiles
-        .filter((file) => !applicationFileNames.has(file.fileName.trim().toLowerCase()))
-        .map((file) => ({
-            id: `storage-${file.path}`,
-            candidateName: humanizeResumeStorageName(file),
-            role: getResumeSourceLabel(file.folder),
-            company: "Supabase Storage",
-            fileName: file.fileName,
-            uploadedAt: file.uploadedAt || new Date(0).toISOString(),
-            status: file.size ? `${formatBytes(file.size)} stored` : "stored",
-            path: file.path,
-        }));
+        .filter((file) => {
+            const fileNameKey = file.fileName.trim().toLowerCase();
+            const pathKey = file.path.trim().toLowerCase();
+            return !applicationKeys.has(fileNameKey) && !applicationKeys.has(pathKey);
+        })
+        .map((file) => {
+            const application = applicationByPath.get(file.path.trim().toLowerCase());
+            return {
+                id: `storage-${file.path}`,
+                candidateName: getStoredCandidateName(file, application),
+                role: application?.role ?? getResumeSourceLabel(file.folder, file.source),
+                company: application?.company ?? "Supabase Storage",
+                fileName: file.originalFileName || file.fileName,
+                uploadedAt: file.uploadedAt || new Date(0).toISOString(),
+                status: file.size ? `${formatBytes(file.size)} stored` : "stored",
+                path: file.path,
+            };
+        });
 }
 
-function humanizeResumeStorageName(file: { fileName: string; folder: string }) {
-    const raw = file.fileName.replace(/\.(pdf|doc|docx)$/i, "") || file.folder;
-    const readable = raw
-        .replace(/^\d{10,}-[0-9a-f-]+$/i, file.folder)
+function getStoredCandidateName(
+    file: { candidateName?: string | null; originalFileName?: string | null; fileName: string; folder: string },
+    application?: { candidateName: string } | undefined,
+) {
+    if (file.candidateName?.trim()) return file.candidateName.trim();
+    if (application?.candidateName?.trim()) return application.candidateName.trim();
+    const fromFileName = humanizeResumeStorageName(file.originalFileName || file.fileName);
+    return fromFileName || "Candidate name not saved";
+}
+
+function humanizeResumeStorageName(fileName: string) {
+    const raw = fileName.replace(/\.(pdf|doc|docx)$/i, "").trim();
+    if (!raw || /^\d{10,}-[0-9a-f-]+$/i.test(raw) || /^[0-9a-f-]{20,}$/i.test(raw)) return "";
+    return raw
         .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
         .replace(/\b\w/g, (letter) => letter.toUpperCase())
         .trim();
-    return readable || "Storage resume";
 }
 
-function getResumeSourceLabel(folder: string) {
-    if (folder.startsWith("careersync-home-resume")) return "Homepage resume upload";
+function getResumeSourceLabel(folder: string, source?: string | null) {
+    if (source === "careersync-home-resume" || folder.startsWith("careersync-home-resume")) return "Homepage resume upload";
+    if (source === "careersync-job-application") return "Job application";
     if (folder.startsWith("ats-score-checker")) return "ATS score checker";
     if (folder.startsWith("resume-template")) return "Resume template upload";
     if (folder.startsWith("firebase-")) return "Job application";

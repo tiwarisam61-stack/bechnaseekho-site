@@ -56,7 +56,14 @@ export function ResumeUpload({ userId, value, onChange }: Props) {
         }
       }
 
-      const uploaded = await uploadSharedCareerSyncResume({ userId, file });
+      const uploaded = await uploadSharedCareerSyncResume({
+        userId,
+        file,
+        candidateName: extracted?.name,
+        candidateEmail: extracted?.email,
+        candidatePhone: extracted?.phone,
+        source: "careersync-job-application",
+      });
       const next = { ...uploaded, extracted };
       onChange(next);
       if (extracted?.phone || extracted?.totalExperience || extracted?.skills?.length) {

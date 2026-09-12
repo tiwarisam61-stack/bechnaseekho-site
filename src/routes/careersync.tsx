@@ -1162,9 +1162,13 @@ function ResumeUploadModal({ open, onClose }: { open: boolean; onClose: () => vo
 
     setSubmitting(true);
     try {
-      await uploadSharedCareerSyncResume({
+      const uploaded = await uploadSharedCareerSyncResume({
         userId: getSharedResumeUploadUserId("careersync-home-resume"),
         file: form.resume!,
+        candidateName: form.fullName.trim(),
+        candidateEmail: form.email.trim(),
+        candidatePhone: form.phone.trim(),
+        source: "careersync-home-resume",
       });
       await submitToGoogleSheet({
         type: "resume",
@@ -1174,6 +1178,8 @@ function ResumeUploadModal({ open, onClose }: { open: boolean; onClose: () => vo
         resumeName: form.resume?.name || "",
         resumeType: form.resume?.type || "",
         resumeSize: form.resume?.size || 0,
+        resumePath: uploaded.path,
+        resumeUrl: uploaded.url,
       });
       setShowSuccess(true);
 

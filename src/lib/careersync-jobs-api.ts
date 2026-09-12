@@ -36,6 +36,13 @@ export type SharedResumeUpload = {
   name: string;
 };
 
+export type SharedResumeUploadDetails = {
+  candidateName?: string | null;
+  candidateEmail?: string | null;
+  candidatePhone?: string | null;
+  source?: string | null;
+};
+
 export type SharedResumeParseResult = {
   phone: string | null;
   email: string | null;
@@ -124,6 +131,11 @@ export async function fetchSharedCareerSyncResumeInsights(input: {
         folder: string;
         uploadedAt: string | null;
         size: number | null;
+        originalFileName?: string | null;
+        candidateName?: string | null;
+        candidateEmail?: string | null;
+        candidatePhone?: string | null;
+        source?: string | null;
       }>;
       checkedAt: string;
     };
@@ -144,11 +156,15 @@ export async function persistSharedCareerSyncApplication(input: SharedApplicatio
   return body?.application ?? null;
 }
 
-export async function uploadSharedCareerSyncResume(input: { userId: string; file: File }): Promise<SharedResumeUpload> {
+export async function uploadSharedCareerSyncResume(input: { userId: string; file: File } & SharedResumeUploadDetails): Promise<SharedResumeUpload> {
   const formData = new FormData();
   formData.set("type", "resume");
   formData.set("userId", input.userId);
   formData.set("file", input.file);
+  if (input.candidateName) formData.set("candidateName", input.candidateName);
+  if (input.candidateEmail) formData.set("candidateEmail", input.candidateEmail);
+  if (input.candidatePhone) formData.set("candidatePhone", input.candidatePhone);
+  if (input.source) formData.set("source", input.source);
 
   const response = await fetch("/api/careersync-jobs", {
     method: "POST",

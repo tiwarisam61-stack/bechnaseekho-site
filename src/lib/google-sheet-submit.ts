@@ -6,6 +6,8 @@ export type GoogleSheetResumePayload = {
   resumeName: string;
   resumeType: string;
   resumeSize: number;
+  resumePath?: string;
+  resumeUrl?: string;
 };
 
 export type GoogleSheetJobPayload = {
