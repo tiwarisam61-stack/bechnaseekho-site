@@ -40,6 +40,7 @@ import { WhatsAppFab } from "@/components/landing/whatsapp-fab";
 
 import { BLOGS } from "@/lib/blogs";
 import { submitToGoogleSheet } from "@/lib/google-sheet-submit";
+import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
@@ -1161,6 +1162,10 @@ function ResumeUploadModal({ open, onClose }: { open: boolean; onClose: () => vo
 
     setSubmitting(true);
     try {
+      await uploadSharedCareerSyncResume({
+        userId: getSharedResumeUploadUserId("careersync-home-resume"),
+        file: form.resume!,
+      });
       await submitToGoogleSheet({
         type: "resume",
         fullName: form.fullName.trim(),
