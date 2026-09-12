@@ -1803,7 +1803,7 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
             uploadedAt: getApplicationMetaLine(application, "Resume Uploaded At") || application.updated_at || application.created_at,
             status: application.resume_url ? "stored" : "path only",
             path: application.resume_path || null,
-            downloadUrl: application.resume_url || null,
+            downloadUrl: application.resume_url || (application.resume_path ? getAdminResumeDownloadUrl(application.resume_path) : null),
             city: extractCity(application as RecruiterApplicationView),
             experience: extractCandidateExperience(application as RecruiterApplicationView),
             lastRole: getParsedResumeSummary(application).lastRole,
@@ -1891,7 +1891,7 @@ function getStorageOnlyResumeLog(
                 uploadedAt: file.uploadedAt || new Date(0).toISOString(),
                 status: file.size ? `${formatBytes(file.size)} stored` : "stored",
                 path: file.path,
-                downloadUrl: file.downloadUrl,
+                downloadUrl: file.downloadUrl || getAdminResumeDownloadUrl(file.path, file.originalFileName || file.fileName),
                 city: file.candidateCity,
                 experience: file.candidateExperience,
                 lastRole: file.candidateLastRole,
@@ -1923,6 +1923,16 @@ function getStoredCandidateName(
     if (application?.candidateName?.trim()) return application.candidateName.trim();
     const fromFileName = humanizeResumeStorageName(file.originalFileName || file.fileName);
     return fromFileName || "Candidate name not saved";
+}
+
+function getAdminResumeDownloadUrl(path: string, fileName?: string | null) {
+    const params = new URLSearchParams({
+        resource: "resume-download",
+        role: "admin",
+        path,
+    });
+    if (fileName?.trim()) params.set("fileName", fileName.trim());
+    return `/api/careersync-jobs?${params.toString()}`;
 }
 
 function humanizeResumeStorageName(fileName: string) {

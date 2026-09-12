@@ -43,6 +43,18 @@ export const Route = createFileRoute("/api/careersync-jobs")({
             return Response.json({ applications: applications.map((application) => toDemoApplication(application)) });
           }
 
+          if (url.searchParams.get("resource") === "resume-download") {
+            if (role !== "admin") return Response.json({ error: "Admin access required." }, { status: 403 });
+            const path = requireStoragePath(url.searchParams.get("path"));
+            const fileName = clean(url.searchParams.get("fileName"), 180) || path.split("/").pop() || "resume";
+            const signed = await supabaseAdmin.storage
+              .from(getResumeBucket())
+              .createSignedUrl(path, 60 * 10, { download: fileName });
+
+            if (signed.error) throw signed.error;
+            return Response.redirect(signed.data.signedUrl, 302);
+          }
+
           if (url.searchParams.get("resource") === "resume-insights") {
             if (role !== "admin") return Response.json({ error: "Admin access required." }, { status: 403 });
             const insights = await getResumeStorageInsights(supabaseAdmin);
@@ -376,6 +388,14 @@ function requireText(value: unknown, label: string, max: number) {
   const text = clean(value, max);
   if (!text) throw new Error(`Missing required field: ${label}`);
   return text;
+}
+
+function requireStoragePath(value: unknown) {
+  const path = clean(value, 1000);
+  if (!path || path.startsWith("/") || path.includes("\\") || path.split("/").some((segment) => segment === "..")) {
+    throw new Error("Invalid resume path.");
+  }
+  return path;
 }
 
 function jobPayload(payload: Record<string, unknown>) {
@@ -724,13 +744,12 @@ async function toStorageFileInsight({
   const metadata = { ...(item.metadata ?? {}), ...(detailedMetadata ?? {}) };
   const itemSize = typeof item.metadata?.size === "number" ? item.metadata.size : null;
   const detailedSize = typeof detailed?.size === "number" ? detailed.size : null;
-  const signed = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60 * 60);
 
   return {
     path,
     fileName: item.name,
     folder,
-    downloadUrl: signed.error ? null : signed.data.signedUrl,
+    downloadUrl: null,
     uploadedAt: item.updated_at ?? item.created_at ?? getStorageDateText(detailed, "lastModified") ?? getStorageDateText(detailed, "createdAt") ?? null,
     size: itemSize ?? detailedSize,
     originalFileName: getStorageMetadataText(metadata, "originalFileName"),
