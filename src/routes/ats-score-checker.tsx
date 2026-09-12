@@ -43,6 +43,7 @@ import { Confetti } from "@/components/ats/Confetti";
 import { BackToTop } from "@/components/ats/BackToTop";
 import { StickyScore } from "@/components/ats/StickyScore";
 import { generateReport } from "@/lib/pdf-report";
+import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 
 export const Route = createFileRoute("/ats-score-checker")({
     head: () => ({
@@ -151,6 +152,10 @@ function AtsScoreCheckerPage() {
             setFileName(file.name);
             setStage("reading");
             try {
+                await uploadSharedCareerSyncResume({
+                    userId: getSharedResumeUploadUserId("ats-score-checker"),
+                    file,
+                });
                 const text = await extractResumeText(file);
                 resumeText.current = text;
                 await runAnalysis(text);

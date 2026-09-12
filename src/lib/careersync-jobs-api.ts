@@ -153,6 +153,23 @@ export async function uploadSharedCareerSyncResume(input: { userId: string; file
   return body.resume;
 }
 
+export function getSharedResumeUploadUserId(source = "resume-upload") {
+  const safeSource = source.replace(/[^a-z0-9_-]/gi, "-").slice(0, 40) || "resume-upload";
+  if (typeof window === "undefined") return `${safeSource}-server`;
+
+  const key = `careersync_${safeSource}_user_id`;
+  const existing = window.localStorage.getItem(key);
+  if (existing) return existing;
+
+  const random =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const userId = `${safeSource}-${random}`;
+  window.localStorage.setItem(key, userId);
+  return userId;
+}
+
 export async function parseSharedCareerSyncResume(input: { text: string; fileName?: string }): Promise<SharedResumeParseResult | null> {
   const response = await fetch("/api/careersync-resume-parse", {
     method: "POST",

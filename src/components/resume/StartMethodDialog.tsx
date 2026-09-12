@@ -20,6 +20,7 @@ import { extractResumeText, RESUME_ACCEPT } from "@/lib/file-text";
 import { applyParsedResume, type ImportResult } from "@/lib/resume-import";
 import { aiParseResume } from "@/lib/ai.functions";
 import { analyzeResume } from "@/lib/ats";
+import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -93,6 +94,10 @@ export function StartMethodDialog({
     setStage("working");
     try {
       setStep(0);
+      await uploadSharedCareerSyncResume({
+        userId: getSharedResumeUploadUserId("resume-template-import"),
+        file,
+      });
       const text = await extractResumeText(file);
       if (text.trim().length < 40) throw new Error("We couldn't find selectable text in that file.");
       setStep(1);

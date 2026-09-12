@@ -21,6 +21,7 @@ import { AiMenu } from "./AiMenu";
 import { extractResumeText, RESUME_ACCEPT, RESUME_FILE_ERROR } from "@/lib/file-text";
 import { applyParsedResume } from "@/lib/resume-import";
 import { aiParseResume } from "@/lib/ai.functions";
+import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
 import { cn } from "@/lib/utils";
 
 
@@ -109,6 +110,10 @@ export function EditorPanel({ doc, setDoc }: { doc: ResumeDoc; setDoc: Setter })
     }
     setImporting(true);
     try {
+      await uploadSharedCareerSyncResume({
+        userId: getSharedResumeUploadUserId("resume-template-editor"),
+        file,
+      });
       const text = await extractResumeText(file);
       if (text.trim().length < 40) throw new Error("We couldn't find selectable text in that file.");
       const res = await parseResume({ data: { text, fileName: file.name } });
