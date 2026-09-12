@@ -45,6 +45,7 @@ import {
     type DemoApplicationRecord,
     type DemoJobRecord,
 } from "@/services/careersync/careersync-service";
+import type { DemoUserRecord } from "@/lib/careersync-demo";
 import { signOut } from "@/services/platform/auth-service";
 import { notifyAdminWhatsAppSilently } from "@/lib/admin-whatsapp-notify";
 import {
@@ -295,6 +296,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     const [adminResumeParseMessage, setAdminResumeParseMessage] = useState("");
     const [adminResumeParsing, setAdminResumeParsing] = useState(false);
     const [adminResumeUploading, setAdminResumeUploading] = useState(false);
+    const [activeUserSummary, setActiveUserSummary] = useState<"all" | "hr" | "candidate" | "employee" | null>(null);
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
@@ -941,10 +943,35 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
 
             <section id="users" className={adminSectionClass("users", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Users" subtitle="All demo accounts in one place." />
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <SummaryCard label="All users" value={String(snapshot.users.length)} icon={<Users className="h-4 w-4" />} />
-                    <SummaryCard label="HR accounts" value={String(hrUsers.length)} icon={<Building2 className="h-4 w-4" />} />
-                    <SummaryCard label="Candidates" value={String(candidateUsers.length)} icon={<UserRound className="h-4 w-4" />} />
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <UserSummaryCard
+                        label="All users"
+                        users={snapshot.users}
+                        icon={<Users className="h-4 w-4" />}
+                        open={activeUserSummary === "all"}
+                        onToggle={() => setActiveUserSummary((current) => current === "all" ? null : "all")}
+                    />
+                    <UserSummaryCard
+                        label="HR accounts"
+                        users={hrUsers}
+                        icon={<Building2 className="h-4 w-4" />}
+                        open={activeUserSummary === "hr"}
+                        onToggle={() => setActiveUserSummary((current) => current === "hr" ? null : "hr")}
+                    />
+                    <UserSummaryCard
+                        label="Candidates"
+                        users={candidateUsers}
+                        icon={<UserRound className="h-4 w-4" />}
+                        open={activeUserSummary === "candidate"}
+                        onToggle={() => setActiveUserSummary((current) => current === "candidate" ? null : "candidate")}
+                    />
+                    <UserSummaryCard
+                        label="Employees"
+                        users={employeeUsers}
+                        icon={<Users className="h-4 w-4" />}
+                        open={activeUserSummary === "employee"}
+                        onToggle={() => setActiveUserSummary((current) => current === "employee" ? null : "employee")}
+                    />
                 </div>
             </section>
 
@@ -2917,6 +2944,51 @@ function SummaryCard({ label, value, icon }: { label: string; value: string; ico
                 <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
             </div>
             <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{value}</p>
+        </div>
+    );
+}
+
+function UserSummaryCard({
+    label,
+    users,
+    icon,
+    open,
+    onToggle,
+}: {
+    label: string;
+    users: DemoUserRecord[];
+    icon: ReactNode;
+    open: boolean;
+    onToggle: () => void;
+}) {
+    return (
+        <div className={`rounded-3xl border p-4 ring-1 transition ${open ? "border-blue-200 bg-blue-50/50 ring-blue-100" : "border-slate-100 bg-slate-50 ring-slate-100"}`}>
+            <button type="button" onClick={onToggle} className="block w-full text-left">
+                <div className="flex items-center gap-2 text-slate-500">
+                    {icon}
+                    <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                    <p className="text-3xl font-black tracking-tight text-slate-900">{users.length}</p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100">
+                        {open ? "Hide names" : "Show names"}
+                    </span>
+                </div>
+            </button>
+            {open ? (
+                <div className="mt-4 space-y-2 border-t border-blue-100 pt-3">
+                    {users.length === 0 ? (
+                        <p className="text-xs font-semibold text-slate-500">No users found.</p>
+                    ) : users.map((user) => (
+                        <div key={user.id} className="rounded-2xl bg-white px-3 py-2 ring-1 ring-blue-100">
+                            <p className="text-sm font-bold text-slate-900">{user.full_name}</p>
+                            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                                {[getRoleLabel(user.role), user.company_name, user.email].filter(Boolean).join(" · ")}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }
