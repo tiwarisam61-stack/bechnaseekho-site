@@ -329,6 +329,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         .map((application) => ({ application, score: getCandidateQualityScore(application) }))
         .sort((a, b) => b.score - a.score || (a.application.created_at < b.application.created_at ? 1 : -1));
     const resumeStorageCount = storageInsight?.storageCount ?? resumeInsights.storageCount;
+    const resumeUniqueCount = storageInsight ? getUniqueStoredResumeCount(storageInsight) : resumeInsights.uniqueResumeCount;
     const adminSectionClass = (id: string, className = "") => activeAdminSection === id ? className : `${className} hidden`;
 
     useEffect(() => {
@@ -679,7 +680,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 <SectionHeading title="Resume Intelligence" subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores." />
                 <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
                     <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
-                    <SummaryCard label="Unique Resumes" value={String(resumeInsights.uniqueResumeCount)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Unique Resumes" value={String(resumeUniqueCount)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Upload Logs" value={String(combinedResumeUploadLog.length)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Failed Alerts" value={String(resumeInsights.failedAlerts.length)} icon={<X className="h-4 w-4" />} />
                     <SummaryCard label="Duplicates" value={String(duplicateGroups.length)} icon={<Users className="h-4 w-4" />} />
@@ -1865,6 +1866,22 @@ function getStorageOnlyResumeLog(
                 lastRole: file.candidateLastRole,
             };
         });
+}
+
+function getUniqueStoredResumeCount(storageInsight: {
+    storageCount: number;
+    samplePaths: string[];
+    storageFiles?: Array<{ path: string }>;
+}) {
+    const uniquePaths = new Set(
+        (storageInsight.storageFiles?.length
+            ? storageInsight.storageFiles.map((file) => file.path)
+            : storageInsight.samplePaths
+        )
+            .map((path) => path.trim().toLowerCase())
+            .filter(Boolean),
+    );
+    return uniquePaths.size || storageInsight.storageCount;
 }
 
 function getStoredCandidateName(
