@@ -193,10 +193,11 @@ export function CareerSyncWorkspaceShell() {
                                     key={item.label}
                                     href={item.href}
                                     onClick={(event) => {
-                                        if (role !== "company") return;
+                                        if (role !== "company" && role !== "admin") return;
                                         event.preventDefault();
                                         window.history.replaceState(null, "", item.href);
-                                        window.dispatchEvent(new CustomEvent("careersync-company-section", { detail: item.href.slice(1) }));
+                                        window.dispatchEvent(new CustomEvent(role === "company" ? "careersync-company-section" : "careersync-admin-section", { detail: item.href.slice(1) }));
+                                        window.scrollTo({ top: 0, behavior: "smooth" });
                                     }}
                                     className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-100 transition hover:bg-slate-50 hover:text-slate-900"
                                 >
@@ -248,6 +249,12 @@ export function CareerSyncWorkspaceShell() {
 }
 
 function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
+    const adminSectionIds = useMemo(() => new Set(ROLE_NAVS.admin.map((item) => item.href.replace("#", ""))), []);
+    const [activeAdminSection, setActiveAdminSection] = useState(() => {
+        if (typeof window === "undefined") return "dashboard";
+        const hash = window.location.hash.replace("#", "");
+        return adminSectionIds.has(hash) ? hash : "dashboard";
+    });
     const [storageInsight, setStorageInsight] = useState<{
         bucket: string;
         storageCount: number;
@@ -307,6 +314,25 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         .map((application) => ({ application, score: getCandidateQualityScore(application) }))
         .sort((a, b) => b.score - a.score || (a.application.created_at < b.application.created_at ? 1 : -1));
     const resumeStorageCount = storageInsight?.storageCount ?? resumeInsights.storageCount;
+    const adminSectionClass = (id: string, className = "") => activeAdminSection === id ? className : `${className} hidden`;
+
+    useEffect(() => {
+        const syncFromLocation = () => {
+            const next = window.location.hash.replace("#", "");
+            setActiveAdminSection(adminSectionIds.has(next) ? next : "dashboard");
+        };
+        const syncFromEvent = (event: Event) => {
+            const detail = (event as CustomEvent<string>).detail;
+            setActiveAdminSection(adminSectionIds.has(detail) ? detail : "dashboard");
+        };
+        syncFromLocation();
+        window.addEventListener("hashchange", syncFromLocation);
+        window.addEventListener("careersync-admin-section", syncFromEvent);
+        return () => {
+            window.removeEventListener("hashchange", syncFromLocation);
+            window.removeEventListener("careersync-admin-section", syncFromEvent);
+        };
+    }, [adminSectionIds]);
 
     const loadStorageInsights = async (cancelled?: () => boolean) => {
         try {
@@ -417,11 +443,11 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
 
     return (
         <div className="space-y-6">
-            <section id="dashboard">
+            <section id="dashboard" className={adminSectionClass("dashboard")}>
                 <CareerSyncDashboard />
             </section>
 
-            <section id="jobs-approval" className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
+            <section id="jobs-approval" className={adminSectionClass("jobs-approval", "rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7")}>
                 <SectionHeading title="Jobs Approval" subtitle="Review HR submissions before they go public." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {pendingJobs.length === 0 ? (
@@ -430,7 +456,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="platform-stats" className="rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(139,92,246,0.2)] sm:p-7">
+            <section id="platform-stats" className={adminSectionClass("platform-stats", "rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(139,92,246,0.2)] sm:p-7")}>
                 <SectionHeading title="Platform Statistics" subtitle="Enterprise-wide usage and pipeline counters." />
                 <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-7">
                     <SummaryCard label="Users" value={String(adminAnalytics.totals.totalUsers)} icon={<Users className="h-4 w-4" />} />
@@ -443,7 +469,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="reports" className="rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7">
+            <section id="reports" className={adminSectionClass("reports", "rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7")}>
                 <SectionHeading title="Reports" subtitle="Approval and application status visuals for quick review." />
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">
                     <ReportChartCard
@@ -461,7 +487,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="approval-inbox" className="rounded-[2rem] border border-amber-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(245,158,11,0.22)] sm:p-7">
+            <section id="approval-inbox" className={adminSectionClass("approval-inbox", "rounded-[2rem] border border-amber-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(245,158,11,0.22)] sm:p-7")}>
                 <SectionHeading title="Company Approval Inbox" subtitle="Review recruiter requests to unlock candidate contact and resume." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {pendingUnlockApplications.length === 0 ? (
@@ -485,7 +511,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="applications-admin" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
+            <section id="applications-admin" className={adminSectionClass("applications-admin", "rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7")}>
                 <SectionHeading title="All Applications" subtitle="Admin view across every company, role, and status." />
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="grid gap-2 sm:grid-cols-3">
@@ -529,7 +555,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="approval-log" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="approval-log" className={adminSectionClass("approval-log", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Admin Approval Log" subtitle="Profile unlock and status movement history from application records." />
                 <div className="mt-5 space-y-2">
                     {approvalLog.length === 0 ? (
@@ -548,7 +574,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="data-health" className="rounded-[2rem] border border-rose-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(244,63,94,0.2)] sm:p-7">
+            <section id="data-health" className={adminSectionClass("data-health", "rounded-[2rem] border border-rose-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(244,63,94,0.2)] sm:p-7")}>
                 <SectionHeading title="Data Health Monitor" subtitle="Find missing resumes, broken job links, and incomplete candidate details quickly." />
                 <div className="mt-5 grid gap-3 md:grid-cols-4">
                     <SummaryCard label="Missing resume" value={String(dataHealth.missingResume)} icon={<FileClock className="h-4 w-4" />} />
@@ -568,7 +594,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="resume-intelligence" className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.2)] sm:p-7">
+            <section id="resume-intelligence" className={adminSectionClass("resume-intelligence", "rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.2)] sm:p-7")}>
                 <SectionHeading title="Resume Intelligence" subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores." />
                 <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
                     <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
@@ -722,7 +748,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="lead-assignment" className="rounded-[2rem] border border-cyan-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(6,182,212,0.2)] sm:p-7">
+            <section id="lead-assignment" className={adminSectionClass("lead-assignment", "rounded-[2rem] border border-cyan-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(6,182,212,0.2)] sm:p-7")}>
                 <SectionHeading title="Lead Assignment" subtitle="Automatically balanced ownership across HR accounts." />
                 <div className="mt-5 space-y-2">
                     {leadAssignments.length === 0 ? (
@@ -741,7 +767,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="delete-requests" className="rounded-[2rem] border border-rose-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(244,63,94,0.22)] sm:p-7">
+            <section id="delete-requests" className={adminSectionClass("delete-requests", "rounded-[2rem] border border-rose-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(244,63,94,0.22)] sm:p-7")}>
                 <SectionHeading title="Delete Requests" subtitle="Approve or reject HR deletion requests before removing jobs." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {pendingDeletionRequests.length === 0 ? (
@@ -762,7 +788,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="blog-approval" className="rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7">
+            <section id="blog-approval" className={adminSectionClass("blog-approval", "rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7")}>
                 <SectionHeading title="Blog Approval" subtitle="Review employee and HR blog drafts before publishing." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {pendingBlogs.length === 0 ? (
@@ -781,14 +807,14 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="all-jobs" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="all-jobs" className={adminSectionClass("all-jobs", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="All Jobs" subtitle="Full published and pending inventory." />
                 <div className="mt-5 space-y-3">
                     <CareerSyncJobsSection />
                 </div>
             </section>
 
-            <section id="users" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="users" className={adminSectionClass("users", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Users" subtitle="All demo accounts in one place." />
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                     <SummaryCard label="All users" value={String(snapshot.users.length)} icon={<Users className="h-4 w-4" />} />
@@ -797,7 +823,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="user-management" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
+            <section id="user-management" className={adminSectionClass("user-management", "rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7")}>
                 <SectionHeading title="User Management" subtitle="Role distribution and moderation-ready account overview." />
                 <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                     <SummaryCard label="Admins" value={String(snapshot.users.filter((item) => item.role === "admin").length)} icon={<ShieldCheck className="h-4 w-4" />} />
@@ -807,7 +833,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="employees" className="rounded-[2rem] border border-amber-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(245,158,11,0.2)] sm:p-7">
+            <section id="employees" className={adminSectionClass("employees", "rounded-[2rem] border border-amber-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(245,158,11,0.2)] sm:p-7")}>
                 <SectionHeading title="Employee Management" subtitle="Employees, tasks, leave approvals, and enterprise controls." />
                 <div className="mt-5 grid gap-3 md:grid-cols-4">
                     <SummaryCard label="Employees" value={String(employeeUsers.length)} icon={<Users className="h-4 w-4" />} />
@@ -846,7 +872,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 )}
             </section>
 
-            <section id="hr-management" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="hr-management" className={adminSectionClass("hr-management", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="HR Management" subtitle="Monitor recruiter submissions and approvals." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {hrUsers.map((user) => (
@@ -855,7 +881,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="candidates" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="candidates" className={adminSectionClass("candidates", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Candidates" subtitle="Candidate demo accounts and activity." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {candidateUsers.map((user) => (
@@ -864,12 +890,12 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="notifications" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="notifications" className={adminSectionClass("notifications", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Notifications" subtitle="Admin-only notifications remain isolated here." />
                 <NotificationList notifications={adminNotifications} emptyLabel="No admin notifications yet." />
             </section>
 
-            <section id="analytics" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="analytics" className={adminSectionClass("analytics", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Analytics" subtitle="Track approval workflow health." />
                 <div className="mt-5 grid gap-3 md:grid-cols-4">
                     <SummaryCard label="Approved jobs" value={String(approvedJobs.length)} icon={<CheckCircle2 className="h-4 w-4" />} />
@@ -879,7 +905,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="activity" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="activity" className={adminSectionClass("activity", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Activity & Audit" subtitle="Live role-based activity feed for enterprise tracing." />
                 <div className="mt-5 space-y-2">
                     {activityFeed.length === 0 ? (
@@ -898,7 +924,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="settings" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="settings" className={adminSectionClass("settings", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Settings" subtitle="RBAC is driven by local demo data and can later map to backend roles." />
                 <div className="mt-5 rounded-3xl bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-100">
                     Access is scoped by role, and each notification stream is tied to its owner account.
