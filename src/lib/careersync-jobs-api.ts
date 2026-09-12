@@ -118,6 +118,13 @@ export async function fetchSharedCareerSyncResumeInsights(input: {
       bucket: string;
       storageCount: number;
       samplePaths: string[];
+      storageFiles?: Array<{
+        path: string;
+        fileName: string;
+        folder: string;
+        uploadedAt: string | null;
+        size: number | null;
+      }>;
       checkedAt: string;
     };
     error?: string;

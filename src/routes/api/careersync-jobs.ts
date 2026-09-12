@@ -620,13 +620,13 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
   if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
 
   let storageCount = 0;
-  const paths: string[] = [];
+  const files: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }> = [];
 
   for (const item of root.data ?? []) {
     if (!item.name) continue;
     if (item.metadata) {
       storageCount += 1;
-      paths.push(item.name);
+      files.push(toStorageFileInsight(item.name, item.name, item));
       continue;
     }
 
@@ -635,15 +635,33 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
     for (const file of nested.data ?? []) {
       if (!file.name || !file.metadata) continue;
       storageCount += 1;
-      paths.push(`${item.name}/${file.name}`);
+      files.push(toStorageFileInsight(`${item.name}/${file.name}`, item.name, file));
     }
   }
+
+  const sortedFiles = files.sort((a, b) => ((a.uploadedAt ?? "") < (b.uploadedAt ?? "") ? 1 : -1));
 
   return {
     bucket,
     storageCount,
-    samplePaths: paths.slice(0, 20),
+    samplePaths: sortedFiles.map((file) => file.path).slice(0, 100),
+    storageFiles: sortedFiles.slice(0, 200),
     checkedAt: new Date().toISOString(),
+  };
+}
+
+function toStorageFileInsight(
+  path: string,
+  folder: string,
+  item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: { size?: unknown } | null },
+) {
+  const size = typeof item.metadata?.size === "number" ? item.metadata.size : null;
+  return {
+    path,
+    fileName: item.name,
+    folder,
+    uploadedAt: item.updated_at ?? item.created_at ?? null,
+    size,
   };
 }
 

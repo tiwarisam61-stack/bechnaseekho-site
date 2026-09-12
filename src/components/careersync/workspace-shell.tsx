@@ -247,7 +247,13 @@ export function CareerSyncWorkspaceShell() {
 }
 
 function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
-    const [storageInsight, setStorageInsight] = useState<{ bucket: string; storageCount: number; samplePaths: string[]; checkedAt: string } | null>(null);
+    const [storageInsight, setStorageInsight] = useState<{
+        bucket: string;
+        storageCount: number;
+        samplePaths: string[];
+        storageFiles?: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }>;
+        checkedAt: string;
+    } | null>(null);
     const [storageInsightError, setStorageInsightError] = useState("");
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
@@ -273,6 +279,9 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     ).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     const dataHealth = getApplicationDataHealth(allApplications);
     const resumeInsights = getResumeStorageInsights(allApplications);
+    const storageOnlyResumeLog = getStorageOnlyResumeLog(storageInsight, resumeInsights.uploadLog);
+    const combinedResumeUploadLog = [...resumeInsights.uploadLog, ...storageOnlyResumeLog]
+        .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
     const duplicateGroups = getDuplicateCandidateGroups(allApplications);
     const qualityRankings = allApplications
         .map((application) => ({ application, score: getCandidateQualityScore(application) }))
@@ -485,7 +494,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
                     <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Unique Resumes" value={String(resumeInsights.uniqueResumeCount)} icon={<FileClock className="h-4 w-4" />} />
-                    <SummaryCard label="Upload Logs" value={String(resumeInsights.uploadLog.length)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Upload Logs" value={String(combinedResumeUploadLog.length)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Failed Alerts" value={String(resumeInsights.failedAlerts.length)} icon={<X className="h-4 w-4" />} />
                     <SummaryCard label="Duplicates" value={String(duplicateGroups.length)} icon={<Users className="h-4 w-4" />} />
                 </div>
@@ -501,15 +510,16 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                     <div className="rounded-3xl border border-blue-100 bg-blue-50/40 p-4">
                         <h3 className="text-sm font-black text-slate-900">Resume Upload Log</h3>
                         <div className="mt-3 space-y-2">
-                            {resumeInsights.uploadLog.length === 0 ? (
-                                <EmptyState title="No resume uploads yet" message="Uploaded resumes will appear here after candidates apply." />
-                            ) : resumeInsights.uploadLog.slice(0, 8).map((entry) => (
+                            {combinedResumeUploadLog.length === 0 ? (
+                                <EmptyState title="No resume uploads yet" message="Uploaded resumes from applications, homepage, ATS, and templates will appear here." />
+                            ) : combinedResumeUploadLog.slice(0, 12).map((entry) => (
                                 <div key={entry.id} className="rounded-2xl bg-white p-3 ring-1 ring-blue-100">
                                     <div className="flex flex-wrap items-start justify-between gap-2">
                                         <div>
                                             <p className="text-sm font-bold text-slate-900">{entry.candidateName}</p>
                                             <p className="mt-1 text-xs text-slate-500">{entry.role} · {entry.company}</p>
                                             <p className="mt-1 text-xs font-semibold text-blue-700">{entry.fileName}</p>
+                                            {"path" in entry && entry.path ? <p className="mt-1 break-all text-[11px] font-semibold text-slate-400">{entry.path}</p> : null}
                                         </div>
                                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">{entry.status}</span>
                                     </div>
@@ -1458,6 +1468,62 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
         uploadLog,
         failedAlerts,
     };
+}
+
+function getStorageOnlyResumeLog(
+    storageInsight: {
+        storageFiles?: Array<{ path: string; fileName: string; folder: string; uploadedAt: string | null; size: number | null }>;
+        samplePaths: string[];
+    } | null,
+    applicationUploadLog: Array<{ fileName: string }>,
+) {
+    const applicationFileNames = new Set(applicationUploadLog.map((entry) => entry.fileName.trim().toLowerCase()));
+    const storageFiles = storageInsight?.storageFiles?.length
+        ? storageInsight.storageFiles
+        : (storageInsight?.samplePaths ?? []).map((path) => ({
+            path,
+            fileName: path.split("/").pop() || path,
+            folder: path.split("/")[0] || "storage",
+            uploadedAt: null,
+            size: null,
+        }));
+
+    return storageFiles
+        .filter((file) => !applicationFileNames.has(file.fileName.trim().toLowerCase()))
+        .map((file) => ({
+            id: `storage-${file.path}`,
+            candidateName: humanizeResumeStorageName(file),
+            role: getResumeSourceLabel(file.folder),
+            company: "Supabase Storage",
+            fileName: file.fileName,
+            uploadedAt: file.uploadedAt || new Date(0).toISOString(),
+            status: file.size ? `${formatBytes(file.size)} stored` : "stored",
+            path: file.path,
+        }));
+}
+
+function humanizeResumeStorageName(file: { fileName: string; folder: string }) {
+    const raw = file.fileName.replace(/\.(pdf|doc|docx)$/i, "") || file.folder;
+    const readable = raw
+        .replace(/^\d{10,}-[0-9a-f-]+$/i, file.folder)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase())
+        .trim();
+    return readable || "Storage resume";
+}
+
+function getResumeSourceLabel(folder: string) {
+    if (folder.startsWith("careersync-home-resume")) return "Homepage resume upload";
+    if (folder.startsWith("ats-score-checker")) return "ATS score checker";
+    if (folder.startsWith("resume-template")) return "Resume template upload";
+    if (folder.startsWith("firebase-")) return "Job application";
+    return "Storage-only resume";
+}
+
+function formatBytes(value: number) {
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getDuplicateCandidateGroups(applications: Array<DemoApplicationRecord & { job?: DemoJobRecord }>) {
