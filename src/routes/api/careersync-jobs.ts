@@ -5,6 +5,18 @@ import type { DemoApplicationRecord, DemoJobRecord } from "@/lib/careersync-demo
 type ApplicationRow = Database["public"]["Tables"]["applications"]["Row"];
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 type JobStatus = DemoJobRecord["status"];
+type StorageFileInsight = {
+  path: string;
+  fileName: string;
+  folder: string;
+  uploadedAt: string | null;
+  size: number | null;
+  originalFileName: string | null;
+  candidateName: string | null;
+  candidateEmail: string | null;
+  candidatePhone: string | null;
+  source: string | null;
+};
 
 const JOB_STATUSES = new Set<JobStatus>(["approved", "pending", "rejected", "changes_requested"]);
 const APPLICATION_STATUSES = new Set(["submitted", "under_review", "interview", "offer", "rejected", "withdrawn"]);
@@ -644,13 +656,13 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
   if (root.error) throw new Error(`Could not read Supabase Storage bucket "${bucket}": ${getErrorMessage(root.error)}`);
 
   let storageCount = 0;
-  const files: Array<ReturnType<typeof toStorageFileInsight>> = [];
+  const files: StorageFileInsight[] = [];
 
   for (const item of root.data ?? []) {
     if (!item.name) continue;
     if (item.metadata) {
       storageCount += 1;
-      files.push(toStorageFileInsight(item.name, item.name, item));
+      files.push(await toStorageFileInsight({ supabaseAdmin, bucket, path: item.name, folder: item.name, item }));
       continue;
     }
 
@@ -659,7 +671,8 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
     for (const file of nested.data ?? []) {
       if (!file.name || !file.metadata) continue;
       storageCount += 1;
-      files.push(toStorageFileInsight(`${item.name}/${file.name}`, item.name, file));
+      const path = `${item.name}/${file.name}`;
+      files.push(await toStorageFileInsight({ supabaseAdmin, bucket, path, folder: item.name, item: file }));
     }
   }
 
@@ -674,23 +687,38 @@ async function getResumeStorageInsights(supabaseAdmin: Awaited<ReturnType<typeof
   };
 }
 
-function toStorageFileInsight(
-  path: string,
-  folder: string,
-  item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null },
-) {
-  const size = typeof item.metadata?.size === "number" ? item.metadata.size : null;
+async function toStorageFileInsight({
+  supabaseAdmin,
+  bucket,
+  path,
+  folder,
+  item,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  bucket: string;
+  path: string;
+  folder: string;
+  item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null };
+}): Promise<StorageFileInsight> {
+  const info = await supabaseAdmin.storage.from(bucket).info(path);
+  const detailed = info.error ? null : (info.data as unknown as Record<string, unknown>);
+  const detailedMetadata = detailed?.metadata && typeof detailed.metadata === "object" && !Array.isArray(detailed.metadata)
+    ? (detailed.metadata as Record<string, unknown>)
+    : null;
+  const metadata = { ...(item.metadata ?? {}), ...(detailedMetadata ?? {}) };
+  const itemSize = typeof item.metadata?.size === "number" ? item.metadata.size : null;
+  const detailedSize = typeof detailed?.size === "number" ? detailed.size : null;
   return {
     path,
     fileName: item.name,
     folder,
-    uploadedAt: item.updated_at ?? item.created_at ?? null,
-    size,
-    originalFileName: getStorageMetadataText(item.metadata, "originalFileName"),
-    candidateName: getStorageMetadataText(item.metadata, "candidateName"),
-    candidateEmail: getStorageMetadataText(item.metadata, "candidateEmail"),
-    candidatePhone: getStorageMetadataText(item.metadata, "candidatePhone"),
-    source: getStorageMetadataText(item.metadata, "source"),
+    uploadedAt: item.updated_at ?? item.created_at ?? getStorageDateText(detailed, "lastModified") ?? getStorageDateText(detailed, "createdAt") ?? null,
+    size: itemSize ?? detailedSize,
+    originalFileName: getStorageMetadataText(metadata, "originalFileName"),
+    candidateName: getStorageMetadataText(metadata, "candidateName"),
+    candidateEmail: getStorageMetadataText(metadata, "candidateEmail"),
+    candidatePhone: getStorageMetadataText(metadata, "candidatePhone"),
+    source: getStorageMetadataText(metadata, "source"),
   };
 }
 
@@ -704,6 +732,11 @@ function getStorageMetadataText(metadata: Record<string, unknown> | null | undef
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+function getStorageDateText(value: Record<string, unknown> | null | undefined, key: string) {
+  const raw = value?.[key];
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
 }
 
 async function listApplicationsForRole({
