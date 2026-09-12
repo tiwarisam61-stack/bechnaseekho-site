@@ -9,6 +9,7 @@ type StorageFileInsight = {
   path: string;
   fileName: string;
   folder: string;
+  downloadUrl: string | null;
   uploadedAt: string | null;
   size: number | null;
   originalFileName: string | null;
@@ -723,10 +724,13 @@ async function toStorageFileInsight({
   const metadata = { ...(item.metadata ?? {}), ...(detailedMetadata ?? {}) };
   const itemSize = typeof item.metadata?.size === "number" ? item.metadata.size : null;
   const detailedSize = typeof detailed?.size === "number" ? detailed.size : null;
+  const signed = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60 * 60);
+
   return {
     path,
     fileName: item.name,
     folder,
+    downloadUrl: signed.error ? null : signed.data.signedUrl,
     uploadedAt: item.updated_at ?? item.created_at ?? getStorageDateText(detailed, "lastModified") ?? getStorageDateText(detailed, "createdAt") ?? null,
     size: itemSize ?? detailedSize,
     originalFileName: getStorageMetadataText(metadata, "originalFileName"),

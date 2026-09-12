@@ -132,6 +132,7 @@ export async function fetchSharedCareerSyncResumeInsights(input: {
         path: string;
         fileName: string;
         folder: string;
+        downloadUrl: string | null;
         uploadedAt: string | null;
         size: number | null;
         originalFileName?: string | null;

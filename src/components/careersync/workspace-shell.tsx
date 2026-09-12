@@ -268,6 +268,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
             path: string;
             fileName: string;
             folder: string;
+            downloadUrl: string | null;
             uploadedAt: string | null;
             size: number | null;
             originalFileName?: string | null;
@@ -814,10 +815,37 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                                                     {[entry.lastRole, entry.experience, entry.city].filter(Boolean).join(" · ")}
                                                 </p>
                                             ) : null}
-                                            <p className="mt-1 text-xs font-semibold text-blue-700">{entry.fileName}</p>
+                                            {entry.downloadUrl ? (
+                                                <a
+                                                    href={entry.downloadUrl}
+                                                    download={entry.fileName}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="mt-1 inline-flex items-center gap-1.5 break-all text-xs font-black text-blue-700 underline-offset-2 hover:underline"
+                                                >
+                                                    <Download className="h-3.5 w-3.5 shrink-0" />
+                                                    {entry.fileName}
+                                                </a>
+                                            ) : (
+                                                <p className="mt-1 text-xs font-semibold text-blue-700">{entry.fileName}</p>
+                                            )}
                                             {"path" in entry && entry.path ? <p className="mt-1 break-all text-[11px] font-semibold text-slate-400">{entry.path}</p> : null}
                                         </div>
-                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">{entry.status}</span>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {entry.downloadUrl ? (
+                                                <a
+                                                    href={entry.downloadUrl}
+                                                    download={entry.fileName}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100"
+                                                >
+                                                    <Download className="h-3 w-3" />
+                                                    Download
+                                                </a>
+                                            ) : null}
+                                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">{entry.status}</span>
+                                        </div>
                                     </div>
                                     <p className="mt-2 text-[11px] font-semibold text-slate-500">{new Date(entry.uploadedAt).toLocaleString("en-IN")}</p>
                                 </div>
@@ -1775,6 +1803,7 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
             uploadedAt: getApplicationMetaLine(application, "Resume Uploaded At") || application.updated_at || application.created_at,
             status: application.resume_url ? "stored" : "path only",
             path: application.resume_path || null,
+            downloadUrl: application.resume_url || null,
             city: extractCity(application as RecruiterApplicationView),
             experience: extractCandidateExperience(application as RecruiterApplicationView),
             lastRole: getParsedResumeSummary(application).lastRole,
@@ -1832,6 +1861,7 @@ function getStorageOnlyResumeLog(
             path,
             fileName: path.split("/").pop() || path,
             folder: path.split("/")[0] || "storage",
+            downloadUrl: null,
             uploadedAt: null,
             size: null,
             originalFileName: null,
@@ -1861,6 +1891,7 @@ function getStorageOnlyResumeLog(
                 uploadedAt: file.uploadedAt || new Date(0).toISOString(),
                 status: file.size ? `${formatBytes(file.size)} stored` : "stored",
                 path: file.path,
+                downloadUrl: file.downloadUrl,
                 city: file.candidateCity,
                 experience: file.candidateExperience,
                 lastRole: file.candidateLastRole,
