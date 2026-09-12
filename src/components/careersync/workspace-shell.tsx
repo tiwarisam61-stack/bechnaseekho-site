@@ -2786,6 +2786,7 @@ function AdminJobCard({ job, adminUserId }: { job: DemoJobRecord; adminUserId: s
                 <p><span className="font-bold text-slate-800">Experience:</span> {job.experience || "Not provided"}</p>
                 <p><span className="font-bold text-slate-800">Type:</span> {job.employment_type || "Not provided"}</p>
                 <p><span className="font-bold text-slate-800">Posted by:</span> {job.posted_by ? getDemoDisplayName(job.posted_by) : job.recruiter_email || "Company workspace"}</p>
+                <p><span className="font-bold text-slate-800">Requested on:</span> {formatDateTime(job.created_at)}</p>
             </div>
             {job.tags?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -2927,6 +2928,17 @@ function toChartData(record: Record<string, number>): ChartPoint[] {
         .map(([label, value]) => ({ label, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 8);
+}
+
+function formatDateTime(value: string | null | undefined) {
+    if (!value) return "Not available";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Not available";
+    return date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Kolkata",
+    });
 }
 
 function ReportChartCard({
