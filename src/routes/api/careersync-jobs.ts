@@ -737,22 +737,18 @@ async function toStorageFileInsight({
   folder: string;
   item: { name: string; updated_at?: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null };
 }): Promise<StorageFileInsight> {
-  const info = await supabaseAdmin.storage.from(bucket).info(path);
-  const detailed = info.error ? null : (info.data as unknown as Record<string, unknown>);
-  const detailedMetadata = detailed?.metadata && typeof detailed.metadata === "object" && !Array.isArray(detailed.metadata)
-    ? (detailed.metadata as Record<string, unknown>)
-    : null;
-  const metadata = { ...(item.metadata ?? {}), ...(detailedMetadata ?? {}) };
+  void supabaseAdmin;
+  void bucket;
+  const metadata = item.metadata ?? {};
   const itemSize = typeof item.metadata?.size === "number" ? item.metadata.size : null;
-  const detailedSize = typeof detailed?.size === "number" ? detailed.size : null;
 
   return {
     path,
     fileName: item.name,
     folder,
     downloadUrl: null,
-    uploadedAt: item.updated_at ?? item.created_at ?? getStorageDateText(detailed, "lastModified") ?? getStorageDateText(detailed, "createdAt") ?? null,
-    size: itemSize ?? detailedSize,
+    uploadedAt: item.updated_at ?? item.created_at ?? null,
+    size: itemSize,
     originalFileName: getStorageMetadataText(metadata, "originalFileName"),
     candidateName: getStorageMetadataText(metadata, "candidateName"),
     candidateEmail: getStorageMetadataText(metadata, "candidateEmail"),
@@ -774,11 +770,6 @@ function getStorageMetadataText(metadata: Record<string, unknown> | null | undef
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
-}
-
-function getStorageDateText(value: Record<string, unknown> | null | undefined, key: string) {
-  const raw = value?.[key];
-  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
 }
 
 async function listApplicationsForRole({
