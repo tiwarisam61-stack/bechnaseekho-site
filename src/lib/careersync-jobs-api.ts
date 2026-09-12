@@ -40,6 +40,9 @@ export type SharedResumeUploadDetails = {
   candidateName?: string | null;
   candidateEmail?: string | null;
   candidatePhone?: string | null;
+  candidateCity?: string | null;
+  candidateExperience?: string | null;
+  candidateLastRole?: string | null;
   source?: string | null;
 };
 
@@ -135,6 +138,9 @@ export async function fetchSharedCareerSyncResumeInsights(input: {
         candidateName?: string | null;
         candidateEmail?: string | null;
         candidatePhone?: string | null;
+        candidateCity?: string | null;
+        candidateExperience?: string | null;
+        candidateLastRole?: string | null;
         source?: string | null;
       }>;
       checkedAt: string;
@@ -164,6 +170,9 @@ export async function uploadSharedCareerSyncResume(input: { userId: string; file
   if (input.candidateName) formData.set("candidateName", input.candidateName);
   if (input.candidateEmail) formData.set("candidateEmail", input.candidateEmail);
   if (input.candidatePhone) formData.set("candidatePhone", input.candidatePhone);
+  if (input.candidateCity) formData.set("candidateCity", input.candidateCity);
+  if (input.candidateExperience) formData.set("candidateExperience", input.candidateExperience);
+  if (input.candidateLastRole) formData.set("candidateLastRole", input.candidateLastRole);
   if (input.source) formData.set("source", input.source);
 
   const response = await fetch("/api/careersync-jobs", {

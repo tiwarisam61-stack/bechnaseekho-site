@@ -8,6 +8,7 @@ export type GoogleSheetResumePayload = {
   resumeSize: number;
   resumePath?: string;
   resumeUrl?: string;
+  sourceLabel?: string;
 };
 
 export type GoogleSheetJobPayload = {

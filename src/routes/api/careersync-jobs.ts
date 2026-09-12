@@ -15,6 +15,9 @@ type StorageFileInsight = {
   candidateName: string | null;
   candidateEmail: string | null;
   candidatePhone: string | null;
+  candidateCity: string | null;
+  candidateExperience: string | null;
+  candidateLastRole: string | null;
   source: string | null;
 };
 
@@ -89,6 +92,9 @@ export const Route = createFileRoute("/api/careersync-jobs")({
               candidateName: clean(formData.get("candidateName"), 160),
               candidateEmail: clean(formData.get("candidateEmail"), 255).toLowerCase(),
               candidatePhone: clean(formData.get("candidatePhone"), 30),
+              candidateCity: clean(formData.get("candidateCity"), 120),
+              candidateExperience: clean(formData.get("candidateExperience"), 120),
+              candidateLastRole: clean(formData.get("candidateLastRole"), 160),
               source: clean(formData.get("source"), 80),
             });
             return Response.json({ resume });
@@ -546,6 +552,9 @@ async function uploadResumeFile({
   candidateName,
   candidateEmail,
   candidatePhone,
+  candidateCity,
+  candidateExperience,
+  candidateLastRole,
   source,
 }: {
   supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
@@ -554,6 +563,9 @@ async function uploadResumeFile({
   candidateName?: string;
   candidateEmail?: string;
   candidatePhone?: string;
+  candidateCity?: string;
+  candidateExperience?: string;
+  candidateLastRole?: string;
   source?: string;
 }) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Resume must be under 5 MB.");
@@ -566,6 +578,9 @@ async function uploadResumeFile({
     candidateName: clean(candidateName, 160),
     candidateEmail: clean(candidateEmail, 255).toLowerCase(),
     candidatePhone: clean(candidatePhone, 30),
+    candidateCity: clean(candidateCity, 120),
+    candidateExperience: clean(candidateExperience, 120),
+    candidateLastRole: clean(candidateLastRole, 160),
     source: clean(source, 80) || "resume-upload",
   };
   let upload = await uploadResumeBlob({
@@ -718,6 +733,9 @@ async function toStorageFileInsight({
     candidateName: getStorageMetadataText(metadata, "candidateName"),
     candidateEmail: getStorageMetadataText(metadata, "candidateEmail"),
     candidatePhone: getStorageMetadataText(metadata, "candidatePhone"),
+    candidateCity: getStorageMetadataText(metadata, "candidateCity"),
+    candidateExperience: getStorageMetadataText(metadata, "candidateExperience"),
+    candidateLastRole: getStorageMetadataText(metadata, "candidateLastRole"),
     source: getStorageMetadataText(metadata, "source"),
   };
 }

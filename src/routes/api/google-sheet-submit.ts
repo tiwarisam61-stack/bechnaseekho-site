@@ -10,6 +10,7 @@ type ResumePayload = {
   resumeSize?: number;
   resumePath?: string;
   resumeUrl?: string;
+  sourceLabel?: string;
 };
 
 type JobPayload = {
@@ -79,7 +80,7 @@ function buildRow(payload: SubmitPayload) {
       "",
       "",
       "",
-      "Submitted from CareerSync homepage",
+      payload.sourceLabel || "Submitted from CareerSync homepage",
       payload.resumeName || "",
       payload.resumeType || "",
       String(payload.resumeSize || ""),

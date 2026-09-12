@@ -58,10 +58,14 @@ import {
     reviewSharedCareerSyncJob,
     updateSharedCareerSyncApplicationStatus,
     uploadSharedCareerSyncResume,
+    parseSharedCareerSyncResume,
+    type SharedResumeParseResult,
 } from "@/lib/careersync-jobs-api";
 import { getRoleLabel } from "@/lib/careersync-rbac";
 import { fallbackCareerSyncMatch } from "@/lib/careersync-match";
 import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
+import { extractResumeText, ResumeError } from "@/lib/resume-extract";
+import { extractResumeProfile } from "@/lib/resume-profile-extract";
 
 const ROLE_NAVS = {
     admin: [
@@ -269,6 +273,9 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
             candidateName?: string | null;
             candidateEmail?: string | null;
             candidatePhone?: string | null;
+            candidateCity?: string | null;
+            candidateExperience?: string | null;
+            candidateLastRole?: string | null;
             source?: string | null;
         }>;
         checkedAt: string;
@@ -278,9 +285,15 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         fullName: "",
         phone: "",
         email: "",
+        city: "",
+        totalExperience: "",
+        lastRole: "",
         note: "",
     });
     const [adminResumeFile, setAdminResumeFile] = useState<File | null>(null);
+    const [adminResumeParsed, setAdminResumeParsed] = useState<SharedResumeParseResult | null>(null);
+    const [adminResumeParseMessage, setAdminResumeParseMessage] = useState("");
+    const [adminResumeParsing, setAdminResumeParsing] = useState(false);
     const [adminResumeUploading, setAdminResumeUploading] = useState(false);
     const adminNotifications = getDemoNotificationsForUser(userId);
     const pendingJobs = snapshot.jobs.filter((job) => job.status === "pending");
@@ -355,10 +368,70 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         };
     }, [userId]);
 
+    const applyAdminResumeExtract = (extracted: SharedResumeParseResult) => {
+        setAdminResumeUpload((prev) => ({
+            ...prev,
+            fullName: extracted.name || prev.fullName,
+            phone: extracted.phone || prev.phone,
+            email: extracted.email || prev.email,
+            city: extracted.city || prev.city,
+            totalExperience: extracted.totalExperience || prev.totalExperience,
+            lastRole: extracted.lastRole || prev.lastRole,
+        }));
+        setAdminResumeParsed(extracted);
+    };
+
+    const handleAdminResumeFile = async (file: File | null) => {
+        setAdminResumeFile(file);
+        setAdminResumeParsed(null);
+        setAdminResumeParseMessage("");
+        if (!file) return;
+
+        setAdminResumeParsing(true);
+        try {
+            const text = await extractResumeText(file);
+            let extracted: SharedResumeParseResult | null = null;
+            try {
+                extracted = await parseSharedCareerSyncResume({ text, fileName: file.name });
+            } catch {
+                extracted = null;
+            }
+            const finalExtract = extracted ?? extractResumeProfile(text);
+            applyAdminResumeExtract(finalExtract);
+            const facts = [
+                finalExtract.name ? "name" : "",
+                finalExtract.phone ? "phone" : "",
+                finalExtract.email ? "email" : "",
+                finalExtract.city ? "city" : "",
+                finalExtract.totalExperience ? "experience" : "",
+            ].filter(Boolean);
+            const confidence = finalExtract.confidence ? ` (${finalExtract.confidence}% confidence)` : "";
+            setAdminResumeParseMessage(
+                facts.length
+                    ? `Auto-filled ${facts.join(", ")} from resume${confidence}. Please review once before upload.`
+                    : "Resume text was read, but key candidate details were not clearly found. Please fill them manually.",
+            );
+            toast.success(facts.length ? "Resume details auto-filled." : "Resume read, please review details.");
+        } catch (error) {
+            const message = error instanceof ResumeError
+                ? `${error.message}. ${error.hint}`
+                : error instanceof Error
+                    ? error.message
+                    : "Could not read this resume.";
+            setAdminResumeParseMessage(message);
+            toast.error(message);
+        } finally {
+            setAdminResumeParsing(false);
+        }
+    };
+
     const uploadAdminResume = async () => {
         const fullName = adminResumeUpload.fullName.trim();
         const phone = adminResumeUpload.phone.trim();
         const email = adminResumeUpload.email.trim().toLowerCase();
+        const city = adminResumeUpload.city.trim();
+        const totalExperience = adminResumeUpload.totalExperience.trim();
+        const lastRole = adminResumeUpload.lastRole.trim();
         if (!fullName) {
             toast.error("Candidate name is required.");
             return;
@@ -379,6 +452,9 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 candidateName: fullName,
                 candidateEmail: email,
                 candidatePhone: phone,
+                candidateCity: city,
+                candidateExperience: totalExperience,
+                candidateLastRole: lastRole,
                 source: "admin-whatsapp-resume",
             });
 
@@ -393,13 +469,16 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                     resumeSize: adminResumeFile.size,
                     resumePath: uploaded.path,
                     resumeUrl: uploaded.url,
+                    sourceLabel: "Submitted from CareerSync admin WhatsApp upload",
                 });
             } catch (sheetError) {
                 toast.warning(sheetError instanceof Error ? `Resume stored, but Sheet update failed: ${sheetError.message}` : "Resume stored, but Sheet update failed.");
             }
 
-            setAdminResumeUpload({ fullName: "", phone: "", email: "", note: "" });
+            setAdminResumeUpload({ fullName: "", phone: "", email: "", city: "", totalExperience: "", lastRole: "", note: "" });
             setAdminResumeFile(null);
+            setAdminResumeParsed(null);
+            setAdminResumeParseMessage("");
             const input = document.getElementById("admin-whatsapp-resume-file") as HTMLInputElement | null;
             if (input) input.value = "";
             await loadStorageInsights();
@@ -620,6 +699,16 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                         <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-sky-700 ring-1 ring-sky-100">Admin upload</span>
                     </div>
                     <div className="mt-4 grid gap-3 lg:grid-cols-4">
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500 lg:col-span-2">
+                            Resume file
+                            <input
+                                id="admin-whatsapp-resume-file"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(event) => void handleAdminResumeFile(event.target.files?.[0] ?? null)}
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-sky-50 file:px-3 file:py-1 file:text-xs file:font-black file:text-sky-700"
+                            />
+                        </label>
                         <label className="text-xs font-black uppercase tracking-wide text-slate-500">
                             Candidate name
                             <input
@@ -638,7 +727,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                                 className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
                             />
                         </label>
-                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500 lg:col-span-2">
                             Email optional
                             <input
                                 value={adminResumeUpload.email}
@@ -648,28 +737,59 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                             />
                         </label>
                         <label className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Resume file
+                            City
                             <input
-                                id="admin-whatsapp-resume-file"
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                onChange={(event) => setAdminResumeFile(event.target.files?.[0] ?? null)}
-                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-sky-50 file:px-3 file:py-1 file:text-xs file:font-black file:text-sky-700"
+                                value={adminResumeUpload.city}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, city: event.target.value }))}
+                                placeholder="Gurgaon"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
+                            />
+                        </label>
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Total experience
+                            <input
+                                value={adminResumeUpload.totalExperience}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, totalExperience: event.target.value }))}
+                                placeholder="2 years"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
+                            />
+                        </label>
+                        <label className="text-xs font-black uppercase tracking-wide text-slate-500 lg:col-span-2">
+                            Latest role
+                            <input
+                                value={adminResumeUpload.lastRole}
+                                onChange={(event) => setAdminResumeUpload((prev) => ({ ...prev, lastRole: event.target.value }))}
+                                placeholder="HR recruiter"
+                                className="mt-1 w-full rounded-2xl border border-sky-100 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-sky-300"
                             />
                         </label>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-xs font-semibold text-slate-500">
-                            {adminResumeFile ? `${adminResumeFile.name} selected` : "PDF, DOC, and DOCX files up to 5 MB are supported."}
-                        </p>
+                        <div>
+                            <p className="text-xs font-semibold text-slate-500">
+                                {adminResumeParsing
+                                    ? "Reading resume and filling details..."
+                                    : adminResumeFile
+                                        ? `${adminResumeFile.name} selected`
+                                        : "PDF, DOC, and DOCX files up to 5 MB are supported."}
+                            </p>
+                            {adminResumeParseMessage ? (
+                                <p className="mt-1 text-xs font-semibold text-sky-700">{adminResumeParseMessage}</p>
+                            ) : null}
+                            {adminResumeParsed?.skills?.length ? (
+                                <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                                    Skills detected: {adminResumeParsed.skills.slice(0, 6).join(", ")}
+                                </p>
+                            ) : null}
+                        </div>
                         <button
                             type="button"
                             onClick={() => void uploadAdminResume()}
-                            disabled={adminResumeUploading}
+                            disabled={adminResumeUploading || adminResumeParsing}
                             className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Upload className="h-4 w-4" />
-                            {adminResumeUploading ? "Uploading..." : "Upload resume"}
+                            {adminResumeUploading ? "Uploading..." : adminResumeParsing ? "Reading..." : "Upload resume"}
                         </button>
                     </div>
                 </div>
@@ -686,6 +806,11 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                                         <div>
                                             <p className="text-sm font-bold text-slate-900">{entry.candidateName}</p>
                                             <p className="mt-1 text-xs text-slate-500">{entry.role} · {entry.company}</p>
+                                            {(entry.city || entry.experience || entry.lastRole) ? (
+                                                <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                                                    {[entry.lastRole, entry.experience, entry.city].filter(Boolean).join(" · ")}
+                                                </p>
+                                            ) : null}
                                             <p className="mt-1 text-xs font-semibold text-blue-700">{entry.fileName}</p>
                                             {"path" in entry && entry.path ? <p className="mt-1 break-all text-[11px] font-semibold text-slate-400">{entry.path}</p> : null}
                                         </div>
@@ -1622,6 +1747,9 @@ function getResumeStorageInsights(applications: Array<DemoApplicationRecord & { 
             uploadedAt: getApplicationMetaLine(application, "Resume Uploaded At") || application.updated_at || application.created_at,
             status: application.resume_url ? "stored" : "path only",
             path: application.resume_path || null,
+            city: extractCity(application as RecruiterApplicationView),
+            experience: extractCandidateExperience(application as RecruiterApplicationView),
+            lastRole: getParsedResumeSummary(application).lastRole,
         }))
         .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
     const failedAlerts = applications
@@ -1651,6 +1779,9 @@ function getStorageOnlyResumeLog(
             candidateName?: string | null;
             candidateEmail?: string | null;
             candidatePhone?: string | null;
+            candidateCity?: string | null;
+            candidateExperience?: string | null;
+            candidateLastRole?: string | null;
             source?: string | null;
         }>;
         samplePaths: string[];
@@ -1679,6 +1810,9 @@ function getStorageOnlyResumeLog(
             candidateName: null,
             candidateEmail: null,
             candidatePhone: null,
+            candidateCity: null,
+            candidateExperience: null,
+            candidateLastRole: null,
             source: null,
         }));
 
@@ -1699,6 +1833,9 @@ function getStorageOnlyResumeLog(
                 uploadedAt: file.uploadedAt || new Date(0).toISOString(),
                 status: file.size ? `${formatBytes(file.size)} stored` : "stored",
                 path: file.path,
+                city: file.candidateCity,
+                experience: file.candidateExperience,
+                lastRole: file.candidateLastRole,
             };
         });
 }
