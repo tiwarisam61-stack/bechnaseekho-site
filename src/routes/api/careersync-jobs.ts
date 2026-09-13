@@ -238,6 +238,22 @@ export const Route = createFileRoute("/api/careersync-jobs")({
             return Response.json({ application: toDemoApplication(data) });
           }
 
+          if (payload?.type === "database-profile-unlock-request") {
+            const supabaseAdmin = await getSupabaseAdmin();
+            const resumePath = requireStoragePath(payload.resumePath);
+            const jobId = requireUuid(payload.jobId, "jobId");
+            const application = await createDatabaseProfileUnlockRequest({
+              supabaseAdmin,
+              resumePath,
+              jobId,
+              requestedBy: clean(payload.requestedBy, 120) || "Company recruiter",
+              requesterUserId: clean(payload.requesterUserId, 160),
+              requesterEmail: clean(payload.requesterEmail, 255).toLowerCase(),
+              note: clean(payload.note, 240),
+            });
+            return Response.json({ application: toDemoApplication(application) });
+          }
+
           if (payload?.type === "application-unlock-review") {
             const applicationId = requireUuid(payload.applicationId, "applicationId");
             const approved = Boolean(payload.approved);
@@ -644,6 +660,122 @@ async function uploadResumeFile({
   };
 }
 
+async function createDatabaseProfileUnlockRequest({
+  supabaseAdmin,
+  resumePath,
+  jobId,
+  requestedBy,
+  requesterUserId,
+  requesterEmail,
+  note,
+}: {
+  supabaseAdmin: Awaited<ReturnType<typeof getSupabaseAdmin>>;
+  resumePath: string;
+  jobId: string;
+  requestedBy: string;
+  requesterUserId: string;
+  requesterEmail: string;
+  note: string;
+}) {
+  const bucket = getResumeBucket();
+  const fileName = resumePath.split("/").pop() || "resume";
+  const folder = resumePath.split("/")[0] || "";
+  const file = await readStorageFileDetails({
+    supabaseAdmin,
+    bucket,
+    file: {
+      path: resumePath,
+      fileName,
+      folder,
+      downloadUrl: null,
+      uploadedAt: null,
+      size: null,
+      originalFileName: null,
+      candidateName: null,
+      candidateEmail: null,
+      candidatePhone: null,
+      candidateCity: null,
+      candidateExperience: null,
+      candidateLastRole: null,
+      source: null,
+    },
+  });
+
+  const candidateEmail = (file.candidateEmail || makeResumePlaceholderEmail(resumePath)).toLowerCase();
+  const candidateName = file.candidateName || humanizeStoredResumeName(file.originalFileName || file.fileName) || "Database candidate";
+  const resolvedUserId = await resolveApplicationUserId({
+    supabaseAdmin,
+    userId: `database-profile-${stableHash(resumePath)}`,
+    email: candidateEmail,
+    fullName: candidateName,
+  });
+  const requestNote = note || `${requestedBy} requested database profile unlock for ${candidateName}.`;
+
+  const coverLines = [
+    `Candidate City: ${file.candidateCity || "Not shared"}`,
+    `Total Experience: ${file.candidateExperience || "Not shared"}`,
+    `Resume Name: ${file.originalFileName || file.fileName}`,
+    `Resume Email: ${file.candidateEmail || "Not shared"}`,
+    `Resume Phone: ${file.candidatePhone || "Not shared"}`,
+    `Resume City: ${file.candidateCity || "Not shared"}`,
+    `Resume Last Role: ${file.candidateLastRole || "Not shared"}`,
+    `Resume Parse Source: ${file.source || "database-profile"}`,
+    `Resume File: ${file.originalFileName || file.fileName}`,
+    `Resume Path: ${resumePath}`,
+    `Unlock Requested: true`,
+    `Unlock Status: requested`,
+    `Unlock Requested By: ${requestedBy}`,
+    `Unlock Requested At: ${new Date().toISOString()}`,
+    `Admin Log: ${new Date().toISOString()} | database_unlock_requested | ${requestNote}`,
+    requesterEmail ? `Admin Log: ${new Date().toISOString()} | requested_by_email | ${requesterEmail}` : "",
+    requesterUserId ? `Admin Log: ${new Date().toISOString()} | requested_by_user | ${requesterUserId}` : "",
+  ].filter(Boolean).join("\n");
+
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("applications")
+    .select("*")
+    .eq("job_id", jobId)
+    .eq("resume_path", resumePath)
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  if (existing) {
+    const nextCoverLetter = appendApplicationMeta(existing.cover_letter, [
+      `Unlock Requested: true`,
+      `Unlock Status: requested`,
+      `Unlock Requested By: ${requestedBy}`,
+      `Unlock Requested At: ${new Date().toISOString()}`,
+      `Admin Log: ${new Date().toISOString()} | database_unlock_requested | ${requestNote}`,
+    ]);
+    const { data, error } = await supabaseAdmin
+      .from("applications")
+      .update({ cover_letter: nextCoverLetter, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("applications")
+    .insert({
+      job_id: jobId,
+      user_id: resolvedUserId,
+      full_name: candidateName,
+      email: candidateEmail,
+      phone: file.candidatePhone || null,
+      resume_path: resumePath,
+      resume_url: null,
+      cover_letter: coverLines.slice(0, APPLICATION_NOTE_LIMIT),
+      status: "submitted",
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 function getResumeBucket() {
   return process.env.SUPABASE_RESUME_BUCKET || DEFAULT_RESUME_BUCKET;
 }
@@ -840,6 +972,32 @@ function getStorageMetadataText(metadata: Record<string, unknown> | null | undef
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+function humanizeStoredResumeName(fileName: string) {
+  const raw = fileName
+    .replace(/\.(pdf|doc|docx)$/i, "")
+    .replace(/^\d{10,}[-_]+/i, "")
+    .replace(/[-_]+[0-9a-f]{8,}(?:-[0-9a-f]{4,}){2,}$/i, "")
+    .trim();
+  if (!raw || /^\d{10,}-[0-9a-f-]+$/i.test(raw) || /^[0-9a-f-]{20,}$/i.test(raw)) return "";
+  return raw
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
+}
+
+function stableHash(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function makeResumePlaceholderEmail(path: string) {
+  return `resume-${stableHash(path)}@bechnaseekho.com`;
 }
 
 async function listApplicationsForRole({

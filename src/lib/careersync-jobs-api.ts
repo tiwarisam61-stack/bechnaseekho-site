@@ -243,6 +243,24 @@ export async function requestSharedCareerSyncProfileUnlock(input: {
   return body?.application ?? null;
 }
 
+export async function requestSharedCareerSyncDatabaseProfileUnlock(input: {
+  resumePath: string;
+  jobId: string;
+  requestedBy?: string | null;
+  requesterUserId?: string | null;
+  requesterEmail?: string | null;
+  note?: string | null;
+}) {
+  const response = await fetch("/api/careersync-jobs", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "database-profile-unlock-request", ...input }),
+  });
+  const body = (await response.json().catch(() => null)) as { application?: DemoApplicationRecord; error?: string } | null;
+  if (!response.ok) throw new Error(body?.error || "Could not request database profile unlock.");
+  return body?.application ?? null;
+}
+
 export async function reviewSharedCareerSyncProfileUnlock(input: {
   applicationId: string;
   approved: boolean;

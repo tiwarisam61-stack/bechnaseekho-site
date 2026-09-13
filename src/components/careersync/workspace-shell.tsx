@@ -54,6 +54,7 @@ import {
     fetchSharedCareerSyncJobs,
     fetchSharedCareerSyncResumeInsights,
     repairSharedCareerSyncApplications,
+    requestSharedCareerSyncDatabaseProfileUnlock,
     requestSharedCareerSyncProfileUnlock,
     reviewSharedCareerSyncProfileUnlock,
     reviewSharedCareerSyncJob,
@@ -245,7 +246,7 @@ export function CareerSyncWorkspaceShell() {
 
             <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 {isAdmin && <AdminWorkspace userId={user.id} snapshot={snapshot} />}
-                {isCompany && <CompanyWorkspace userId={user.id} snapshot={snapshot} />}
+                {isCompany && <CompanyWorkspace userId={user.id} email={user.email ?? ""} snapshot={snapshot} />}
                 {isEmployee && <EmployeeWorkspace userId={user.id} snapshot={snapshot} />}
                 {isCandidate && <CandidateWorkspace userId={user.id} snapshot={snapshot} />}
             </main>
@@ -1211,7 +1212,7 @@ function getCompanyWorkspaceTab(section: string) {
     return COMPANY_SECTION_TABS[section.replace(/^#/, "")] ?? "overview";
 }
 
-function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
+function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
     const myJobs = snapshot.jobs.filter((job) => job.posted_by === userId);
     const myNotifications = getDemoNotificationsForUser(userId);
     const myApplications = snapshot.applications.filter((application) => myJobs.some((job) => job.id === application.job_id));
@@ -1225,10 +1226,13 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
     const [unlockFilter, setUnlockFilter] = useState<string>("all");
     const [minFitFilter, setMinFitFilter] = useState<string>("all");
     const [cityFilter, setCityFilter] = useState("");
+    const [databaseExperienceFilter, setDatabaseExperienceFilter] = useState("all");
+    const [databaseSourceFilter, setDatabaseSourceFilter] = useState("all");
     const [candidateQuery, setCandidateQuery] = useState("");
     const [selectedCandidate, setSelectedCandidate] = useState<RecruiterApplicationView | null>(null);
     const [databaseResumeInsight, setDatabaseResumeInsight] = useState<ResumeStorageInsight | null>(null);
     const [databaseResumeError, setDatabaseResumeError] = useState("");
+    const [databaseUnlockingPath, setDatabaseUnlockingPath] = useState("");
     const [unlockRequests, setUnlockRequests] = useState<Set<string>>(() => {
         if (typeof window === "undefined") return new Set();
         try {
@@ -1299,8 +1303,14 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
         existingApplications: myApplications,
         query: candidateQuery,
         cityFilter,
+        experienceFilter: databaseExperienceFilter,
+        sourceFilter: databaseSourceFilter,
         minFitFilter,
-    }), [candidateQuery, cityFilter, databaseResumeInsight, minFitFilter, myApplications, myJobs, selectedJobs]);
+    }), [candidateQuery, cityFilter, databaseExperienceFilter, databaseResumeInsight, databaseSourceFilter, minFitFilter, myApplications, myJobs, selectedJobs]);
+    const databaseSourceOptions = useMemo(() => {
+        const labels = new Set((databaseResumeInsight?.storageFiles ?? []).map((file) => getResumeSourceLabel(file.folder, file.source)));
+        return ["all", ...[...labels].sort((a, b) => a.localeCompare(b))];
+    }, [databaseResumeInsight]);
 
     const openRoles = myJobs.filter((job) => job.is_active && job.status !== "rejected").length;
     const avgFit = filteredApplications.length ? Math.round(filteredApplications.reduce((sum, application) => sum + application.fit, 0) / filteredApplications.length) : 0;
@@ -1365,6 +1375,37 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                 href: "/careersync?workspace=1#approval-inbox",
             });
             toast.warning(error instanceof Error ? error.message : "Saved locally. Shared unlock sync failed.");
+        }
+    };
+
+    const requestDatabaseProfileUnlock = async (profile: RecruiterDatabaseProfile) => {
+        if (!profile.matchedJob?.id) {
+            toast.error("Select a job before requesting this profile.");
+            return;
+        }
+        setDatabaseUnlockingPath(profile.path);
+        try {
+            const application = await requestSharedCareerSyncDatabaseProfileUnlock({
+                resumePath: profile.path,
+                jobId: profile.matchedJob.id,
+                requestedBy: companyName,
+                requesterUserId: userId,
+                requesterEmail: email,
+                note: `${companyName} requested database profile unlock for ${profile.candidateName} against ${profile.matchedJob.role}.`,
+            });
+            if (application) mergeSharedCareerSyncApplications([application]);
+            notifyAdminReviewRequest({
+                title: "Database profile unlock requested",
+                message: `${companyName} requested ${profile.candidateName} from resume database for ${profile.matchedJob.role}.`,
+                actor: companyName,
+                entity: profile.candidateName,
+                href: "/careersync?workspace=1#approval-inbox",
+            });
+            toast.success("Database profile unlock request sent to admin.");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Could not request database profile unlock.");
+        } finally {
+            setDatabaseUnlockingPath("");
         }
     };
 
@@ -1586,8 +1627,10 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                                     className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-sm font-semibold outline-none transition focus:border-[#3D5AFE] focus:bg-white sm:w-80"
                                 />
                             </div>
-                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                            <div className="mt-3 grid gap-2 md:grid-cols-4">
                                 <RecruiterSelectFilter label="Fit score" value={minFitFilter} onChange={setMinFitFilter} options={["all", "60", "70", "80"]} />
+                                <RecruiterSelectFilter label="Experience" value={databaseExperienceFilter} onChange={setDatabaseExperienceFilter} options={["all", "Fresher", "1+ years", "3+ years", "5+ years"]} />
+                                <RecruiterSelectFilter label="Source" value={databaseSourceFilter} onChange={setDatabaseSourceFilter} options={databaseSourceOptions} />
                                 <input
                                     value={cityFilter}
                                     onChange={(event) => setCityFilter(event.target.value)}
@@ -1597,7 +1640,12 @@ function CompanyWorkspace({ userId, snapshot }: { userId: string; snapshot: Retu
                             </div>
                             <div className="mt-4 space-y-3">
                                 {databaseRecommendedProfiles.map((profile) => (
-                                    <RecruiterDatabaseProfileCard key={profile.id} profile={profile} />
+                                    <RecruiterDatabaseProfileCard
+                                        key={profile.id}
+                                        profile={profile}
+                                        requesting={databaseUnlockingPath === profile.path}
+                                        onRequestUnlock={requestDatabaseProfileUnlock}
+                                    />
                                 ))}
                                 {!databaseResumeInsight && !databaseResumeError && <EmptyState title="Loading database profiles" message="Checking Supabase resumes and matching the best profiles to this job." />}
                                 {databaseResumeError && <EmptyState title="Could not load database profiles" message={databaseResumeError} />}
@@ -1791,9 +1839,11 @@ function getUnlockStatus(application: Pick<DemoApplicationRecord, "cover_letter"
 function getUnlockRequestLine(application: Pick<DemoApplicationRecord, "cover_letter">) {
     const requestedBy = getApplicationMetaLine(application, "Unlock Requested By");
     const requestedAt = getApplicationMetaLine(application, "Unlock Requested At");
+    const source = getApplicationMetaLine(application, "Resume Parse Source");
     if (!requestedBy && !requestedAt) return "";
     const date = requestedAt ? new Date(requestedAt).toLocaleString("en-IN") : "recently";
-    return `${requestedBy || "Recruiter"} requested unlock ${date}.`;
+    const sourceLabel = source === "database-profile" || source === "admin-whatsapp-resume" ? " from database profile" : "";
+    return `${requestedBy || "Recruiter"} requested unlock${sourceLabel} ${date}.`;
 }
 
 function getApplicationAdminLog(application: Pick<DemoApplicationRecord, "cover_letter">) {
@@ -2334,6 +2384,15 @@ function getStorageProfileSearchText(file: ResumeStorageFileInsight) {
 
 function scoreResumeProfileForJob(file: ResumeStorageFileInsight, job?: DemoJobRecord | null) {
     if (!job) return 35;
+    const profileText = [
+        getStorageProfileName(file),
+        getStorageProfileRole(file),
+        getStorageProfileCity(file),
+        getStorageProfileExperience(file),
+        file.originalFileName,
+        file.fileName,
+        getResumeSourceLabel(file.folder, file.source),
+    ].filter(Boolean).join(" ");
     const result = fallbackCareerSyncMatch({
         job,
         candidate: {
@@ -2349,9 +2408,22 @@ function scoreResumeProfileForJob(file: ResumeStorageFileInsight, job?: DemoJobR
             resume_path: file.path,
             resume_url: null,
             resumeName: file.originalFileName || file.fileName,
+            resumeText: profileText,
         },
     });
-    return result.fitScore;
+    const profileCity = normalizeDatabaseMatchText(getStorageProfileCity(file));
+    const jobLocation = normalizeDatabaseMatchText(job.location);
+    const roleText = normalizeDatabaseMatchText(`${getStorageProfileRole(file)} ${file.originalFileName ?? ""} ${file.fileName}`);
+    const jobRoleText = normalizeDatabaseMatchText(`${job.role} ${job.description} ${(job.tags ?? []).join(" ")} ${(job.required_skills ?? []).join(" ")}`);
+    const profileYears = getDatabaseExperienceYears(getStorageProfileExperience(file));
+    const jobYears = getDatabaseExperienceYears(job.experience);
+    const cityBonus = profileCity && jobLocation && (jobLocation.includes(profileCity) || profileCity.includes(jobLocation.split(" ")[0] ?? "")) ? 12 : 0;
+    const roleBonus = getDatabaseKeywordOverlap(roleText, jobRoleText) >= 2 ? 14 : getDatabaseKeywordOverlap(roleText, jobRoleText) === 1 ? 7 : 0;
+    const experienceBonus = profileYears === null || jobYears === null
+        ? 0
+        : profileYears >= jobYears ? 10 : profileYears + 1 >= jobYears ? 5 : -8;
+    const metadataBonus = file.candidateName && (file.candidateCity || file.candidateExperience || file.candidateLastRole) ? 6 : 0;
+    return Math.max(5, Math.min(98, result.fitScore + cityBonus + roleBonus + experienceBonus + metadataBonus));
 }
 
 function getRecruiterDatabaseProfiles({
@@ -2360,6 +2432,8 @@ function getRecruiterDatabaseProfiles({
     existingApplications,
     query,
     cityFilter,
+    experienceFilter,
+    sourceFilter,
     minFitFilter,
 }: {
     storageInsight: ResumeStorageInsight | null;
@@ -2367,6 +2441,8 @@ function getRecruiterDatabaseProfiles({
     existingApplications: DemoApplicationRecord[];
     query: string;
     cityFilter: string;
+    experienceFilter: string;
+    sourceFilter: string;
     minFitFilter: string;
 }) {
     const files = storageInsight?.storageFiles ?? [];
@@ -2375,9 +2451,11 @@ function getRecruiterDatabaseProfiles({
     const normalizedCity = cityFilter.trim().toLowerCase();
     const minFit = minFitFilter === "all" ? 0 : Number(minFitFilter);
 
-    return files
+    const profiles = files
         .filter((file) => !existingResumePaths.has(file.path))
         .filter((file) => !normalizedQuery || getStorageProfileSearchText(file).includes(normalizedQuery))
+        .filter((file) => sourceFilter === "all" || getResumeSourceLabel(file.folder, file.source) === sourceFilter)
+        .filter((file) => isDatabaseExperienceMatch(getStorageProfileExperience(file), experienceFilter))
         .map((file) => {
             const matches = (jobs.length ? jobs : [null]).map((job) => ({
                 job,
@@ -2400,8 +2478,58 @@ function getRecruiterDatabaseProfiles({
         })
         .filter((profile) => !normalizedCity || profile.city.toLowerCase().includes(normalizedCity))
         .filter((profile) => profile.fit >= minFit)
+        .sort((a, b) => b.fit - a.fit || (a.uploadedAt < b.uploadedAt ? 1 : -1));
+
+    const deduped = new Map<string, RecruiterDatabaseProfile>();
+    for (const profile of profiles) {
+        const key = getDatabaseProfileDuplicateKey(profile);
+        const existing = deduped.get(key);
+        if (!existing || profile.fit > existing.fit || profile.uploadedAt > existing.uploadedAt) {
+            deduped.set(key, profile);
+        }
+    }
+
+    return [...deduped.values()]
         .sort((a, b) => b.fit - a.fit || (a.uploadedAt < b.uploadedAt ? 1 : -1))
         .slice(0, 20);
+}
+
+function normalizeDatabaseMatchText(value: string | null | undefined) {
+    return (value ?? "").toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim();
+}
+
+function getDatabaseKeywordOverlap(left: string, right: string) {
+    const ignored = new Set(["and", "the", "for", "with", "resume", "profile", "candidate", "years", "year"]);
+    const leftWords = new Set(left.split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)));
+    const rightWords = new Set(right.split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)));
+    return [...leftWords].filter((word) => rightWords.has(word)).length;
+}
+
+function getDatabaseExperienceYears(value: string | null | undefined) {
+    const text = value ?? "";
+    if (/fresher|fresh|0\s*(?:year|yr)|less than 1/i.test(text)) return 0;
+    const yearMatch = text.match(/(\d{1,2})(?:\+)?\s*(?:years?|yrs?|yr)/i);
+    if (yearMatch) return Number(yearMatch[1]);
+    const plainNumber = text.match(/\b(\d{1,2})(?:\+)?\b/);
+    return plainNumber ? Number(plainNumber[1]) : null;
+}
+
+function isDatabaseExperienceMatch(experience: string, filter: string) {
+    if (filter === "all") return true;
+    const years = getDatabaseExperienceYears(experience);
+    if (filter === "Fresher") return years === 0 || /fresher|fresh/i.test(experience);
+    if (filter === "1+ years") return years !== null && years >= 1;
+    if (filter === "3+ years") return years !== null && years >= 3;
+    if (filter === "5+ years") return years !== null && years >= 5;
+    return true;
+}
+
+function getDatabaseProfileDuplicateKey(profile: RecruiterDatabaseProfile) {
+    const name = normalizeDatabaseMatchText(profile.candidateName);
+    const city = normalizeDatabaseMatchText(profile.city);
+    const role = normalizeDatabaseMatchText(profile.role);
+    if (name && name !== "candidate profile") return `${name}|${city}|${role}`;
+    return profile.fileName.toLowerCase().replace(/^\d{10,}[-_]+/, "").replace(/[-_]+[0-9a-f-]{12,}/i, "");
 }
 
 function getCandidateMessage(application: RecruiterApplicationView) {
@@ -2427,7 +2555,15 @@ function getRecruiterRecommendation(application: RecruiterApplicationView) {
     return "Needs training";
 }
 
-function RecruiterDatabaseProfileCard({ profile }: { profile: RecruiterDatabaseProfile }) {
+function RecruiterDatabaseProfileCard({
+    profile,
+    requesting = false,
+    onRequestUnlock,
+}: {
+    profile: RecruiterDatabaseProfile;
+    requesting?: boolean;
+    onRequestUnlock?: (profile: RecruiterDatabaseProfile) => void | Promise<void>;
+}) {
     const fitTone = profile.fit >= 80 ? "text-[#1C7A48]" : profile.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
     const previewRows = [
         { label: "Experience", value: profile.experience, icon: <Briefcase className="h-3.5 w-3.5" /> },
@@ -2478,10 +2614,15 @@ function RecruiterDatabaseProfileCard({ profile }: { profile: RecruiterDatabaseP
                             <FileClock className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">{profile.fileName}</span>
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EEEDE7] px-3 py-1.5 text-xs font-black text-[#5B6172]">
+                        <button
+                            type="button"
+                            disabled={requesting || !profile.matchedJob}
+                            onClick={() => void onRequestUnlock?.(profile)}
+                            className="inline-flex items-center gap-1 rounded-full bg-[#FFF7E7] px-3 py-1.5 text-xs font-black text-[#8A5A00] ring-1 ring-[#FCEBCB] transition hover:bg-[#FCEBCB] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
                             <LockKeyhole className="h-3.5 w-3.5" />
-                            Contact CareerSync admin to unlock
-                        </span>
+                            {requesting ? "Sending request..." : "Request unlock from admin"}
+                        </button>
                     </div>
                 </div>
             </div>
