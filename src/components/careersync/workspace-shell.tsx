@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, ShieldCheck, Unlock, Upload, Users, UserRound, X } from "lucide-react";
+import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, Languages, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, Plus, ShieldCheck, Star, Unlock, Upload, Users, UserRound, Wallet, X } from "lucide-react";
 import { CareerSyncDashboard } from "@/components/careersync/dashboard";
 import { NotificationBell } from "@/components/careersync/notification-bell";
 import { CareerSyncJobsSection } from "@/components/careersync/jobs-section";
@@ -1199,6 +1199,23 @@ type RecruiterDatabaseProfile = {
     uploadedAt: string;
 };
 
+const RECRUITER_PIPELINE_STAGES = ["Applied", "Screening", "Shortlisted", "Interview", "Selected", "Offered", "Joined"] as const;
+const RECRUITER_CLOSED_STAGES = ["Rejected", "Withdrawn", "No-show", "Offer Declined", "Not Joined"] as const;
+const RECRUITER_STAGE_FILTERS = ["all", ...RECRUITER_PIPELINE_STAGES, ...RECRUITER_CLOSED_STAGES];
+const REJECTION_REASONS = [
+    "Experience mismatch",
+    "Salary mismatch",
+    "Location mismatch",
+    "Skills mismatch",
+    "Communication",
+    "Candidate unavailable",
+    "Duplicate",
+    "Not interested",
+    "Other",
+];
+const SALARY_FILTERS = ["all", "Salary shared", "Salary missing", "Within budget", "Above budget"];
+const AVAILABILITY_FILTERS = ["all", "Immediate", "15 days", "30 days", "60+ days", "Unknown"];
+
 const COMPANY_SECTION_TABS: Record<string, CompanyWorkspaceTab> = {
     dashboard: "overview",
     "my-jobs": "jobs",
@@ -1226,10 +1243,17 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
     const [unlockFilter, setUnlockFilter] = useState<string>("all");
     const [minFitFilter, setMinFitFilter] = useState<string>("all");
     const [cityFilter, setCityFilter] = useState("");
+    const [salaryFilter, setSalaryFilter] = useState("all");
+    const [availabilityFilter, setAvailabilityFilter] = useState("all");
     const [databaseExperienceFilter, setDatabaseExperienceFilter] = useState("all");
     const [databaseSourceFilter, setDatabaseSourceFilter] = useState("all");
     const [candidateQuery, setCandidateQuery] = useState("");
     const [selectedCandidate, setSelectedCandidate] = useState<RecruiterApplicationView | null>(null);
+    const [fitBreakdownCandidate, setFitBreakdownCandidate] = useState<RecruiterApplicationView | null>(null);
+    const [rejectingCandidate, setRejectingCandidate] = useState<RecruiterApplicationView | null>(null);
+    const [selectedRejectReason, setSelectedRejectReason] = useState("");
+    const [addingDatabaseProfile, setAddingDatabaseProfile] = useState<RecruiterDatabaseProfile | null>(null);
+    const [addToJobId, setAddToJobId] = useState("");
     const [databaseResumeInsight, setDatabaseResumeInsight] = useState<ResumeStorageInsight | null>(null);
     const [databaseResumeError, setDatabaseResumeError] = useState("");
     const [databaseUnlockingPath, setDatabaseUnlockingPath] = useState("");
@@ -1295,8 +1319,10 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
             })
             .filter((application) => minFitFilter === "all" || application.fit >= Number(minFitFilter))
             .filter((application) => !cityFilter.trim() || extractCity(application).toLowerCase().includes(cityFilter.trim().toLowerCase()))
+            .filter((application) => isApplicationSalaryMatch(application, salaryFilter))
+            .filter((application) => isApplicationAvailabilityMatch(application, availabilityFilter))
             .sort((a, b) => b.fit - a.fit || (a.created_at < b.created_at ? 1 : -1));
-    }, [candidateQuery, cityFilter, minFitFilter, myApplications, myJobs, selectedJobIds, stageFilter, unlockFilter]);
+    }, [availabilityFilter, candidateQuery, cityFilter, minFitFilter, myApplications, myJobs, salaryFilter, selectedJobIds, stageFilter, unlockFilter]);
     const databaseRecommendedProfiles = useMemo(() => getRecruiterDatabaseProfiles({
         storageInsight: databaseResumeInsight,
         jobs: selectedJobs.length ? selectedJobs : myJobs,
@@ -1306,7 +1332,9 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
         experienceFilter: databaseExperienceFilter,
         sourceFilter: databaseSourceFilter,
         minFitFilter,
-    }), [candidateQuery, cityFilter, databaseExperienceFilter, databaseResumeInsight, databaseSourceFilter, minFitFilter, myApplications, myJobs, selectedJobs]);
+        salaryFilter,
+        availabilityFilter,
+    }), [availabilityFilter, candidateQuery, cityFilter, databaseExperienceFilter, databaseResumeInsight, databaseSourceFilter, minFitFilter, myApplications, myJobs, salaryFilter, selectedJobs]);
     const databaseSourceOptions = useMemo(() => {
         const labels = new Set((databaseResumeInsight?.storageFiles ?? []).map((file) => getResumeSourceLabel(file.folder, file.source)));
         return ["all", ...[...labels].sort((a, b) => a.localeCompare(b))];
@@ -1315,6 +1343,10 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
     const openRoles = myJobs.filter((job) => job.is_active && job.status !== "rejected").length;
     const avgFit = filteredApplications.length ? Math.round(filteredApplications.reduce((sum, application) => sum + application.fit, 0) / filteredApplications.length) : 0;
     const atRiskCount = filteredApplications.filter((application) => application.fit < 62 || application.status === "submitted").length;
+    const needsReviewCount = filteredApplications.filter((application) => recruiterStage(application.status) === "Applied").length;
+    const strongMatchCount = filteredApplications.filter((application) => application.fit >= 80).length + databaseRecommendedProfiles.filter((profile) => profile.fit >= 80).length;
+    const interviewsTodayCount = filteredApplications.filter((application) => recruiterStage(application.status) === "Interview").length;
+    const offersAwaitingDecisionCount = filteredApplications.filter((application) => recruiterStage(application.status) === "Offered").length;
     const stageCounts = filteredApplications.reduce<Record<string, number>>((acc, application) => {
         const stage = recruiterStage(application.status);
         acc[stage] = (acc[stage] ?? 0) + 1;
@@ -1476,20 +1508,39 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                 <span className="grid h-7 w-7 place-items-center rounded-full bg-[#F5A623] text-[11px] text-[#4A2F00]">{companyName.slice(0, 2).toUpperCase()}</span>
                                 {companyName}
                             </span>
+                            <NotificationBell />
+                            <button type="button" onClick={() => void signOut()} className="rounded-full bg-[#171E33] px-3 py-2 text-xs font-black text-[#C9D0EE] ring-1 ring-[#2A3350] transition hover:bg-[#222B46]">Sign Out</button>
                         </div>
                     </div>
                 </section>
 
+                <div className="flex items-center justify-between rounded-2xl border border-[#E4E2DA] bg-white px-4 py-3 lg:hidden">
+                    <span className="font-display text-lg font-black text-[#171B2B]">CareerSync</span>
+                    <div className="flex items-center gap-2">
+                        <NotificationBell />
+                        <button type="button" onClick={() => setActiveTab("profile")} className="rounded-full bg-[#F6F5F1] px-3 py-2 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA]">Profile</button>
+                    </div>
+                </div>
+
                 <nav className="flex gap-1 overflow-x-auto border-b border-[#E4E2DA]">
                     {tabs.map(([id, label]) => (
-                        <button
-                            key={id}
-                            type="button"
-                            onClick={() => setActiveTab(id)}
-                            className={`shrink-0 border-b-2 px-4 py-3 text-sm font-bold transition ${activeTab === id ? "border-[#3D5AFE] text-[#171B2B]" : "border-transparent text-[#5B6172] hover:text-[#171B2B]"}`}
-                        >
-                            {label}
-                        </button>
+                        <div key={id} className="flex shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab(id)}
+                                className={`shrink-0 border-b-2 px-4 py-3 text-sm font-bold transition ${activeTab === id ? "border-[#3D5AFE] text-[#171B2B]" : "border-transparent text-[#5B6172] hover:text-[#171B2B]"}`}
+                            >
+                                {label}
+                            </button>
+                            {id === "overview" && (
+                                <Link
+                                    to="/post-job"
+                                    className="shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-bold text-[#5B6172] transition hover:text-[#171B2B]"
+                                >
+                                    Post a Job
+                                </Link>
+                            )}
+                        </div>
                     ))}
                 </nav>
 
@@ -1497,15 +1548,39 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                     <RecruiterKpi label="Open roles" value={String(openRoles)} helper={`${companyAnalytics.totals.pendingJobs} pending approval`} tone="blue" />
                     <RecruiterKpi label="Total applicants" value={String(myApplications.length)} helper="from current workspace data" tone="amber" />
                     <RecruiterKpi label="Avg fit score" value={`${avgFit}%`} helper={avgFit >= 70 ? "healthy candidate pool" : "needs more strong fits"} tone="green" />
-                    <RecruiterKpi label="At-risk candidates" value={String(atRiskCount)} helper="new or low-fit profiles" tone="red" />
+                    <RecruiterKpi label="with Low Match" value={String(atRiskCount)} helper="new or low-fit profiles" tone="red" />
                     <RecruiterKpi label="Unread alerts" value={String(myNotifications.filter((item) => !item.read_at).length)} helper="recruiter notifications" tone="slate" />
                 </div>
 
                 {activeTab === "overview" && (
                     <div className="space-y-5">
+                        <RecruiterPanel
+                            title="Good Morning 👋"
+                            caption="Start with the decisions that move hiring today."
+                            action={<ActionButton tone="success" onClick={() => setActiveTab("candidates")}>Review Candidates</ActionButton>}
+                        >
+                            <div className="grid gap-3 md:grid-cols-4">
+                                <RecruiterActionMetric label="candidates need review" value={String(needsReviewCount)} />
+                                <RecruiterActionMetric label="strong matches found" value={String(strongMatchCount)} />
+                                <RecruiterActionMetric label="interview today" value={String(interviewsTodayCount)} />
+                                <RecruiterActionMetric label="offers awaiting decision" value={String(offersAwaitingDecisionCount)} />
+                            </div>
+                            <div className="mt-4 rounded-2xl bg-[#F6F5F1] p-4 ring-1 ring-[#E4E2DA]">
+                                <h3 className="text-sm font-black text-[#171B2B]">Hiring Overview</h3>
+                                <p className="mt-2 text-sm font-bold text-[#5B6172]">
+                                    {openRoles} Active Job | {myApplications.length} Applicants | {stageCounts.Interview ?? 0} Interviews | {stageCounts.Joined ?? 0} Joinings
+                                </p>
+                            </div>
+                        </RecruiterPanel>
                         <div className="grid gap-3 lg:grid-cols-3">
                             <RecruiterInsight tone="red" title="Needs attention" text={`${filteredApplications.filter((application) => application.status === "submitted").length} new applicants are waiting for first review.`} />
-                            <RecruiterInsight tone="blue" title="Pipeline signal" text={`${filteredApplications.filter((application) => application.fit >= 80).length} candidates have an 80%+ AI fit estimate for selected roles.`} />
+                            <RecruiterInsight
+                                tone={strongMatchCount > 0 ? "green" : "blue"}
+                                title="Pipeline signal"
+                                text={strongMatchCount > 0
+                                    ? `🔥 ${strongMatchCount} Strong Matches Found. Candidates have 80%+ fit for the selected role. Review Matches.`
+                                    : "No strong matches yet. Complete your job requirements to improve matching. Improve Job Details."}
+                            />
                             <RecruiterInsight tone="green" title="Conversion clue" text={`${stageCounts.Interview ?? 0} candidates are already in interview stage across your visible roles.`} />
                         </div>
 
@@ -1550,6 +1625,11 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                             unlockRequested={unlockRequests.has(application.id) || getUnlockStatus(application) === "requested"}
                                             onRequestUnlock={requestProfileUnlock}
                                             onOpen={setSelectedCandidate}
+                                            onFitBreakdown={setFitBreakdownCandidate}
+                                            onReject={(candidate) => {
+                                                setRejectingCandidate(candidate);
+                                                setSelectedRejectReason("");
+                                            }}
                                         />
                                     ))}
                                     {filteredApplications.length === 0 && <EmptyState title="No applicants yet" message="Applicants will appear here after candidates apply to your roles." />}
@@ -1563,7 +1643,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                     <RecruiterPanel title="Hiring pipeline" caption="move applicants through stages from current data">
                         <RoleFilter roles={roleOptions} selectedRoleId={selectedRoleId} onSelect={setSelectedRoleId} />
                         <div className="mt-4 grid gap-3 lg:grid-cols-5">
-                            {["Applied", "Screening", "Interview", "Offer", "Rejected"].map((stage) => {
+                            {[...RECRUITER_PIPELINE_STAGES, ...RECRUITER_CLOSED_STAGES].map((stage) => {
                                 const stageItems = filteredApplications.filter((application) => recruiterStage(application.status) === stage);
                                 return (
                                     <div key={stage} className="min-h-48 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] p-3">
@@ -1588,9 +1668,13 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                                         )}
                                                         <div className="mt-3 flex flex-wrap gap-1.5">
                                                             <ActionButton tone="neutral" onClick={() => setSelectedCandidate(application)}>Details</ActionButton>
-                                                            <ActionButton tone="neutral" disabled={locked} onClick={() => void updateApplicationStage(application.id, "under_review")}>Screen</ActionButton>
+                                                            <ActionButton tone="neutral" disabled={locked} onClick={() => void updateApplicationStage(application.id, "screening")}>Screen</ActionButton>
+                                                            <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "shortlisted")}>Shortlist</ActionButton>
                                                             <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
-                                                            <ActionButton tone="danger" onClick={() => void updateApplicationStage(application.id, "rejected")}>Reject</ActionButton>
+                                                            <ActionButton tone="danger" onClick={() => {
+                                                                setRejectingCandidate(application);
+                                                                setSelectedRejectReason("");
+                                                            }}>Reject</ActionButton>
                                                         </div>
                                                     </div>
                                                 );
@@ -1627,9 +1711,11 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                     className="min-h-10 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-sm font-semibold outline-none transition focus:border-[#3D5AFE] focus:bg-white sm:w-80"
                                 />
                             </div>
-                            <div className="mt-3 grid gap-2 md:grid-cols-4">
+                            <div className="mt-3 grid gap-2 md:grid-cols-4 lg:grid-cols-8">
                                 <RecruiterSelectFilter label="Fit score" value={minFitFilter} onChange={setMinFitFilter} options={["all", "60", "70", "80"]} />
                                 <RecruiterSelectFilter label="Experience" value={databaseExperienceFilter} onChange={setDatabaseExperienceFilter} options={["all", "Fresher", "1+ years", "3+ years", "5+ years"]} />
+                                <RecruiterSelectFilter label="Salary" value={salaryFilter} onChange={setSalaryFilter} options={SALARY_FILTERS} />
+                                <RecruiterSelectFilter label="Availability" value={availabilityFilter} onChange={setAvailabilityFilter} options={AVAILABILITY_FILTERS} />
                                 <RecruiterSelectFilter label="Source" value={databaseSourceFilter} onChange={setDatabaseSourceFilter} options={databaseSourceOptions} />
                                 <input
                                     value={cityFilter}
@@ -1644,6 +1730,10 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                         key={profile.id}
                                         profile={profile}
                                         requesting={databaseUnlockingPath === profile.path}
+                                        onAddToJob={(nextProfile) => {
+                                            setAddingDatabaseProfile(nextProfile);
+                                            setAddToJobId(nextProfile.matchedJob?.id ?? myJobs[0]?.id ?? "");
+                                        }}
                                         onRequestUnlock={requestDatabaseProfileUnlock}
                                     />
                                 ))}
@@ -1654,9 +1744,11 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                         </RecruiterPanel>
 
                         <RecruiterPanel title="People who applied for this job" caption={`${filteredApplications.length} applicants shown`}>
-                            <div className="grid gap-2 md:grid-cols-2">
-                                <RecruiterSelectFilter label="Stage" value={stageFilter} onChange={setStageFilter} options={["all", "Applied", "Screening", "Interview", "Offer", "Rejected"]} />
+                            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                                <RecruiterSelectFilter label="Stage" value={stageFilter} onChange={setStageFilter} options={RECRUITER_STAGE_FILTERS} />
                                 <RecruiterSelectFilter label="Profile" value={unlockFilter} onChange={setUnlockFilter} options={["all", "locked", "requested", "approved", "rejected", "unlocked"]} />
+                                <RecruiterSelectFilter label="Salary" value={salaryFilter} onChange={setSalaryFilter} options={SALARY_FILTERS} />
+                                <RecruiterSelectFilter label="Availability" value={availabilityFilter} onChange={setAvailabilityFilter} options={AVAILABILITY_FILTERS} />
                             </div>
                             <div className="mt-4 space-y-3">
                                 {filteredApplications.map((application) => (
@@ -1667,6 +1759,11 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                         onStatusChange={updateApplicationStage}
                                         onRequestUnlock={requestProfileUnlock}
                                         onOpen={setSelectedCandidate}
+                                        onFitBreakdown={setFitBreakdownCandidate}
+                                        onReject={(candidate) => {
+                                            setRejectingCandidate(candidate);
+                                            setSelectedRejectReason("");
+                                        }}
                                     />
                                 ))}
                                 {filteredApplications.length === 0 && <EmptyState title="No applicants match" message="Actual job applicants will appear here separately from database recommendations." />}
@@ -1678,7 +1775,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                 {activeTab === "analytics" && (
                     <div className="grid gap-5 lg:grid-cols-2">
                         <RecruiterPanel title="Applicants by stage" caption="current pipeline">
-                            <RecruiterBarList data={["Applied", "Screening", "Interview", "Offer", "Rejected"].map((stage) => ({ label: stage, value: stageCounts[stage] ?? 0 }))} />
+                            <RecruiterBarList data={[...RECRUITER_PIPELINE_STAGES, ...RECRUITER_CLOSED_STAGES].map((stage) => ({ label: stage, value: stageCounts[stage] ?? 0 }))} />
                         </RecruiterPanel>
                         <RecruiterPanel title="Jobs by status" caption="approval and publish flow">
                             <RecruiterBarList data={toChartData(companyAnalytics.jobsByStatus)} />
@@ -1731,8 +1828,88 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                     onStatusChange={updateApplicationStage}
                     unlockRequested={unlockRequests.has(selectedCandidate.id) || getUnlockStatus(selectedCandidate) === "requested"}
                     onRequestUnlock={requestProfileUnlock}
+                    onFitBreakdown={setFitBreakdownCandidate}
+                    onReject={(candidate) => {
+                        setRejectingCandidate(candidate);
+                        setSelectedRejectReason("");
+                    }}
                 />
             )}
+            {fitBreakdownCandidate && (
+                <FitScoreBreakdownModal
+                    application={fitBreakdownCandidate}
+                    onClose={() => setFitBreakdownCandidate(null)}
+                />
+            )}
+            {rejectingCandidate && (
+                <RejectReasonModal
+                    candidateName={rejectingCandidate.full_name}
+                    selectedReason={selectedRejectReason}
+                    onSelectReason={setSelectedRejectReason}
+                    onClose={() => {
+                        setRejectingCandidate(null);
+                        setSelectedRejectReason("");
+                    }}
+                    onConfirm={() => {
+                        if (!selectedRejectReason) {
+                            toast.error("Please select a rejection reason.");
+                            return;
+                        }
+                        if (typeof window !== "undefined") {
+                            window.localStorage.setItem(`careersync-rejection-reason-${rejectingCandidate.id}`, selectedRejectReason);
+                        }
+                        void updateApplicationStage(rejectingCandidate.id, "rejected").then(() => {
+                            setRejectingCandidate(null);
+                            setSelectedRejectReason("");
+                        });
+                    }}
+                />
+            )}
+            {addingDatabaseProfile && (
+                <AddDatabaseProfileToJobModal
+                    profile={addingDatabaseProfile}
+                    jobs={myJobs}
+                    selectedJobId={addToJobId}
+                    onSelectJob={setAddToJobId}
+                    onClose={() => {
+                        setAddingDatabaseProfile(null);
+                        setAddToJobId("");
+                    }}
+                    onConfirm={() => {
+                        const selectedJob = myJobs.find((job) => job.id === addToJobId) ?? addingDatabaseProfile.matchedJob;
+                        if (!selectedJob) {
+                            toast.error("Please select a job.");
+                            return;
+                        }
+                        const profileForRequest = { ...addingDatabaseProfile, matchedJob: selectedJob };
+                        void requestDatabaseProfileUnlock(profileForRequest).then(() => {
+                            setAddingDatabaseProfile(null);
+                            setAddToJobId("");
+                        });
+                    }}
+                />
+            )}
+            <div className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border border-[#E4E2DA] bg-white/95 p-1 shadow-2xl backdrop-blur md:hidden">
+                {[
+                    ["overview", "Home"],
+                    ["jobs", "Jobs"],
+                    ["candidates", "Candidates"],
+                    ["pipeline", "Pipeline"],
+                    ["profile", "More"],
+                ].map(([id, label]) => (
+                    <button
+                        key={id}
+                        type="button"
+                        onClick={() => setActiveTab(id as CompanyWorkspaceTab)}
+                        className={`rounded-xl px-2 py-2 text-[11px] font-black ${activeTab === id ? "bg-[#0F1424] text-white" : "text-[#5B6172]"}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <Link to="/post-job" className="fixed bottom-20 right-5 z-40 grid h-12 w-12 place-items-center rounded-full bg-[#0F1424] text-white shadow-2xl transition hover:bg-[#171E33] md:hidden" aria-label="Post a job">
+                <Plus className="h-5 w-5" />
+            </Link>
         </div>
     );
 }
@@ -1766,9 +1943,16 @@ function getApplicationFit(application: {
 
 function recruiterStage(status: string) {
     const normalized = status.toLowerCase().replace(/[\s-]+/g, "_");
+    if (normalized.includes("not_join")) return "Not Joined";
+    if (normalized.includes("offer_decline")) return "Offer Declined";
+    if (normalized.includes("no_show") || normalized.includes("noshow")) return "No-show";
+    if (normalized.includes("withdraw")) return "Withdrawn";
     if (normalized.includes("reject")) return "Rejected";
-    if (normalized.includes("offer")) return "Offer";
+    if (normalized.includes("joined")) return "Joined";
+    if (normalized.includes("offered") || normalized === "offer" || normalized.includes("offer")) return "Offered";
+    if (normalized.includes("selected")) return "Selected";
     if (normalized.includes("interview")) return "Interview";
+    if (normalized.includes("shortlist")) return "Shortlisted";
     if (normalized.includes("review") || normalized.includes("screen")) return "Screening";
     return "Applied";
 }
@@ -1911,8 +2095,8 @@ function getCandidateApplicationTimeline(application: DemoApplicationRecord & { 
         },
         {
             title: "Interview / decision",
-            text: stage === "Rejected" ? "This application was closed." : stage === "Interview" || stage === "Offer" ? `Current stage: ${stage}.` : "Next update will appear here.",
-            done: stage === "Interview" || stage === "Offer" || stage === "Rejected",
+            text: RECRUITER_CLOSED_STAGES.includes(stage as (typeof RECRUITER_CLOSED_STAGES)[number]) ? "This application was closed." : stage === "Interview" || stage === "Offered" || stage === "Selected" || stage === "Joined" ? `Current stage: ${stage}.` : "Next update will appear here.",
+            done: stage === "Interview" || stage === "Offered" || stage === "Selected" || stage === "Joined" || RECRUITER_CLOSED_STAGES.includes(stage as (typeof RECRUITER_CLOSED_STAGES)[number]),
         },
     ];
 }
@@ -2251,6 +2435,138 @@ function RecruiterInsight({ title, text, tone }: { title: string; text: string; 
     );
 }
 
+function RecruiterActionMetric({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-2xl bg-[#F6F5F1] p-4 ring-1 ring-[#E4E2DA]">
+            <p className="font-display text-3xl font-black text-[#171B2B]">{value}</p>
+            <p className="mt-1 text-xs font-black uppercase tracking-wide text-[#5B6172]">{label}</p>
+        </div>
+    );
+}
+
+function FitScoreBreakdownModal({ application, onClose }: { application: RecruiterApplicationView; onClose: () => void }) {
+    const breakdown = getFitScoreBreakdown(application);
+    return (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0F1424]/50 p-4 backdrop-blur-sm">
+            <button type="button" aria-label="Close score breakdown" className="absolute inset-0 cursor-default" onClick={onClose} />
+            <section className="relative w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#3D5AFE]">Fit Score</p>
+                        <h2 className="mt-1 font-display text-xl font-black text-[#171B2B]">Why {application.fit}%?</h2>
+                        <p className="mt-1 text-xs font-semibold text-[#5B6172]">{application.full_name} · {application.job?.role ?? "Selected role"}</p>
+                    </div>
+                    <button type="button" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F6F5F1] text-[#5B6172] ring-1 ring-[#E4E2DA]">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+                <div className="mt-4 space-y-2">
+                    {breakdown.rows.map((row) => (
+                        <div key={row.label} className="flex items-center justify-between rounded-xl bg-[#F6F5F1] px-3 py-2 ring-1 ring-[#E4E2DA]">
+                            <span className="text-sm font-bold text-[#5B6172]">{row.label}</span>
+                            <strong className={row.value === "Unknown" ? "text-sm text-[#8A8F9E]" : "text-sm text-[#171B2B]"}>{row.value}</strong>
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-4 rounded-2xl bg-[#0F1424] p-4 text-white">
+                    <p className="text-xs font-bold text-[#C9D0EE]">Overall Job Fit</p>
+                    <p className="mt-1 font-display text-3xl font-black">{breakdown.overall}%</p>
+                    <p className="mt-2 text-xs font-semibold text-[#C9D0EE]">
+                        Profile data incomplete — confidence: {breakdown.confidence}
+                        {breakdown.missingFields.length ? ` (${breakdown.missingFields.join(", ")} missing)` : ""}
+                    </p>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function RejectReasonModal({
+    candidateName,
+    selectedReason,
+    onSelectReason,
+    onClose,
+    onConfirm,
+}: {
+    candidateName: string;
+    selectedReason: string;
+    onSelectReason: (reason: string) => void;
+    onClose: () => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0F1424]/50 p-4 backdrop-blur-sm">
+            <button type="button" aria-label="Close rejection reason" className="absolute inset-0 cursor-default" onClick={onClose} />
+            <section className="relative w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+                <h2 className="font-display text-xl font-black text-[#171B2B]">Why are you rejecting?</h2>
+                <p className="mt-1 text-sm font-semibold text-[#5B6172]">{candidateName}</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {REJECTION_REASONS.map((reason) => (
+                        <button
+                            key={reason}
+                            type="button"
+                            onClick={() => onSelectReason(reason)}
+                            className={`rounded-xl px-3 py-2 text-left text-sm font-black ring-1 transition ${selectedReason === reason ? "bg-[#0F1424] text-white ring-[#0F1424]" : "bg-[#F6F5F1] text-[#5B6172] ring-[#E4E2DA] hover:text-[#171B2B]"}`}
+                        >
+                            {reason}
+                        </button>
+                    ))}
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                    <ActionButton tone="neutral" onClick={onClose}>Cancel</ActionButton>
+                    <ActionButton tone="danger" onClick={onConfirm}>Reject candidate</ActionButton>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function AddDatabaseProfileToJobModal({
+    profile,
+    jobs,
+    selectedJobId,
+    onSelectJob,
+    onClose,
+    onConfirm,
+}: {
+    profile: RecruiterDatabaseProfile;
+    jobs: DemoJobRecord[];
+    selectedJobId: string;
+    onSelectJob: (jobId: string) => void;
+    onClose: () => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0F1424]/50 p-4 backdrop-blur-sm">
+            <button type="button" aria-label="Close add to job" className="absolute inset-0 cursor-default" onClick={onClose} />
+            <section className="relative w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+                <h2 className="font-display text-xl font-black text-[#171B2B]">Add Candidate</h2>
+                <p className="mt-1 text-sm font-semibold text-[#5B6172]">{profile.candidateName} · {profile.fit}% match</p>
+                <label className="mt-4 grid gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-[#8A8F9E]">Select Job</span>
+                    <select
+                        value={selectedJobId}
+                        onChange={(event) => onSelectJob(event.target.value)}
+                        className="min-h-11 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] px-3 text-sm font-bold text-[#171B2B] outline-none transition focus:border-[#3D5AFE] focus:bg-white"
+                    >
+                        <option value="">Select Job</option>
+                        {jobs.map((job) => (
+                            <option key={job.id} value={job.id}>{job.role} — {job.location || job.company}</option>
+                        ))}
+                    </select>
+                </label>
+                <p className="mt-4 rounded-xl bg-[#F6F5F1] px-3 py-2 text-xs font-bold text-[#5B6172]">
+                    Database → Shortlisted for Job → Candidate consent/contact → Recruiter Pipeline
+                </p>
+                <div className="mt-5 flex justify-end gap-2">
+                    <ActionButton tone="neutral" onClick={onClose}>Cancel</ActionButton>
+                    <ActionButton tone="success" onClick={onConfirm}>Add Candidate</ActionButton>
+                </div>
+            </section>
+        </div>
+    );
+}
+
 function RoleFilter({
     roles,
     selectedRoleId,
@@ -2292,7 +2608,7 @@ function RecruiterSelectFilter({
     label: string;
     value: string;
     onChange: (value: string) => void;
-    options: string[];
+    options: readonly string[];
 }) {
     return (
         <label className="grid gap-1">
@@ -2339,9 +2655,124 @@ function extractCandidateExperience(application: RecruiterApplicationView) {
     const text = application.cover_letter ?? "";
     const structuredMatch = text.match(/total experience:\s*([^\n]+)/i);
     if (structuredMatch?.[1]?.trim()) return structuredMatch[1].trim();
+    const parsedExperience = getApplicationMetaLine(application, "Resume Experience") || getApplicationMetaLine(application, "Resume Total Experience");
+    if (parsedExperience) return parsedExperience;
     const match = text.match(/(?:^|\b)(\d{1,2}\+?)\s*(?:years?|yrs?|yr)\b/i);
     if (match) return `${match[1]} years`;
     return "Not shared";
+}
+
+function getApplicationSalarySnapshot(application: Pick<DemoApplicationRecord, "cover_letter">) {
+    const parsed = getParsedResumeSummary(application);
+    return {
+        current: parsed.currentCtc || getApplicationMetaLine(application, "Current CTC") || "",
+        expected: parsed.expectedCtc || getApplicationMetaLine(application, "Expected CTC") || "",
+    };
+}
+
+function getApplicationNoticePeriod(application: Pick<DemoApplicationRecord, "cover_letter">) {
+    const parsed = getParsedResumeSummary(application);
+    return parsed.noticePeriod || getApplicationMetaLine(application, "Notice Period") || "";
+}
+
+function getSalaryNumber(value: string | null | undefined) {
+    const text = value ?? "";
+    const numberMatch = text.replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
+    if (!numberMatch) return null;
+    const valueNumber = Number(numberMatch[1]);
+    if (!Number.isFinite(valueNumber)) return null;
+    if (/k|thousand/i.test(text)) return valueNumber / 100;
+    if (/lpa|lac|lakh|lakhs/i.test(text)) return valueNumber;
+    return valueNumber >= 100000 ? valueNumber / 100000 : valueNumber;
+}
+
+function isSalaryWithinBudget(application: RecruiterApplicationView) {
+    const expected = getSalaryNumber(getApplicationSalarySnapshot(application).expected);
+    const budget = getSalaryNumber(application.job?.salary);
+    if (expected === null || budget === null) return null;
+    return expected <= budget;
+}
+
+function isApplicationSalaryMatch(application: RecruiterApplicationView, filter: string) {
+    if (filter === "all") return true;
+    const salary = getApplicationSalarySnapshot(application);
+    const hasSalary = Boolean(salary.current || salary.expected);
+    if (filter === "Salary shared") return hasSalary;
+    if (filter === "Salary missing") return !hasSalary;
+    const withinBudget = isSalaryWithinBudget(application);
+    if (filter === "Within budget") return withinBudget === true;
+    if (filter === "Above budget") return withinBudget === false;
+    return true;
+}
+
+function isApplicationAvailabilityMatch(application: Pick<DemoApplicationRecord, "cover_letter">, filter: string) {
+    if (filter === "all") return true;
+    const notice = getApplicationNoticePeriod(application);
+    if (!notice) return filter === "Unknown";
+    const normalized = notice.toLowerCase();
+    if (filter === "Immediate") return /immediate|join now|0\s*day/.test(normalized);
+    if (filter === "15 days") return /15|fifteen/.test(normalized);
+    if (filter === "30 days") return /30|one month|1 month/.test(normalized);
+    if (filter === "60+ days") return /60|90|2 month|3 month|two month|three month/.test(normalized);
+    if (filter === "Unknown") return false;
+    return true;
+}
+
+function isDatabaseSalaryMatch(_file: ResumeStorageFileInsight, filter: string) {
+    if (filter === "all") return true;
+    return filter === "Salary missing";
+}
+
+function isDatabaseAvailabilityMatch(_file: ResumeStorageFileInsight, filter: string) {
+    if (filter === "all") return true;
+    return filter === "Unknown";
+}
+
+function getCandidateMatchReasons(application: RecruiterApplicationView) {
+    const parsed = getParsedResumeSummary(application);
+    const reasons = [
+        extractCity(application) !== "Not shared" ? "Location match" : "",
+        isSalaryWithinBudget(application) === true ? "Salary within budget" : "",
+        extractCandidateExperience(application) !== "Not shared" ? "Relevant experience" : "",
+        /immediate|0\s*day/i.test(parsed.noticePeriod) ? "Immediate joiner" : "",
+    ].filter(Boolean);
+    if (application.ai_matched_skills?.length) reasons.push("Relevant skills found");
+    return reasons.length ? reasons.slice(0, 5) : ["Profile has resume data", "Needs more details for better match"];
+}
+
+function getFitScoreBreakdown(application: RecruiterApplicationView) {
+    const parsed = getParsedResumeSummary(application);
+    const city = extractCity(application);
+    const experience = extractCandidateExperience(application);
+    const salaryWithinBudget = isSalaryWithinBudget(application);
+    const hasAvailability = Boolean(parsed.noticePeriod);
+    const roleScore = application.ai_matched_skills?.length ? Math.min(95, 55 + application.ai_matched_skills.length * 8) : application.job?.role ? 80 : 55;
+    const locationScore = city !== "Not shared" && application.job?.location ? 100 : null;
+    const experienceScore = experience !== "Not shared" ? 60 : null;
+    const skillsScore = application.ai_matched_skills?.length ? Math.min(90, 45 + application.ai_matched_skills.length * 10) : parsed.skills.length ? Math.min(85, 45 + parsed.skills.length * 6) : 55;
+    const salaryScore = salaryWithinBudget === null ? null : salaryWithinBudget ? 80 : 45;
+    const availabilityScore = !hasAvailability ? null : /immediate|0\s*day/i.test(parsed.noticePeriod) ? 100 : 60;
+    const knownScores = [roleScore, locationScore, experienceScore, skillsScore, salaryScore, availabilityScore].filter((score): score is number => typeof score === "number");
+    const computedOverall = knownScores.length ? Math.round(knownScores.reduce((sum, score) => sum + score, 0) / knownScores.length) : application.fit;
+    const missingFields = [
+        locationScore === null ? "location" : "",
+        experienceScore === null ? "experience" : "",
+        salaryScore === null ? "salary" : "",
+        availabilityScore === null ? "availability" : "",
+    ].filter(Boolean);
+    return {
+        rows: [
+            { label: "Role Match", value: `${roleScore}%` },
+            { label: "Location", value: locationScore === null ? "Unknown" : `${locationScore}%` },
+            { label: "Experience", value: experienceScore === null ? "Unknown" : `${experienceScore}%` },
+            { label: "Skills", value: `${skillsScore}%` },
+            { label: "Salary", value: salaryScore === null ? "Unknown" : `${salaryScore}%` },
+            { label: "Availability", value: availabilityScore === null ? "Unknown" : `${availabilityScore}%` },
+        ],
+        overall: Math.round((computedOverall + application.fit) / 2),
+        confidence: missingFields.length >= 2 ? "Low" : missingFields.length === 1 ? "Medium" : "High",
+        missingFields,
+    };
 }
 
 function getStorageProfileName(file: ResumeStorageFileInsight) {
@@ -2435,6 +2866,8 @@ function getRecruiterDatabaseProfiles({
     experienceFilter,
     sourceFilter,
     minFitFilter,
+    salaryFilter,
+    availabilityFilter,
 }: {
     storageInsight: ResumeStorageInsight | null;
     jobs: DemoJobRecord[];
@@ -2444,6 +2877,8 @@ function getRecruiterDatabaseProfiles({
     experienceFilter: string;
     sourceFilter: string;
     minFitFilter: string;
+    salaryFilter: string;
+    availabilityFilter: string;
 }) {
     const files = storageInsight?.storageFiles ?? [];
     const existingResumePaths = new Set(existingApplications.map((application) => application.resume_path).filter(Boolean));
@@ -2456,6 +2891,8 @@ function getRecruiterDatabaseProfiles({
         .filter((file) => !normalizedQuery || getStorageProfileSearchText(file).includes(normalizedQuery))
         .filter((file) => sourceFilter === "all" || getResumeSourceLabel(file.folder, file.source) === sourceFilter)
         .filter((file) => isDatabaseExperienceMatch(getStorageProfileExperience(file), experienceFilter))
+        .filter((file) => isDatabaseSalaryMatch(file, salaryFilter))
+        .filter((file) => isDatabaseAvailabilityMatch(file, availabilityFilter))
         .map((file) => {
             const matches = (jobs.length ? jobs : [null]).map((job) => ({
                 job,
@@ -2558,10 +2995,12 @@ function getRecruiterRecommendation(application: RecruiterApplicationView) {
 function RecruiterDatabaseProfileCard({
     profile,
     requesting = false,
+    onAddToJob,
     onRequestUnlock,
 }: {
     profile: RecruiterDatabaseProfile;
     requesting?: boolean;
+    onAddToJob?: (profile: RecruiterDatabaseProfile) => void;
     onRequestUnlock?: (profile: RecruiterDatabaseProfile) => void | Promise<void>;
 }) {
     const fitTone = profile.fit >= 80 ? "text-[#1C7A48]" : profile.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
@@ -2616,6 +3055,14 @@ function RecruiterDatabaseProfileCard({
                         </span>
                         <button
                             type="button"
+                            onClick={() => onAddToJob?.(profile)}
+                            className="inline-flex items-center gap-1 rounded-full bg-[#0F1424] px-3 py-1.5 text-xs font-black text-white transition hover:bg-[#171E33]"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add to Job
+                        </button>
+                        <button
+                            type="button"
                             disabled={requesting || !profile.matchedJob}
                             onClick={() => void onRequestUnlock?.(profile)}
                             className="inline-flex items-center gap-1 rounded-full bg-[#FFF7E7] px-3 py-1.5 text-xs font-black text-[#8A5A00] ring-1 ring-[#FCEBCB] transition hover:bg-[#FCEBCB] disabled:cursor-not-allowed disabled:opacity-60"
@@ -2624,6 +3071,9 @@ function RecruiterDatabaseProfileCard({
                             {requesting ? "Sending request..." : "Request unlock from admin"}
                         </button>
                     </div>
+                    <p className="mt-3 text-[11px] font-bold text-[#5B6172]">
+                        Database → Shortlisted for Job → Candidate consent/contact → Recruiter Pipeline
+                    </p>
                 </div>
             </div>
         </article>
@@ -2637,6 +3087,8 @@ function RecruiterCandidateCard({
     onStatusChange,
     onRequestUnlock,
     onOpen,
+    onFitBreakdown,
+    onReject,
 }: {
     application: RecruiterApplicationView;
     compact?: boolean;
@@ -2644,6 +3096,8 @@ function RecruiterCandidateCard({
     onStatusChange?: (applicationId: string, status: string) => void | Promise<void>;
     onRequestUnlock?: (application: RecruiterApplicationView) => void;
     onOpen?: (application: RecruiterApplicationView) => void;
+    onFitBreakdown?: (application: RecruiterApplicationView) => void;
+    onReject?: (application: RecruiterApplicationView) => void;
 }) {
     const fitTone = application.fit >= 80 ? "text-[#1C7A48]" : application.fit >= 68 ? "text-[#8A5A00]" : "text-[#A32D2D]";
     const locked = !isProfileSharingApproved(application);
@@ -2651,6 +3105,9 @@ function RecruiterCandidateCard({
     const candidateExperience = extractCandidateExperience(application);
     const parsedResume = getParsedResumeSummary(application);
     const recommendation = getRecruiterRecommendation(application);
+    const matchReasons = getCandidateMatchReasons(application);
+    const phoneDigits = (application.phone ?? parsedResume.phone ?? "").replace(/[^\d]/g, "");
+    const whatsappUrl = phoneDigits ? `https://wa.me/${phoneDigits.startsWith("91") ? phoneDigits : `91${phoneDigits}`}` : "";
     const visibleSkills = application.ai_matched_skills?.length
         ? application.ai_matched_skills
         : parsedResume.skills.length
@@ -2659,6 +3116,10 @@ function RecruiterCandidateCard({
     const previewRows = [
         { label: "Experience", value: candidateExperience, icon: <Briefcase className="h-3.5 w-3.5" /> },
         { label: "City", value: city, icon: <MapPin className="h-3.5 w-3.5" /> },
+        { label: "Current", value: parsedResume.currentCtc || "Unknown", icon: <Wallet className="h-3.5 w-3.5" /> },
+        { label: "Expected", value: parsedResume.expectedCtc || "Unknown", icon: <Wallet className="h-3.5 w-3.5" /> },
+        { label: "Notice", value: parsedResume.noticePeriod || "Unknown", icon: <Clock3 className="h-3.5 w-3.5" /> },
+        { label: "Languages", value: parsedResume.languages.length ? parsedResume.languages.join(" + ") : "Unknown", icon: <Languages className="h-3.5 w-3.5" /> },
         { label: "Phone", value: locked ? maskPhoneLast4(application.phone) : application.phone || "Not shared", icon: <Phone className="h-3.5 w-3.5" /> },
         { label: "Email", value: locked ? maskEmail(application.email) : application.email, icon: <Mail className="h-3.5 w-3.5" /> },
     ];
@@ -2670,13 +3131,24 @@ function RecruiterCandidateCard({
                         <circle cx="22" cy="22" r="18" fill="none" stroke="#EEEDE7" strokeWidth="5" />
                         <circle cx="22" cy="22" r="18" fill="none" stroke={application.fit >= 80 ? "#2FBF71" : application.fit >= 68 ? "#F5A623" : "#E2504A"} strokeWidth="5" strokeDasharray={`${application.fit * 1.13} 113`} strokeLinecap="round" />
                     </svg>
-                    <span className={`absolute inset-0 grid place-items-center font-display text-sm font-black ${fitTone}`}>{application.fit}</span>
+                    <button
+                        type="button"
+                        onClick={() => onFitBreakdown?.(application)}
+                        className={`absolute inset-0 grid place-items-center rounded-full font-display text-sm font-black ${fitTone}`}
+                        aria-label="Show fit score breakdown"
+                    >
+                        {application.fit}
+                    </button>
                 </div>
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                             <h3 className="text-sm font-black text-[#171B2B]">{application.full_name}</h3>
                             <p className="mt-0.5 text-xs font-semibold text-[#5B6172]">{application.job?.role ?? "Role"} · {application.job?.location ?? "Location open"}</p>
+                            <button type="button" onClick={() => onFitBreakdown?.(application)} className="mt-1 inline-flex items-center gap-1 text-xs font-black text-[#1A2FAE]">
+                                <Star className="h-3.5 w-3.5 fill-[#1A2FAE]" />
+                                {application.fit}% Match
+                            </button>
                         </div>
                         <div className="flex flex-col items-start gap-1 sm:items-end">
                             <span className="rounded-full bg-[#F6F5F1] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#5B6172] ring-1 ring-[#E4E2DA]">{recruiterStage(application.status)}</span>
@@ -2710,8 +3182,21 @@ function RecruiterCandidateCard({
                                     {application.ai_match_reason}
                                 </p>
                             )}
+                            <div className="mt-3 rounded-xl border border-[#E4E2DA] bg-[#FBFAF6] p-3">
+                                <p className="text-xs font-black text-[#171B2B]">Why this candidate matches</p>
+                                <div className="mt-2 grid gap-1.5 text-xs font-bold text-[#5B6172] sm:grid-cols-2">
+                                    {matchReasons.map((reason) => (
+                                        <span key={reason} className="inline-flex items-center gap-1">
+                                            <CheckCircle2 className="h-3.5 w-3.5 text-[#2FBF71]" />
+                                            {reason}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <ActionButton tone="neutral" onClick={() => onOpen?.(application)}>Details</ActionButton>
+                                {!locked && application.phone && <a href={`tel:${application.phone}`} className="rounded-full bg-[#0F1424] px-3 py-1.5 text-xs font-black text-white">Call</a>}
+                                {!locked && whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener" className="rounded-full bg-[#DBF3E5] px-3 py-1.5 text-xs font-black text-[#1C7A48]">WhatsApp</a>}
                                 {application.resume_url && !locked ? (
                                     <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-[#F6F5F1] px-3 py-1.5 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA] transition hover:bg-white">Resume</a>
                                 ) : (
@@ -2726,15 +3211,16 @@ function RecruiterCandidateCard({
                                         {unlockRequested ? "Unblock requested" : "Request to unblock profile"}
                                     </ActionButton>
                                 )}
-                                <ActionButton tone="neutral" disabled={locked} onClick={() => void onStatusChange?.(application.id, "under_review")}>Under review</ActionButton>
-                                <ActionButton tone="success" disabled={locked} onClick={() => void onStatusChange?.(application.id, "interview")}>Interview</ActionButton>
-                                <ActionButton tone="danger" onClick={() => void onStatusChange?.(application.id, "rejected")}>Reject</ActionButton>
+                                <ActionButton tone="success" disabled={locked} onClick={() => void onStatusChange?.(application.id, "shortlisted")}>Shortlist</ActionButton>
+                                <ActionButton tone="success" disabled={locked} onClick={() => void onStatusChange?.(application.id, "interview")}>Schedule Interview</ActionButton>
+                                <ActionButton tone="danger" onClick={() => onReject?.(application)}>Reject</ActionButton>
                             </div>
                         </>
                     )}
                     {compact && (
                         <div className="mt-3 flex flex-wrap gap-2">
                             <ActionButton tone="neutral" onClick={() => onOpen?.(application)}>Details</ActionButton>
+                            <ActionButton tone="neutral" onClick={() => onFitBreakdown?.(application)}>Why {application.fit}%?</ActionButton>
                             {locked && <span className="rounded-full bg-[#FFF7E7] px-3 py-1.5 text-xs font-black text-[#8A5A00]">Resume locked</span>}
                             {locked && (
                                 <ActionButton tone="warning" onClick={() => onRequestUnlock?.(application)}>
@@ -2755,12 +3241,16 @@ function CandidateDetailDrawer({
     onStatusChange,
     unlockRequested = false,
     onRequestUnlock,
+    onFitBreakdown,
+    onReject,
 }: {
     application: RecruiterApplicationView;
     onClose: () => void;
     onStatusChange: (applicationId: string, status: string) => void | Promise<void>;
     unlockRequested?: boolean;
     onRequestUnlock?: (application: RecruiterApplicationView) => void;
+    onFitBreakdown?: (application: RecruiterApplicationView) => void;
+    onReject?: (application: RecruiterApplicationView) => void;
 }) {
     const noteKey = `careersync-recruiter-note-${application.id}`;
     const [note, setNote] = useState(() => (typeof window === "undefined" ? "" : window.localStorage.getItem(noteKey) ?? ""));
@@ -2807,7 +3297,9 @@ function CandidateDetailDrawer({
 
                 <div className="flex-1 overflow-y-auto p-5">
                     <div className="grid gap-3 sm:grid-cols-3">
-                        <ProfileMetric label="Fit score" value={`${application.fit}%`} />
+                        <button type="button" onClick={() => onFitBreakdown?.(application)} className="text-left">
+                            <ProfileMetric label="Fit score" value={`${application.fit}%`} />
+                        </button>
                         <ProfileMetric label="Experience" value={candidateExperience} />
                         <ProfileMetric label="City" value={city} />
                     </div>
@@ -2934,9 +3426,10 @@ function CandidateDetailDrawer({
                                 {unlockRequested ? "Unblock requested" : "Request for unblock the profile"}
                             </ActionButton>
                         )}
-                        <ActionButton tone="neutral" disabled={locked} onClick={() => moveCandidate("under_review")}>Move to screening</ActionButton>
+                        <ActionButton tone="neutral" disabled={locked} onClick={() => moveCandidate("screening")}>Move to screening</ActionButton>
+                        <ActionButton tone="success" disabled={locked} onClick={() => moveCandidate("shortlisted")}>Shortlist</ActionButton>
                         <ActionButton tone="success" disabled={locked} onClick={() => moveCandidate("interview")}>Schedule interview</ActionButton>
-                        <ActionButton tone="danger" onClick={() => moveCandidate("rejected")}>Reject</ActionButton>
+                        <ActionButton tone="danger" onClick={() => onReject?.(application)}>Reject</ActionButton>
                     </div>
                 </div>
             </aside>
