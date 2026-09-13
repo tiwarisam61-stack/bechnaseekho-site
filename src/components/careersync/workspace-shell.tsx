@@ -1649,43 +1649,75 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                 {activeTab === "pipeline" && (
                     <RecruiterPanel title="Hiring pipeline" caption="move applicants through stages from current data">
                         <RoleFilter roles={roleOptions} selectedRoleId={selectedRoleId} onSelect={setSelectedRoleId} />
-                        <div className="mt-4 grid gap-3 lg:grid-cols-5">
+                        <div className="mt-4 space-y-3">
                             {[...RECRUITER_PIPELINE_STAGES, ...RECRUITER_CLOSED_STAGES].map((stage) => {
                                 const stageItems = filteredApplications.filter((application) => recruiterStage(application.status) === stage);
                                 return (
-                                    <div key={stage} className="min-h-48 rounded-xl border border-[#E4E2DA] bg-[#F6F5F1] p-3">
+                                    <div key={stage} className="rounded-2xl border border-[#E4E2DA] bg-[#F6F5F1] p-3">
                                         <div className="mb-3 flex items-center justify-between">
                                             <h3 className="text-xs font-black uppercase tracking-wide text-[#5B6172]">{stage}</h3>
                                             <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-[#5B6172] ring-1 ring-[#E4E2DA]">{stageItems.length}</span>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="grid gap-2">
                                             {stageItems.map((application) => {
                                                 const locked = !isProfileSharingApproved(application);
+                                                const city = extractCity(application);
+                                                const experience = extractCandidateExperience(application);
                                                 return (
-                                                    <div key={application.id} className="rounded-xl border border-[#E4E2DA] bg-white p-3 shadow-sm">
-                                                        <div className="flex items-start justify-between gap-2">
-                                                            <div>
-                                                                <p className="text-sm font-black text-[#171B2B]">{application.full_name}</p>
-                                                                <p className="mt-0.5 text-[11px] font-semibold text-[#5B6172]">{application.job?.role ?? "Role"}</p>
+                                                    <div key={application.id} className="rounded-2xl border border-[#E4E2DA] bg-white p-3 shadow-sm">
+                                                        <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.05fr)_minmax(260px,1fr)_auto] lg:items-center">
+                                                            <div className="flex min-w-0 items-center gap-3">
+                                                                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#DCE1FF] font-display text-sm font-black text-[#1A2FAE]">
+                                                                    {getCompanyInitials(application.full_name)}
+                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-base font-black text-[#171B2B]">{application.full_name}</p>
+                                                                    <p className="mt-0.5 truncate text-xs font-semibold text-[#5B6172]">{application.job?.role ?? "Role"}</p>
+                                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                        <span className="rounded-full bg-[#F6F5F1] px-2 py-1 text-[11px] font-bold text-[#5B6172] ring-1 ring-[#E4E2DA]">{city}</span>
+                                                                        <span className="rounded-full bg-[#F6F5F1] px-2 py-1 text-[11px] font-bold text-[#5B6172] ring-1 ring-[#E4E2DA]">{experience}</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <span className="rounded-full bg-[#DCE1FF] px-2 py-1 text-[11px] font-black text-[#1A2FAE]">{application.fit}%</span>
-                                                        </div>
-                                                        {locked && (
-                                                            <p className="mt-3 rounded-lg bg-[#FFF7E7] px-2.5 py-2 text-[11px] font-bold text-[#8A5A00]">Resume/contact locked until admin approves profile sharing.</p>
-                                                        )}
-                                                        <div className="mt-3 flex flex-wrap gap-1.5">
-                                                            <ActionButton tone="neutral" onClick={() => setSelectedCandidate(application)}>Details</ActionButton>
-                                                            <ActionButton tone="neutral" disabled={locked} onClick={() => void updateApplicationStage(application.id, "screening")}>Screen</ActionButton>
-                                                            <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "shortlisted")}>Shortlist</ActionButton>
-                                                            <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
-                                                            <ActionButton tone="danger" onClick={() => {
-                                                                setRejectingCandidate(application);
-                                                                setSelectedRejectReason("");
-                                                            }}>Reject</ActionButton>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFitBreakdownCandidate(application)}
+                                                                    className="rounded-full bg-[#DCE1FF] px-3 py-1.5 text-xs font-black text-[#1A2FAE]"
+                                                                >
+                                                                    {application.fit}% Match
+                                                                </button>
+                                                                {locked ? (
+                                                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#FFF7E7] px-3 py-2 text-xs font-bold text-[#8A5A00]">
+                                                                        <LockKeyhole className="h-3.5 w-3.5" />
+                                                                        Resume/contact locked until admin approves profile sharing.
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#DBF3E5] px-3 py-2 text-xs font-bold text-[#1C7A48]">
+                                                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                        Profile unlocked
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1.5 lg:justify-end">
+                                                                <ActionButton tone="neutral" onClick={() => setSelectedCandidate(application)}>Details</ActionButton>
+                                                                <ActionButton tone="neutral" disabled={locked} onClick={() => void updateApplicationStage(application.id, "screening")}>Screen</ActionButton>
+                                                                <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "shortlisted")}>Shortlist</ActionButton>
+                                                                <ActionButton tone="success" disabled={locked} onClick={() => void updateApplicationStage(application.id, "interview")}>Interview</ActionButton>
+                                                                <ActionButton tone="danger" onClick={() => {
+                                                                    setRejectingCandidate(application);
+                                                                    setSelectedRejectReason("");
+                                                                }}>Reject</ActionButton>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 );
                                             })}
+                                            {stageItems.length === 0 && (
+                                                <div className="rounded-2xl border border-dashed border-[#D9D6CA] bg-white/60 px-4 py-3 text-xs font-bold text-[#8A8F9E]">
+                                                    No candidates in this stage.
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
