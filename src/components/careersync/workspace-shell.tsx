@@ -1229,6 +1229,12 @@ function getCompanyWorkspaceTab(section: string) {
     return COMPANY_SECTION_TABS[section.replace(/^#/, "")] ?? "overview";
 }
 
+function getCompanyInitials(name: string) {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+    return (words[0] || "CS").slice(0, 2).toUpperCase();
+}
+
 function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
     const myJobs = snapshot.jobs.filter((job) => job.posted_by === userId);
     const myNotifications = getDemoNotificationsForUser(userId);
@@ -1267,6 +1273,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
         }
     });
     const companyName = myJobs[0]?.company || snapshot.users.find((user) => user.id === userId)?.company_name || getDemoDisplayName(userId);
+    const companyInitials = getCompanyInitials(companyName);
 
     const roleOptions = useMemo(() => myJobs.map((job, index) => {
         const applications = myApplications.filter((application) => application.job_id === job.id);
@@ -1492,11 +1499,11 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
                             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#3D5AFE] to-[#2438C4] font-black">
-                                CS
+                                {companyInitials}
                             </div>
                             <div>
-                                <h1 className="font-display text-xl font-black tracking-tight">CareerSync — Company Dashboard</h1>
-                                <p className="mt-0.5 text-xs font-semibold text-[#B7BEDA]">Recruiter workspace wired to current jobs, applicants, and notifications.</p>
+                                <h1 className="font-display text-xl font-black tracking-tight">{companyName} — Company Dashboard</h1>
+                                <p className="mt-0.5 text-xs font-semibold text-[#B7BEDA]">Recruiter workspace for {companyName} jobs, applicants, and notifications.</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
@@ -1505,7 +1512,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                                 Live sync active
                             </span>
                             <span className="inline-flex items-center gap-2 rounded-full bg-[#171E33] px-3 py-2 text-sm font-bold ring-1 ring-[#2A3350]">
-                                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#F5A623] text-[11px] text-[#4A2F00]">{companyName.slice(0, 2).toUpperCase()}</span>
+                                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#F5A623] text-[11px] text-[#4A2F00]">{companyInitials}</span>
                                 {companyName}
                             </span>
                             <NotificationBell />
@@ -1515,7 +1522,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                 </section>
 
                 <div className="flex items-center justify-between rounded-2xl border border-[#E4E2DA] bg-white px-4 py-3 lg:hidden">
-                    <span className="font-display text-lg font-black text-[#171B2B]">CareerSync</span>
+                    <span className="font-display text-lg font-black text-[#171B2B]">{companyName}</span>
                     <div className="flex items-center gap-2">
                         <NotificationBell />
                         <button type="button" onClick={() => setActiveTab("profile")} className="rounded-full bg-[#F6F5F1] px-3 py-2 text-xs font-black text-[#171B2B] ring-1 ring-[#E4E2DA]">Profile</button>
@@ -1796,7 +1803,7 @@ function CompanyWorkspace({ userId, email, snapshot }: { userId: string; email: 
                     <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
                         <RecruiterPanel title="Company profile" caption="visible in recruiter workspace">
                             <div className="flex items-start gap-4">
-                                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-[#3D5AFE] font-display text-2xl font-black text-white">{companyName.slice(0, 2).toUpperCase()}</div>
+                                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-[#3D5AFE] font-display text-2xl font-black text-white">{companyInitials}</div>
                                 <div>
                                     <h2 className="font-display text-2xl font-black tracking-tight text-[#171B2B]">{companyName}</h2>
                                     <p className="mt-2 text-sm font-semibold leading-6 text-[#5B6172]">
