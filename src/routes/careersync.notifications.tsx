@@ -11,13 +11,16 @@ import {
     markCareerSyncNotificationRead,
     useCareerSyncSnapshot,
 } from "@/services/careersync/careersync-service";
+import { canonicalLink } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync/notifications")({
     head: () => ({
         meta: [
             { title: "Notifications · CareerSync" },
             { name: "description", content: "Track local demo notifications for jobs, approvals, and applications." },
+            { name: "robots", content: "noindex, nofollow" },
         ],
+        links: canonicalLink("/careersync/notifications"),
     }),
     component: NotificationsPage,
 });

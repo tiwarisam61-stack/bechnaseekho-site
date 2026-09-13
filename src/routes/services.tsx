@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Briefcase, Users, Building2, GraduationCap, Sparkles, ShieldCheck } from "lucide-react";
 import { PageShell, CardGrid, FeatureCard } from "@/components/pages/page-shell";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/services")({
   component: ServicesPage,
@@ -11,6 +12,8 @@ export const Route = createFileRoute("/services")({
       { property: "og:title", content: "Services — BechnaSeekho" },
       { property: "og:description", content: "One AI ecosystem for careers, hiring and professional growth." },
     ],
+    links: canonicalLink("/services"),
+    scripts: jsonLdScript("services-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Services", path: "/services" }])),
   }),
 });
 

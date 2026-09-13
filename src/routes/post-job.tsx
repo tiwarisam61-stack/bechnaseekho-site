@@ -13,6 +13,7 @@ import {
   getCareerSyncUser,
   updateCareerSyncJob,
 } from "@/services/careersync/careersync-service";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 const searchSchema = z.object({
   jobId: z.string().optional(),
@@ -27,6 +28,8 @@ export const Route = createFileRoute("/post-job")({
       { name: "description", content: "Company recruiters can post a new job opening for review and publishing." },
       { name: "robots", content: "noindex, nofollow" },
     ],
+    links: canonicalLink("/post-job"),
+    scripts: jsonLdScript("post-job-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Post a Job", path: "/post-job" }])),
   }),
 });
 

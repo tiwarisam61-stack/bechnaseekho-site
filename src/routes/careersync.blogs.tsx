@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, Search, Sparkles, TrendingUp } from "lucide-react
 import { BLOGS, BLOG_CATEGORIES } from "@/lib/blogs";
 import { CareerSyncLogo } from "@/components/careersync/logo";
 import { useMemo, useState } from "react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 
 export const Route = createFileRoute("/careersync/blogs")({
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/careersync/blogs")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/careersync/blogs"),
+    scripts: jsonLdScript("careersync-blogs-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "CareerSync", path: "/careersync" }, { name: "Blogs", path: "/careersync/blogs" }])),
   }),
 });
 

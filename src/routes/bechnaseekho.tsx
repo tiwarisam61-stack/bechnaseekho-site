@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, GraduationCap, Users, Award, PlayCircle, BookOpen, Rocket } from "lucide-react";
 import { PageShell, CardGrid, FeatureCard } from "@/components/pages/page-shell";
 import { BechnaseekhoCoursesSection } from "@/components/pages/bechnaseekho-courses-section";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/bechnaseekho")({
   component: BechnaSeekhoPage,
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/bechnaseekho")({
       { property: "og:title", content: "BechnaSeekho Learning" },
       { property: "og:description", content: "Learn sales, tech and career skills that actually move your career forward." },
     ],
+    links: canonicalLink("/bechnaseekho"),
+    scripts: jsonLdScript("bechnaseekho-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "BechnaSeekho Learning", path: "/bechnaseekho" }])),
   }),
 });
 

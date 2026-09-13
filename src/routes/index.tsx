@@ -6,6 +6,7 @@ import { Hero } from "@/components/landing/hero";
 import { Marquee } from "@/components/landing/marquee";
 import { PageTransition } from "@/components/page-transition";
 import heroCharacter from "@/assets/hero-character.png";
+import { absoluteUrl, breadcrumbSchema, jsonLdScript } from "@/lib/seo";
 
 // Below-the-fold sections — lazy chunked so the hero paints fast.
 const CounterStats = lazy(() =>
@@ -46,12 +47,13 @@ export const Route = createFileRoute("/")({
         content:
           "Job platform for resumes, verified jobs, mock interviews, upskilling and recruiter connections via CareerSync.",
       },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: absoluteUrl("/") },
     ],
     links: [
-      { rel: "canonical", href: "/" },
+      { rel: "canonical", href: absoluteUrl("/") },
       { rel: "preload", as: "image", href: heroCharacter, fetchPriority: "high" },
     ],
+    scripts: jsonLdScript("bechnaseekho-home-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }])),
   }),
   component: Index,
 });

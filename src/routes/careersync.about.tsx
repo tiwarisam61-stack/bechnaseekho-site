@@ -18,6 +18,7 @@ import {
   Phone,
 } from "lucide-react";
 import { CareerSyncLogo } from "@/components/careersync/logo";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync/about")({
   head: () => ({
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/careersync/about")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/careersync/about"),
+    scripts: jsonLdScript("careersync-about-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "CareerSync", path: "/careersync" }, { name: "About", path: "/careersync/about" }])),
   }),
   component: AboutPage,
 });

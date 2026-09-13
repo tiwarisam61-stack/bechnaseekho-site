@@ -12,6 +12,7 @@ import {
   Briefcase,
   Phone,
 } from "lucide-react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/find-jobs")({
   head: () => ({
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/find-jobs")({
       { property: "og:description", content: "Explore popular job opportunities across top cities and high-demand career categories." },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/find-jobs"),
+    scripts: jsonLdScript("find-jobs-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Find Jobs", path: "/find-jobs" }])),
   }),
   component: FindJobsPage,
 });

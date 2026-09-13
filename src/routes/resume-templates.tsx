@@ -22,6 +22,7 @@ import { TemplateCard } from "@/components/resume/TemplateCard";
 import { TemplatePreviewModal } from "@/components/resume/TemplatePreviewModal";
 import { StartMethodDialog } from "@/components/resume/StartMethodDialog";
 import { cn } from "@/lib/utils";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/resume-templates")({
     head: () => ({
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/resume-templates")({
                     "Browse premium ATS-friendly resume templates, upload your existing resume for AI auto-fill, and export a recruiter-ready PDF or Word file in minutes.",
             },
         ],
+        links: canonicalLink("/resume-templates"),
+        scripts: jsonLdScript("resume-templates-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Resume Templates", path: "/resume-templates" }])),
     }),
     component: ResumeTemplatesPage,
 });

@@ -1425,6 +1425,7 @@ export function toggleDemoSavedJob(userId: string, jobId: string) {
 export function useDemoNotifications(userId: string | null) { return useDemoSnapshot().notifications.filter((notification) => notification.user_id === userId); }
 export function useDemoJobs() { return useDemoSnapshot().jobs; }
 export function useDemoSummary(userId: string | null) { const snapshot = useDemoSnapshot(); const notifications = snapshot.notifications.filter((notification) => notification.user_id === userId); return { role: userId ? getRoleForUserId(userId) : null, unreadNotifications: notifications.filter((notification) => !notification.read_at).length, notifications, jobs: snapshot.jobs, applications: snapshot.applications, savedJobIds: userId ? (snapshot.savedJobIdsByUser[userId] ?? []) : [] }; }
+export function getDemoSeoJobs() { return DEFAULT_STATE.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified); }
 export function getDemoUserById(userId: string | null) { return userId ? getState().users.find((user) => user.id === userId) ?? null : null; }
 export function getDemoDisplayName(userId: string | null) { return getDisplayName(getDemoUserById(userId)); }
 export function getDemoActivityFeed(limit = 20) { return getState().activity.slice(0, limit); }

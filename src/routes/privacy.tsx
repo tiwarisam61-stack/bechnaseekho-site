@@ -21,6 +21,7 @@ import {
   Eye,
   Scale,
 } from "lucide-react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -28,6 +29,8 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy Policy — BechnaSeekho" },
       { name: "description", content: "Learn how BechnaSeekho and CareerSync collect, use, and protect your personal information." },
     ],
+    links: canonicalLink("/privacy"),
+    scripts: jsonLdScript("privacy-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Privacy Policy", path: "/privacy" }])),
   }),
   component: PrivacyPage,
 });

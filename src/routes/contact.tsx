@@ -26,6 +26,7 @@ import {
   Briefcase,
   AlertCircle,
 } from "lucide-react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/contact")({
       { title: "Contact Us — BechnaSeekho" },
       { name: "description", content: "Get in touch with the BechnaSeekho team for career support, resume services, job referrals, and more." },
     ],
+    links: canonicalLink("/contact"),
+    scripts: jsonLdScript("contact-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Contact", path: "/contact" }])),
   }),
   component: ContactPage,
 });

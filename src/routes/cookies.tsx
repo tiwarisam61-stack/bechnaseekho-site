@@ -20,6 +20,7 @@ import {
   Scale,
   Lock,
 } from "lucide-react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/cookies")({
   head: () => ({
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/cookies")({
           "Learn how BechnaSeekho and CareerSync use cookies and tracking technologies to improve your experience.",
       },
     ],
+    links: canonicalLink("/cookies"),
+    scripts: jsonLdScript("cookies-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Cookie Policy", path: "/cookies" }])),
   }),
   component: CookiesPage,
 });

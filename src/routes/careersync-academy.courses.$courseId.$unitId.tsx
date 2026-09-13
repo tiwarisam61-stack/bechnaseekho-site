@@ -22,6 +22,7 @@ import { useAcademyCourseStats, useAcademyProgress } from "@/lib/academy-progres
 import { QuizRunner } from "@/components/academy/quiz-runner";
 import { Confetti } from "@/components/academy/confetti";
 import { ProgressBar } from "@/components/academy/progress-visuals";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync-academy/courses/$courseId/$unitId")({
   loader: ({ params }) => {
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/careersync-academy/courses/$courseId/$uni
     if (!course) throw notFound();
     const unit = buildUnits(course).find((u) => u.id === params.unitId);
     if (!unit) throw notFound();
-    return { title: unit.title, courseTitle: course.title };
+    return { title: unit.title, courseTitle: course.title, courseId: course.id, unitId: unit.id };
   },
   head: ({ loaderData }) => {
     const title = loaderData
@@ -45,6 +46,15 @@ export const Route = createFileRoute("/careersync-academy/courses/$courseId/$uni
         { property: "og:title", content: title },
         { property: "og:description", content: description },
       ],
+      links: loaderData ? canonicalLink(`/careersync-academy/courses/${loaderData.courseId}/${loaderData.unitId}`) : undefined,
+      scripts: loaderData
+        ? jsonLdScript(`lesson-${loaderData.courseId}-${loaderData.unitId}-breadcrumb`, breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "CareerSync Academy", path: "/careersync-academy" },
+            { name: loaderData.courseTitle, path: `/careersync-academy/courses/${loaderData.courseId}` },
+            { name: loaderData.title, path: `/careersync-academy/courses/${loaderData.courseId}/${loaderData.unitId}` },
+          ]))
+        : undefined,
     };
   },
   component: UnitPage,

@@ -9,6 +9,7 @@ import {
   Rocket,
   Trophy,
 } from "lucide-react";
+import { canonicalLink } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync/journey")({
   head: () => ({
@@ -22,7 +23,9 @@ export const Route = createFileRoute("/careersync/journey")({
       { property: "og:title", content: "Your 6-Step Journey · CareerSync" },
       { property: "og:description", content: "Six steps. One outcome. You, hired." },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, follow" },
     ],
+    links: canonicalLink("/careersync/journey"),
   }),
   component: JourneyPage,
 });

@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { jsonLdScript, organizationSchema, websiteSchema } from "@/lib/seo";
 
 import appCss from "../styles.css?url";
 
@@ -95,6 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap",
       },
     ],
+    scripts: jsonLdScript("bechnaseekho-global-schema", {
+      "@context": "https://schema.org",
+      "@graph": [organizationSchema(), websiteSchema()],
+    }),
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -129,4 +134,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

@@ -29,6 +29,7 @@ import {
   CtaSection,
 } from "@/components/academy/landing-sections";
 import type { BrochureKind } from "@/lib/academy-brochure";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync-academy/")({
   head: () => ({
@@ -41,6 +42,8 @@ export const Route = createFileRoute("/careersync-academy/")({
       },
       { property: "og:title", content: "CareerSync Academy — Build Job-Ready Skills. Get Hired Faster." },
     ],
+    links: canonicalLink("/careersync-academy"),
+    scripts: jsonLdScript("careersync-academy-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "CareerSync Academy", path: "/careersync-academy" }])),
   }),
   component: Catalog,
 });

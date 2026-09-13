@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Handshake, Building2, Globe2, Rocket } from "lucide-react";
 import { PageShell, CardGrid, FeatureCard } from "@/components/pages/page-shell";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/partners")({
   component: PartnersPage,
@@ -9,6 +10,8 @@ export const Route = createFileRoute("/partners")({
       { title: "Partner Links — CareerSync" },
       { name: "description", content: "Partner with CareerSync by BechnaSeekho — for organizations exploring collaboration and partnership opportunities." },
     ],
+    links: canonicalLink("/partners"),
+    scripts: jsonLdScript("partners-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Partners", path: "/partners" }])),
   }),
 });
 

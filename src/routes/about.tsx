@@ -21,6 +21,7 @@ import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { WhatsAppFab } from "@/components/landing/whatsapp-fab";
 import { useCountUp } from "@/hooks/use-count-up";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/about")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/about"),
+    scripts: jsonLdScript("about-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "About", path: "/about" }])),
   }),
 });
 

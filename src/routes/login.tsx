@@ -7,6 +7,7 @@ import { AuthShell, Field } from "@/components/auth/auth-shell";
 import type { SignupRole } from "@/lib/auth-helpers";
 import { toAuthUserMessage } from "@/lib/auth-errors";
 import { signInWithGoogle, signInWithPassword } from "@/services/platform/auth-service";
+import { canonicalLink } from "@/lib/seo";
 
 type LoginRole = SignupRole | "admin";
 
@@ -22,7 +23,9 @@ export const Route = createFileRoute("/login")({
     meta: [
       { title: "Log in — BechnaSeekho" },
       { name: "description", content: "Log in to BechnaSeekho as a candidate or company to continue." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
+    links: canonicalLink("/login"),
   }),
 });
 

@@ -22,6 +22,7 @@ import { CareerSyncNavbar } from "./careersync";
 import { Footer } from "@/components/landing/footer";
 import { useCareerSyncSnapshot } from "@/services/careersync/careersync-service";
 import type { DemoJobRecord } from "@/lib/careersync-demo";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync/verified-recruiters")({
     head: () => ({
@@ -34,6 +35,8 @@ export const Route = createFileRoute("/careersync/verified-recruiters")({
             { property: "og:title", content: "Verified Recruiters | CareerSync" },
             { property: "og:description", content: "Find genuine opportunities from verified hiring partners." },
         ],
+        links: canonicalLink("/careersync/verified-recruiters"),
+        scripts: jsonLdScript("verified-recruiters-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "CareerSync", path: "/careersync" }, { name: "Verified Recruiters", path: "/careersync/verified-recruiters" }])),
     }),
     component: VerifiedRecruitersPage,
 });

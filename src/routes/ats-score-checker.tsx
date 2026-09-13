@@ -44,6 +44,7 @@ import { BackToTop } from "@/components/ats/BackToTop";
 import { StickyScore } from "@/components/ats/StickyScore";
 import { generateReport } from "@/lib/pdf-report";
 import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/ats-score-checker")({
     head: () => ({
@@ -63,6 +64,8 @@ export const Route = createFileRoute("/ats-score-checker")({
             { property: "og:type", content: "website" },
             { name: "twitter:card", content: "summary_large_image" },
         ],
+        links: canonicalLink("/ats-score-checker"),
+        scripts: jsonLdScript("ats-score-checker-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "ATS Score Checker", path: "/ats-score-checker" }])),
     }),
     component: AtsScoreCheckerPage,
 });

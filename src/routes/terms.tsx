@@ -20,6 +20,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -27,6 +28,8 @@ export const Route = createFileRoute("/terms")({
       { title: "Terms & Conditions — BechnaSeekho" },
       { name: "description", content: "Read the Terms & Conditions for using BechnaSeekho and CareerSync services." },
     ],
+    links: canonicalLink("/terms"),
+    scripts: jsonLdScript("terms-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Terms", path: "/terms" }])),
   }),
   component: TermsPage,
 });

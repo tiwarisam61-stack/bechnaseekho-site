@@ -41,6 +41,7 @@ import { WhatsAppFab } from "@/components/landing/whatsapp-fab";
 import { BLOGS } from "@/lib/blogs";
 import { submitToGoogleSheet } from "@/lib/google-sheet-submit";
 import { getSharedResumeUploadUserId, uploadSharedCareerSyncResume } from "@/lib/careersync-jobs-api";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
@@ -63,6 +64,8 @@ export const Route = createFileRoute("/careersync")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/careersync"),
+    scripts: jsonLdScript("careersync-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "CareerSync", path: "/careersync" }])),
   }),
   component: CareerSyncRouteShell,
 });

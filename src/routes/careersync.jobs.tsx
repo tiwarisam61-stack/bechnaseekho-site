@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { z } from "zod";
 import { ArrowLeft, Loader2, SlidersHorizontal } from "lucide-react";
 import { CareerSyncJobsSection } from "@/components/careersync/jobs-section";
+import { getDemoSeoJobs } from "@/lib/careersync-demo";
+import { breadcrumbSchema, canonicalLink, jobCollectionSchema, jsonLdScript } from "@/lib/seo";
 
 const searchSchema = z.object({
   location: z.string().optional(),
@@ -24,6 +26,18 @@ export const Route = createFileRoute("/careersync/jobs")({
       { property: "og:description", content: "Verified openings from 500+ hiring partners." },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: canonicalLink("/careersync/jobs"),
+    scripts: jsonLdScript("careersync-jobs-schema", {
+      "@context": "https://schema.org",
+      "@graph": [
+        breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "CareerSync", path: "/careersync" },
+          { name: "Jobs", path: "/careersync/jobs" },
+        ]),
+        jobCollectionSchema(getDemoSeoJobs()),
+      ],
+    }),
   }),
   component: AllJobsPage,
 });
@@ -62,7 +76,6 @@ function TopBar({ location }: { location?: string }) {
         <Link
           to="/careersync"
           className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
         >
           <ArrowLeft className="h-4 w-4" /> Back to CareerSync
         </Link>

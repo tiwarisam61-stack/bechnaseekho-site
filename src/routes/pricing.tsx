@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageShell } from "@/components/pages/page-shell";
+import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/pricing")({
       { property: "og:title", content: "Pricing — BechnaSeekho" },
       { property: "og:description", content: "Start free. Upgrade only when you're ready." },
     ],
+    links: canonicalLink("/pricing"),
+    scripts: jsonLdScript("pricing-breadcrumb", breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }])),
   }),
 });
 

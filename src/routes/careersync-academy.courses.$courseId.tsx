@@ -10,21 +10,24 @@ import {
   BookOpen,
   CalendarDays,
 } from "lucide-react";
-import { getCourse } from "@/lib/academy-courses";
+import { getCourse, type Course } from "@/lib/academy-courses";
 import { useAcademyCourseStats } from "@/lib/academy-progress";
 import { CourseIcon, CourseThumbnail } from "@/components/academy/course-thumbnail";
 import { ProgressBar } from "@/components/academy/progress-visuals";
 import { AcademyProgressProvider } from "@/lib/academy-progress";
+import { breadcrumbSchema, canonicalLink, courseSchema, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync-academy/courses/$courseId")({
   loader: ({ params }) => {
     const course = getCourse(params.courseId);
     if (!course) throw notFound();
-    return { title: course.title, tagline: course.tagline };
+    return { course };
   },
   head: ({ loaderData }) => {
-    const title = loaderData ? `${loaderData.title} — CareerSync Course` : "Course — CareerSync";
-    const description = loaderData?.tagline ?? "Premium course learning on CareerSync.";
+    const course = loaderData?.course as Course | undefined;
+    const title = course ? `${course.title} — CareerSync Course` : "Course — CareerSync";
+    const description = course?.tagline ?? "Premium course learning on CareerSync.";
+    const path = course ? `/careersync-academy/courses/${course.id}` : "/careersync-academy";
     return {
       meta: [
         { title },
@@ -32,6 +35,20 @@ export const Route = createFileRoute("/careersync-academy/courses/$courseId")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
       ],
+      links: canonicalLink(path),
+      scripts: course
+        ? jsonLdScript(`course-${course.id}-schema`, {
+            "@context": "https://schema.org",
+            "@graph": [
+              breadcrumbSchema([
+                { name: "Home", path: "/" },
+                { name: "CareerSync Academy", path: "/careersync-academy" },
+                { name: course.title, path },
+              ]),
+              courseSchema(course),
+            ],
+          })
+        : undefined,
     };
   },
   component: CourseShell,

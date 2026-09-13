@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BLOGS, getBlog, type Blog, type BlogBlock } from "@/lib/blogs";
 import { CareerSyncLogo } from "@/components/careersync/logo";
 import { useAuth } from "@/hooks/use-auth";
+import { absoluteUrl, blogArticleSchema, breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/careersync/blogs/$slug")({
   loader: ({ params }) => {
@@ -37,11 +38,24 @@ export const Route = createFileRoute("/careersync/blogs/$slug")({
         { property: "og:description", content: b.excerpt },
         { property: "og:type", content: "article" },
         { property: "og:image", content: b.cover },
-        { property: "og:url", content: `/careersync/blogs/${b.slug}` },
+        { property: "og:url", content: absoluteUrl(`/careersync/blogs/${b.slug}`) },
         { property: "article:published_time", content: b.publishedAt },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: b.cover },
       ],
+      links: canonicalLink(`/careersync/blogs/${b.slug}`),
+      scripts: jsonLdScript(`blog-${b.slug}-schema`, {
+        "@context": "https://schema.org",
+        "@graph": [
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "CareerSync", path: "/careersync" },
+            { name: "Blogs", path: "/careersync/blogs" },
+            { name: b.title, path: `/careersync/blogs/${b.slug}` },
+          ]),
+          blogArticleSchema(b),
+        ],
+      }),
     };
   },
 });

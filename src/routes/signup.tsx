@@ -8,6 +8,7 @@ import { isFreeEmailProvider, type SignupRole } from "@/lib/auth-helpers";
 import { toAuthUserMessage } from "@/lib/auth-errors";
 import { RoleTabs, GoogleIcon } from "./login";
 import { signInWithGoogle, signUpWithPassword } from "@/services/platform/auth-service";
+import { canonicalLink } from "@/lib/seo";
 
 const searchSchema = z.object({
   role: z.enum(["candidate", "company", "employee"]).catch("candidate"),
@@ -20,7 +21,9 @@ export const Route = createFileRoute("/signup")({
     meta: [
       { title: "Sign up — BechnaSeekho" },
       { name: "description", content: "Create your BechnaSeekho account — join as a candidate or as a company." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
+    links: canonicalLink("/signup"),
   }),
 });
 
