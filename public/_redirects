@@ -1,3 +1,8 @@
+/courses.html /gone.html 410!
+/crm-admin /gone.html 410!
+/crm-admin.html /gone.html 410!
+/negotiations /gone.html 410!
+/negotiations.html /gone.html 410!
 /api/mock-interview-ai /.netlify/functions/mock-interview-ai 200
 /api/tts /.netlify/functions/tts 200
 /careersync/journey /interview-practice.html 301!
