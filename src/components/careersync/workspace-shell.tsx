@@ -106,7 +106,6 @@ const ROLE_NAVS = {
     candidate: [
         { label: "Dashboard", href: "#dashboard" },
         { label: "Profile", href: "#profile" },
-        { label: "Jobs", href: "#jobs" },
         { label: "Saved Jobs", href: "#saved-jobs" },
         { label: "Applications", href: "#applications" },
         { label: "Status Tracking", href: "#status-tracking" },
@@ -3836,7 +3835,6 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
     const myNotifications = getDemoNotificationsForUser(userId);
     const savedJobs = approvedJobs.filter((job) => savedJobIds.includes(job.id));
     const candidateProgress = getCareerSyncCandidateProgress(userId);
-    const appliedJobIds = new Set(myApplications.map((application) => application.job_id));
     const activeApplications = myApplications.filter((application) => !RECRUITER_CLOSED_STAGES.includes(recruiterStage(application.status) as (typeof RECRUITER_CLOSED_STAGES)[number]));
     const interviewApplications = myApplications.filter((application) => ["Interview", "Selected", "Offered"].includes(recruiterStage(application.status)));
     const latestApplication = myApplications[0] ?? null;
@@ -3923,10 +3921,6 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
         setCandidateProfileEditing(false);
         toast.success("Candidate profile updated.");
     };
-    const recommendedJobs = approvedJobs
-        .filter((job) => !appliedJobIds.has(job.id))
-        .sort((a, b) => Number(savedJobIds.includes(b.id)) - Number(savedJobIds.includes(a.id)) || a.role.localeCompare(b.role))
-        .slice(0, 4);
     const profileTasks = [
         {
             done: liveCandidateProgress.hasResume,
@@ -3964,7 +3958,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                                 Track applications, keep your resume ready, and act quickly when a recruiter moves your profile.
                             </p>
                         </div>
-                        <a href="#jobs" className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700">
+                        <a href="/careersync/jobs" className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700">
                             Browse jobs
                             <ArrowRight className="h-4 w-4" />
                         </a>
@@ -4008,12 +4002,12 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                                 <CandidateActionCard
                                     title={liveCandidateProgress.hasResume ? "Apply to fresh roles" : "Upload resume first"}
                                     text={liveCandidateProgress.hasResume ? "Your resume is available. Apply to one of the recommended jobs below." : "A resume improves matching and makes recruiter review faster."}
-                                    href={liveCandidateProgress.hasResume ? "#jobs" : "#profile-improvements"}
+                                    href={liveCandidateProgress.hasResume ? "/careersync/jobs" : "#profile-improvements"}
                                 />
                                 <CandidateActionCard
                                     title={latestApplication ? "Track latest application" : "Start first application"}
                                     text={latestApplication ? `${latestApplication.job?.role ?? "Latest role"} is at ${recruiterStage(latestApplication.status)} stage.` : "Pick an approved job and apply to start your CareerSync journey."}
-                                    href={latestApplication ? "#applications" : "#jobs"}
+                                    href={latestApplication ? "#applications" : "/careersync/jobs"}
                                 />
                                 <CandidateActionCard
                                     title={savedJobs.length ? "Review saved jobs" : "Save jobs to compare"}
@@ -4036,27 +4030,12 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="jobs" className="scroll-mt-32 rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
-                <SectionHeading title="Jobs" subtitle="Browse approved roles and save ones you want to revisit." />
-                <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                    {recommendedJobs.length === 0 ? (
-                        <EmptyState title="No new recommendations" message="You have already applied to or saved the currently visible launch jobs." />
-                    ) : recommendedJobs.map((job) => (
-                        <CandidateRecommendedJobCard key={job.id} job={job} userId={userId} saved={savedJobIds.includes(job.id)} />
-                    ))}
-                </div>
-                <div className="mt-5">
-                    <CareerSyncJobsSection />
-                </div>
-            </section>
-
             <section id="saved-jobs" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Saved Jobs" subtitle="Jobs saved to your personal shortlist." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {savedJobs.length === 0 ? (
-                        <EmptyState title="No saved jobs" message="Use the save button below to keep jobs on your shortlist." />
+                        <EmptyState title="No saved jobs" message="Use Browse jobs from your cockpit to find roles and save them here." />
                     ) : savedJobs.map((job) => <SavedJobCard key={job.id} job={job} userId={userId} saved />)}
-                    {approvedJobs.filter((job) => !savedJobIds.includes(job.id)).slice(0, 3).map((job) => <SavedJobCard key={job.id} job={job} userId={userId} saved={false} />)}
                 </div>
             </section>
 
@@ -4314,38 +4293,6 @@ function CandidateProfileTask({ label, helper, done }: { label: string; helper: 
             <div>
                 <p className="text-xs font-black text-slate-900">{label}</p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{helper}</p>
-            </div>
-        </div>
-    );
-}
-
-function CandidateRecommendedJobCard({ job, userId, saved }: { job: DemoJobRecord; userId: string; saved: boolean }) {
-    return (
-        <div className="rounded-3xl border border-blue-100 bg-blue-50/40 p-4 ring-1 ring-blue-100">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <p className="text-sm font-black text-slate-900">{job.role}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{job.company} · {job.location ?? "Remote"} · {job.employment_type ?? "Role type"}</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => toggleDemoSavedJob(userId, job.id)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-black transition ${saved ? "bg-blue-600 text-white" : "bg-white text-blue-700 ring-1 ring-blue-100 hover:bg-blue-50"}`}
-                >
-                    {saved ? "Saved" : "Save"}
-                </button>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-                {job.salary ? <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{job.salary}</span> : null}
-                {job.experience ? <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{job.experience}</span> : null}
-                {(job.tags ?? []).slice(0, 2).map((tag) => (
-                    <span key={tag} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{tag}</span>
-                ))}
-            </div>
-            <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-slate-600">{job.description ?? "No description yet."}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-                <Link to="/careersync/jobs" className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white transition hover:bg-slate-800">Apply / View</Link>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-blue-700 ring-1 ring-blue-100">Recommended</span>
             </div>
         </div>
     );
