@@ -24,16 +24,63 @@ import {
 import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
 import { fetchSharedCareerSyncResumeInsights, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
 
+type CandidateDashboardProfile = {
+    fullName: string;
+    email: string;
+    phone: string;
+    city: string;
+    experience: string;
+};
+
 export function CareerSyncDashboard() {
     const { user } = useAuth();
     const { role, isAdmin, isCompany, isEmployee, isCandidate } = useRole();
     const snapshot = useDemoSnapshot();
+    const displayName = user?.id ? getDemoDisplayName(user.id) : "Candidate";
     const summary = useMemo(() => getDashboardSummary(user?.id ?? null), [snapshot, user?.id]);
     const candidateProgress = useMemo(() => user?.id ? getCareerSyncCandidateProgress(user.id) : null, [snapshot, user?.id]);
     const candidateSavedJobCount = useMemo(() => user?.id ? getDemoSavedJobIds(user.id).length : 0, [snapshot, user?.id]);
+    const [candidateProfileVersion, setCandidateProfileVersion] = useState(0);
     const [adminResumeStorageCount, setAdminResumeStorageCount] = useState<number | null>(null);
     const [adminResumeStorageCheckedAt, setAdminResumeStorageCheckedAt] = useState<string | null>(null);
     const [adminResumeStorageLoading, setAdminResumeStorageLoading] = useState(false);
+    const liveCandidateProgress = useMemo(() => {
+        if (!user?.id || !candidateProgress) return candidateProgress;
+        const userRecord = getDemoUserById(user.id);
+        const latestApplication = snapshot.applications
+            .filter((application) => application.user_id === user.id)
+            .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        let storedProfile: Partial<CandidateDashboardProfile> = {};
+        if (typeof window !== "undefined") {
+            try {
+                storedProfile = JSON.parse(window.localStorage.getItem(`careersync-candidate-profile-${user.id}`) ?? "{}");
+            } catch {
+                storedProfile = {};
+            }
+        }
+        const fullName = storedProfile.fullName ?? latestApplication?.full_name ?? userRecord?.full_name ?? displayName;
+        const email = storedProfile.email ?? latestApplication?.email ?? user.email ?? userRecord?.email ?? "";
+        const phone = storedProfile.phone ?? latestApplication?.phone ?? userRecord?.phone ?? "";
+        const city = storedProfile.city ?? "";
+        const experience = storedProfile.experience ?? "";
+        const hasName = fullName.trim().length > 1;
+        const hasPhone = phone.replace(/\D/g, "").length >= 8;
+        const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+        const hasCity = city.trim().length > 1 && city.trim().toLowerCase() !== "not shared";
+        const hasExperience = experience.trim().length > 0 && experience.trim().toLowerCase() !== "not shared";
+        const completion =
+            (hasName ? 15 : 0) +
+            (hasPhone ? 15 : 0) +
+            (hasEmail ? 10 : 0) +
+            (hasCity ? 10 : 0) +
+            (hasExperience ? 15 : 0) +
+            (candidateProgress.hasResume ? 20 : 0) +
+            (candidateProgress.totalApplications > 0 ? 15 : 0);
+        return {
+            ...candidateProgress,
+            profileCompletion: Math.max(0, Math.min(100, completion)),
+        };
+    }, [candidateProgress, candidateProfileVersion, displayName, snapshot.applications, user?.email, user?.id]);
 
     const refreshAdminResumeStorageCount = async (showToast = true) => {
         if (!user?.id || !isAdmin) return;
@@ -79,9 +126,19 @@ export function CareerSyncDashboard() {
         };
     }, [isAdmin, user?.email, user?.id]);
 
+    useEffect(() => {
+        if (!user?.id || !isCandidate || typeof window === "undefined") return;
+        const refreshCandidateProgress = () => setCandidateProfileVersion((version) => version + 1);
+        window.addEventListener("careersync-candidate-profile-updated", refreshCandidateProgress);
+        window.addEventListener("storage", refreshCandidateProgress);
+        return () => {
+            window.removeEventListener("careersync-candidate-profile-updated", refreshCandidateProgress);
+            window.removeEventListener("storage", refreshCandidateProgress);
+        };
+    }, [isCandidate, user?.id]);
+
     if (!user || !role) return null;
     const notifications = summary.notifications.slice(0, 4);
-    const displayName = getDemoDisplayName(user.id);
 
     return (
         <section id="dashboard" className="relative scroll-mt-28 px-4 py-8 sm:px-6 lg:px-8">
@@ -119,7 +176,7 @@ export function CareerSyncDashboard() {
                     <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Jobs you applied for" icon={<UserRound className="h-4 w-4" />} />
                         <MetricCard title="Saved jobs" value={String(candidateSavedJobCount)} note="Roles on your shortlist" icon={<Sparkles className="h-4 w-4" />} />
-                        <MetricCard title="Profile strength" value={`${candidateProgress?.profileCompletion ?? 0}%`} note="Resume, phone, applications" icon={<ShieldCheck className="h-4 w-4" />} />
+                        <MetricCard title="Profile strength" value={`${liveCandidateProgress?.profileCompletion ?? 0}%`} note="Name, phone, experience, resume" icon={<ShieldCheck className="h-4 w-4" />} />
                         <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="Updates from CareerSync" icon={<MessageSquareText className="h-4 w-4" />} />
                     </div>
                 ) : (

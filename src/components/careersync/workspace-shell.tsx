@@ -3917,6 +3917,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
         setCandidateProfileDraft(normalizedProfile);
         if (typeof window !== "undefined") {
             window.localStorage.setItem(candidateProfileStorageKey, JSON.stringify(normalizedProfile));
+            window.dispatchEvent(new CustomEvent("careersync-candidate-profile-updated"));
         }
         setCandidateProfileSaved(normalizedProfile);
         setCandidateProfileEditing(false);
