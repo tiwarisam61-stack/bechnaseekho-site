@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, CircleAlert, Clock3, FileText, Layers3, MessageSquareText, PlusCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleAlert, Clock3, FileText, Layers3, MessageSquareText, PlusCircle, RefreshCw, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,20 +32,46 @@ export function CareerSyncDashboard() {
     const candidateProgress = useMemo(() => user?.id ? getCareerSyncCandidateProgress(user.id) : null, [snapshot, user?.id]);
     const candidateSavedJobCount = useMemo(() => user?.id ? getDemoSavedJobIds(user.id).length : 0, [snapshot, user?.id]);
     const [adminResumeStorageCount, setAdminResumeStorageCount] = useState<number | null>(null);
+    const [adminResumeStorageCheckedAt, setAdminResumeStorageCheckedAt] = useState<string | null>(null);
+    const [adminResumeStorageLoading, setAdminResumeStorageLoading] = useState(false);
+
+    const refreshAdminResumeStorageCount = async (showToast = true) => {
+        if (!user?.id || !isAdmin) return;
+        setAdminResumeStorageLoading(true);
+        try {
+            const insight = await fetchSharedCareerSyncResumeInsights({ role: "admin", userId: user.id, email: user.email });
+            setAdminResumeStorageCount(insight?.storageCount ?? null);
+            setAdminResumeStorageCheckedAt(insight?.checkedAt ?? new Date().toISOString());
+            if (showToast) toast.success("Supabase resume count refreshed.");
+        } catch (error) {
+            setAdminResumeStorageCount(null);
+            if (showToast) toast.error(error instanceof Error ? error.message : "Could not refresh Supabase resume count.");
+        } finally {
+            setAdminResumeStorageLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!user?.id || !isAdmin) {
             setAdminResumeStorageCount(null);
+            setAdminResumeStorageCheckedAt(null);
             return;
         }
 
         let cancelled = false;
+        setAdminResumeStorageLoading(true);
         void fetchSharedCareerSyncResumeInsights({ role: "admin", userId: user.id, email: user.email })
             .then((insight) => {
-                if (!cancelled) setAdminResumeStorageCount(insight?.storageCount ?? null);
+                if (!cancelled) {
+                    setAdminResumeStorageCount(insight?.storageCount ?? null);
+                    setAdminResumeStorageCheckedAt(insight?.checkedAt ?? new Date().toISOString());
+                }
             })
             .catch(() => {
                 if (!cancelled) setAdminResumeStorageCount(null);
+            })
+            .finally(() => {
+                if (!cancelled) setAdminResumeStorageLoading(false);
             });
 
         return () => {
@@ -72,6 +98,17 @@ export function CareerSyncDashboard() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {isAdmin && <RolePill tone="blue" label="Admin review mode" />}
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => void refreshAdminResumeStorageCount()}
+                                disabled={adminResumeStorageLoading}
+                                className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-50 disabled:cursor-wait disabled:opacity-70"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${adminResumeStorageLoading ? "animate-spin" : ""}`} />
+                                Refresh resumes
+                            </button>
+                        )}
                         {isCompany && <RolePill tone="emerald" label="HR / company mode" />}
                         {isEmployee && <RolePill tone="amber" label="Employee mode" />}
                         {isCandidate && <RolePill tone="cyan" label="Candidate mode" />}
@@ -90,7 +127,12 @@ export function CareerSyncDashboard() {
                         <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
                         <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
                         {isAdmin ? (
-                            <MetricCard title="Total resumes" value={String(adminResumeStorageCount ?? summary.totalResumes)} note="Saved in Supabase Storage" icon={<FileText className="h-4 w-4" />} />
+                            <MetricCard
+                                title="Total resumes"
+                                value={String(adminResumeStorageCount ?? summary.totalResumes)}
+                                note={adminResumeStorageCheckedAt ? `Supabase count · ${new Date(adminResumeStorageCheckedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : "Saved in Supabase Storage"}
+                                icon={<FileText className="h-4 w-4" />}
+                            />
                         ) : (
                             <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
                         )}

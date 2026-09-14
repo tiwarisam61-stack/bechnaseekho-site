@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, Languages, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, Plus, ShieldCheck, Star, Unlock, Upload, Users, UserRound, Wallet, X } from "lucide-react";
+import { ArrowRight, BarChart3, Briefcase, Building2, CalendarDays, CheckCircle2, Clock3, Download, Eye, FileClock, Languages, LockKeyhole, LogOut, Mail, MapPin, MessageSquareText, Phone, Plus, RefreshCw, ShieldCheck, Star, Unlock, Upload, Users, UserRound, Wallet, X } from "lucide-react";
 import { CareerSyncDashboard } from "@/components/careersync/dashboard";
 import { NotificationBell } from "@/components/careersync/notification-bell";
 import { CareerSyncJobsSection } from "@/components/careersync/jobs-section";
@@ -284,6 +284,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
         checkedAt: string;
     } | null>(null);
     const [storageInsightError, setStorageInsightError] = useState("");
+    const [storageInsightRefreshing, setStorageInsightRefreshing] = useState(false);
     const [adminResumeUpload, setAdminResumeUpload] = useState({
         fullName: "",
         phone: "",
@@ -356,15 +357,20 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     }, [adminSectionIds]);
 
     const loadStorageInsights = async (cancelled?: () => boolean) => {
+        if (!cancelled?.()) setStorageInsightRefreshing(true);
         try {
             const insight = await fetchSharedCareerSyncResumeInsights({ role: "admin", userId });
             if (cancelled?.()) return;
             setStorageInsight(insight);
             setStorageInsightError("");
+            return true;
         } catch (error) {
             if (cancelled?.()) return;
             setStorageInsight(null);
             setStorageInsightError(error instanceof Error ? error.message : "Could not load Supabase Storage count.");
+            return false;
+        } finally {
+            if (!cancelled?.()) setStorageInsightRefreshing(false);
         }
     };
 
@@ -375,6 +381,15 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
             cancelled = true;
         };
     }, [userId]);
+
+    const refreshStorageInsights = async () => {
+        const refreshed = await loadStorageInsights();
+        if (refreshed) {
+            toast.success("Supabase resume intelligence refreshed.");
+        } else {
+            toast.error(storageInsightError || "Could not refresh Supabase resume intelligence.");
+        }
+    };
 
     const applyAdminResumeExtract = (extracted: SharedResumeParseResult) => {
         setAdminResumeUpload((prev) => ({
@@ -696,7 +711,21 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
             </section>
 
             <section id="resume-intelligence" className={adminSectionClass("resume-intelligence", "rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.2)] sm:p-7")}>
-                <SectionHeading title="Resume Intelligence" subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores." />
+                <SectionHeading
+                    title="Resume Intelligence"
+                    subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores."
+                    action={(
+                        <button
+                            type="button"
+                            onClick={() => void refreshStorageInsights()}
+                            disabled={storageInsightRefreshing}
+                            className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-xs font-black text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100 disabled:cursor-wait disabled:opacity-70"
+                        >
+                            <RefreshCw className={`h-3.5 w-3.5 ${storageInsightRefreshing ? "animate-spin" : ""}`} />
+                            Refresh
+                        </button>
+                    )}
+                />
                 <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                     <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Unique Resumes" value={String(resumeUniqueCount)} icon={<FileClock className="h-4 w-4" />} />
@@ -4472,12 +4501,15 @@ function EmptyState({ title, message }: { title: string; message: string }) {
     );
 }
 
-function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
+function SectionHeading({ title, subtitle, action }: { title: string; subtitle: string; action?: ReactNode }) {
     return (
-        <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">Role workspace</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{title}</h2>
-            <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">Role workspace</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{title}</h2>
+                <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
+            </div>
+            {action ? <div className="shrink-0">{action}</div> : null}
         </div>
     );
 }
