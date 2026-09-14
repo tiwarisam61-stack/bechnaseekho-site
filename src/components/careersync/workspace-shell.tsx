@@ -195,6 +195,11 @@ export function CareerSyncWorkspaceShell() {
             return;
         }
 
+        if (role === "candidate") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
         document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
@@ -286,7 +291,7 @@ export function CareerSyncWorkspaceShell() {
                 {isAdmin && <AdminWorkspace userId={user.id} snapshot={snapshot} />}
                 {isCompany && <CompanyWorkspace userId={user.id} email={user.email ?? ""} snapshot={snapshot} />}
                 {isEmployee && <EmployeeWorkspace userId={user.id} snapshot={snapshot} />}
-                {isCandidate && <CandidateWorkspace userId={user.id} snapshot={snapshot} />}
+                {isCandidate && <CandidateWorkspace userId={user.id} snapshot={snapshot} activeSection={activeWorkspaceSection} />}
             </main>
         </div>
     );
@@ -3821,7 +3826,7 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
     );
 }
 
-function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
+function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot>; activeSection: string }) {
     const candidateUser = snapshot.users.find((user) => user.id === userId);
     const savedJobIds = getDemoSavedJobIds(userId);
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
@@ -3943,10 +3948,18 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
             helper: liveCandidateProgress.totalApplications > 0 ? "Your application journey has started." : "Apply to one launch role to enter the pipeline.",
         },
     ];
+    const sectionFrameClass = "scroll-mt-32 rounded-[2rem] border bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7";
 
     return (
         <div className="space-y-6">
-            <section id="dashboard" className="scroll-mt-32 space-y-5">
+            {activeSection === "dashboard" && <motion.section
+                key="candidate-dashboard"
+                id="dashboard"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className="scroll-mt-32 space-y-5"
+            >
                 <CareerSyncDashboard />
                 <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_42%,#f8fafc_100%)] p-5 shadow-[0_30px_80px_-36px_rgba(37,99,235,0.38)] sm:p-7">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400" />
@@ -4028,27 +4041,48 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         </div>
                     </div>
                 </div>
-            </section>
+            </motion.section>}
 
-            <section id="saved-jobs" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            {activeSection === "saved-jobs" && <motion.section
+                key="candidate-saved-jobs"
+                id="saved-jobs"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className={`${sectionFrameClass} border-slate-100`}
+            >
                 <SectionHeading title="Saved Jobs" subtitle="Jobs saved to your personal shortlist." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {savedJobs.length === 0 ? (
                         <EmptyState title="No saved jobs" message="Use Browse jobs from your cockpit to find roles and save them here." />
                     ) : savedJobs.map((job) => <SavedJobCard key={job.id} job={job} userId={userId} saved />)}
                 </div>
-            </section>
+            </motion.section>}
 
-            <section id="applications" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            {activeSection === "applications" && <motion.section
+                key="candidate-applications"
+                id="applications"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className={`${sectionFrameClass} border-slate-100`}
+            >
                 <SectionHeading title="Applications" subtitle="Your submitted applications and current status." />
                 <div className="mt-5 space-y-3">
                     {myApplications.length === 0 ? (
                         <EmptyState title="No applications yet" message="Apply to a role to see it here." />
                     ) : myApplications.map((application) => <CandidateApplicationCard key={application.id} application={application} />)}
                 </div>
-            </section>
+            </motion.section>}
 
-            <section id="status-tracking" className="scroll-mt-32 rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7">
+            {activeSection === "status-tracking" && <motion.section
+                key="candidate-status-tracking"
+                id="status-tracking"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className="scroll-mt-32 rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7"
+            >
                 <SectionHeading title="Status Tracking" subtitle="Visualize your application journey in one view." />
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">
                     <ReportChartCard
@@ -4079,9 +4113,16 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         </div>
                     </div>
                 </div>
-            </section>
+            </motion.section>}
 
-            <section id="profile-improvements" className="scroll-mt-32 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
+            {activeSection === "profile-improvements" && <motion.section
+                key="candidate-profile-improvements"
+                id="profile-improvements"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className="scroll-mt-32 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7"
+            >
                 <SectionHeading title="Profile Improvements" subtitle="Action checklist to improve response rate." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-3">
                     {profileTasks.map((task) => (
@@ -4091,14 +4132,28 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         </div>
                     ))}
                 </div>
-            </section>
+            </motion.section>}
 
-            <section id="notifications" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            {activeSection === "notifications" && <motion.section
+                key="candidate-notifications"
+                id="notifications"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className={`${sectionFrameClass} border-slate-100`}
+            >
                 <SectionHeading title="Notifications" subtitle="Only candidate notifications for this account." />
                 <NotificationList notifications={myNotifications} emptyLabel="No candidate notifications yet." />
-            </section>
+            </motion.section>}
 
-            <section id="profile" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            {activeSection === "profile" && <motion.section
+                key="candidate-profile"
+                id="profile"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28 }}
+                className={`${sectionFrameClass} border-slate-100`}
+            >
                 <SectionHeading title="Profile" subtitle="Your candidate profile and contact details." />
                 <div className="mt-5">
                     <CandidateProfileOverviewCard
@@ -4120,7 +4175,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         />
                     ) : null}
                 </div>
-            </section>
+            </motion.section>}
         </div>
     );
 }
