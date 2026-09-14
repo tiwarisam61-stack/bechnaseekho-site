@@ -105,13 +105,13 @@ const ROLE_NAVS = {
     ],
     candidate: [
         { label: "Dashboard", href: "#dashboard" },
+        { label: "Profile", href: "#profile" },
         { label: "Jobs", href: "#jobs" },
         { label: "Saved Jobs", href: "#saved-jobs" },
         { label: "Applications", href: "#applications" },
         { label: "Status Tracking", href: "#status-tracking" },
         { label: "Profile Improvements", href: "#profile-improvements" },
         { label: "Notifications", href: "#notifications" },
-        { label: "Profile", href: "#profile" },
     ],
     employee: [
         { label: "Dashboard", href: "#dashboard" },
@@ -1191,6 +1191,14 @@ type CompanyWorkspaceTab = "overview" | "jobs" | "pipeline" | "candidates" | "an
 type RecruiterApplicationView = DemoApplicationRecord & {
     fit: number;
     job?: DemoJobRecord;
+};
+type CandidateProfileDetails = {
+    fullName: string;
+    headline: string;
+    email: string;
+    phone: string;
+    city: string;
+    experience: string;
 };
 type ResumeStorageInsight = {
     bucket: string;
@@ -3747,6 +3755,7 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
 }
 
 function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: ReturnType<typeof useDemoSnapshot> }) {
+    const candidateUser = snapshot.users.find((user) => user.id === userId);
     const savedJobIds = getDemoSavedJobIds(userId);
     const approvedJobs = snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified);
     const myApplications = snapshot.applications
@@ -3763,6 +3772,63 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
     const activeApplications = myApplications.filter((application) => !RECRUITER_CLOSED_STAGES.includes(recruiterStage(application.status) as (typeof RECRUITER_CLOSED_STAGES)[number]));
     const interviewApplications = myApplications.filter((application) => ["Interview", "Selected", "Offered"].includes(recruiterStage(application.status)));
     const latestApplication = myApplications[0] ?? null;
+    const candidateProfileDefaults = useMemo<CandidateProfileDetails>(() => {
+        const parsed = latestApplication ? getParsedResumeSummary(latestApplication) : null;
+        const latestProfile = latestApplication ? latestApplication as RecruiterApplicationView : null;
+        return {
+            fullName: parsed?.name || latestApplication?.full_name || candidateUser?.full_name || getDemoDisplayName(userId),
+            headline: parsed?.lastRole || latestApplication?.job?.role || "Candidate profile",
+            email: parsed?.email || latestApplication?.email || candidateUser?.email || "",
+            phone: parsed?.phone || latestApplication?.phone || candidateUser?.phone || "",
+            city: latestProfile ? extractCity(latestProfile) : "",
+            experience: latestProfile ? extractCandidateExperience(latestProfile) : "",
+        };
+    }, [candidateUser?.email, candidateUser?.full_name, candidateUser?.phone, latestApplication, userId]);
+    const candidateProfileStorageKey = `careersync-candidate-profile-${userId}`;
+    const [candidateProfileDraft, setCandidateProfileDraft] = useState<CandidateProfileDetails>(candidateProfileDefaults);
+    const [candidateProfileSaved, setCandidateProfileSaved] = useState<CandidateProfileDetails>(candidateProfileDefaults);
+    const [candidateProfileEditing, setCandidateProfileEditing] = useState(false);
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            setCandidateProfileDraft(candidateProfileDefaults);
+            setCandidateProfileSaved(candidateProfileDefaults);
+            return;
+        }
+        const storedProfile = window.localStorage.getItem(candidateProfileStorageKey);
+        if (!storedProfile) {
+            setCandidateProfileDraft(candidateProfileDefaults);
+            setCandidateProfileSaved(candidateProfileDefaults);
+            return;
+        }
+        try {
+            const mergedProfile = { ...candidateProfileDefaults, ...JSON.parse(storedProfile) };
+            setCandidateProfileDraft(mergedProfile);
+            setCandidateProfileSaved(mergedProfile);
+        } catch {
+            setCandidateProfileDraft(candidateProfileDefaults);
+            setCandidateProfileSaved(candidateProfileDefaults);
+        }
+    }, [candidateProfileDefaults, candidateProfileStorageKey]);
+    const updateCandidateProfileDraft = (field: keyof CandidateProfileDetails, value: string) => {
+        setCandidateProfileDraft((current) => ({ ...current, [field]: value }));
+    };
+    const saveCandidateProfileDraft = () => {
+        const normalizedProfile = {
+            fullName: candidateProfileDraft.fullName.trim() || candidateProfileDefaults.fullName,
+            headline: candidateProfileDraft.headline.trim() || candidateProfileDefaults.headline,
+            email: candidateProfileDraft.email.trim(),
+            phone: candidateProfileDraft.phone.trim(),
+            city: candidateProfileDraft.city.trim(),
+            experience: candidateProfileDraft.experience.trim(),
+        };
+        setCandidateProfileDraft(normalizedProfile);
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem(candidateProfileStorageKey, JSON.stringify(normalizedProfile));
+        }
+        setCandidateProfileSaved(normalizedProfile);
+        setCandidateProfileEditing(false);
+        toast.success("Candidate profile updated.");
+    };
     const recommendedJobs = approvedJobs
         .filter((job) => !appliedJobIds.has(job.id))
         .sort((a, b) => Number(savedJobIds.includes(b.id)) - Number(savedJobIds.includes(a.id)) || a.role.localeCompare(b.role))
@@ -3808,6 +3874,26 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         <CandidateMetricCard label="Interviews / offers" value={String(interviewApplications.length)} helper="high-priority follow-ups" icon={<CalendarDays className="h-4 w-4" />} />
                         <CandidateMetricCard label="Saved jobs" value={String(savedJobs.length)} helper="roles on your shortlist" icon={<Star className="h-4 w-4" />} />
                         <CandidateMetricCard label="Profile strength" value={`${candidateProgress.profileCompletion}%`} helper="resume, phone, applications" icon={<ShieldCheck className="h-4 w-4" />} />
+                    </div>
+                    <div className="mt-5">
+                        <CandidateProfileOverviewCard
+                            profile={candidateProfileDraft}
+                            applicationsCount={myApplications.length}
+                            profileCompletion={candidateProgress.profileCompletion}
+                            resumeReady={candidateProgress.hasResume}
+                            onEdit={() => setCandidateProfileEditing(true)}
+                        />
+                        {candidateProfileEditing ? (
+                            <CandidateProfileEditForm
+                                profile={candidateProfileDraft}
+                                onChange={updateCandidateProfileDraft}
+                                onSave={saveCandidateProfileDraft}
+                                onCancel={() => {
+                                    setCandidateProfileDraft(candidateProfileSaved);
+                                    setCandidateProfileEditing(false);
+                                }}
+                            />
+                        ) : null}
                     </div>
                     <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                         <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
@@ -3934,13 +4020,145 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
             </section>
 
             <section id="profile" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
-                <SectionHeading title="Profile" subtitle="Your candidate workspace." />
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <SummaryCard label="Display name" value={getDemoDisplayName(userId)} icon={<UserRound className="h-4 w-4" />} />
-                    <SummaryCard label="Saved jobs" value={String(savedJobIds.length)} icon={<Briefcase className="h-4 w-4" />} />
-                    <SummaryCard label="Applications" value={String(myApplications.length)} icon={<ArrowRight className="h-4 w-4" />} />
+                <SectionHeading title="Profile" subtitle="Your candidate profile and contact details." />
+                <div className="mt-5">
+                    <CandidateProfileOverviewCard
+                        profile={candidateProfileDraft}
+                        applicationsCount={myApplications.length}
+                        profileCompletion={candidateProgress.profileCompletion}
+                        resumeReady={candidateProgress.hasResume}
+                        onEdit={() => setCandidateProfileEditing(true)}
+                    />
+                    {candidateProfileEditing ? (
+                        <CandidateProfileEditForm
+                            profile={candidateProfileDraft}
+                            onChange={updateCandidateProfileDraft}
+                            onSave={saveCandidateProfileDraft}
+                            onCancel={() => {
+                                setCandidateProfileDraft(candidateProfileSaved);
+                                setCandidateProfileEditing(false);
+                            }}
+                        />
+                    ) : null}
                 </div>
             </section>
+        </div>
+    );
+}
+
+function CandidateProfileOverviewCard({
+    profile,
+    applicationsCount,
+    profileCompletion,
+    resumeReady,
+    onEdit,
+}: {
+    profile: CandidateProfileDetails;
+    applicationsCount: number;
+    profileCompletion: number;
+    resumeReady: boolean;
+    onEdit: () => void;
+}) {
+    const infoItems = [
+        { label: "Email", value: profile.email || "Not shared", icon: <Mail className="h-4 w-4" /> },
+        { label: "Phone", value: profile.phone || "Not shared", icon: <Phone className="h-4 w-4" /> },
+        { label: "City", value: profile.city || "Not shared", icon: <MapPin className="h-4 w-4" /> },
+        { label: "Experience", value: profile.experience || "Not shared", icon: <Briefcase className="h-4 w-4" /> },
+    ];
+
+    return (
+        <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 ring-1 ring-blue-100">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black text-white shadow-lg shadow-blue-200">
+                        {(profile.fullName || "CS").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-600">Candidate profile</p>
+                        <h3 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950">{profile.fullName || "Candidate name not saved"}</h3>
+                        <p className="mt-1 text-sm font-bold text-slate-600">{profile.headline || "Candidate profile"}</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={onEdit}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
+                >
+                    <UserRound className="h-4 w-4" />
+                    Edit profile
+                </button>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {infoItems.map((item) => (
+                    <div key={item.label} className="rounded-2xl bg-white p-3 ring-1 ring-blue-100">
+                        <div className="flex items-center gap-2 text-slate-400">
+                            {item.icon}
+                            <span className="text-[10px] font-black uppercase tracking-wide">{item.label}</span>
+                        </div>
+                        <p className="mt-2 break-words text-sm font-black text-slate-900">{item.value}</p>
+                    </div>
+                ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-blue-700 ring-1 ring-blue-100">{profileCompletion}% profile complete</span>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-black ring-1 ${resumeReady ? "bg-emerald-50 text-emerald-700 ring-emerald-100" : "bg-amber-50 text-amber-700 ring-amber-100"}`}>
+                    {resumeReady ? "Resume ready" : "Resume pending"}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-100">{applicationsCount} applications</span>
+            </div>
+        </div>
+    );
+}
+
+function CandidateProfileEditForm({
+    profile,
+    onChange,
+    onSave,
+    onCancel,
+}: {
+    profile: CandidateProfileDetails;
+    onChange: (field: keyof CandidateProfileDetails, value: string) => void;
+    onSave: () => void;
+    onCancel: () => void;
+}) {
+    const fields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string }> = [
+        { key: "fullName", label: "Full name", placeholder: "Candidate name" },
+        { key: "headline", label: "Headline / role", placeholder: "Sales associate, HR recruiter..." },
+        { key: "email", label: "Email", placeholder: "candidate@email.com" },
+        { key: "phone", label: "Phone", placeholder: "98XXXXXXXX" },
+        { key: "city", label: "City", placeholder: "Gurgaon, Delhi..." },
+        { key: "experience", label: "Experience", placeholder: "3 years, Fresher..." },
+    ];
+
+    return (
+        <div className="mt-4 rounded-3xl border border-slate-100 bg-white p-4 ring-1 ring-slate-100">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 className="text-sm font-black text-slate-900">Edit profile details</h3>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">These details stay visible on the candidate dashboard.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button type="button" onClick={onCancel} className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-200">
+                        Cancel
+                    </button>
+                    <button type="button" onClick={onSave} className="rounded-full bg-blue-600 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-blue-700">
+                        Save profile
+                    </button>
+                </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {fields.map((field) => (
+                    <label key={field.key} className="block">
+                        <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">{field.label}</span>
+                        <input
+                            value={profile[field.key]}
+                            onChange={(event) => onChange(field.key, event.target.value)}
+                            placeholder={field.placeholder}
+                            className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                        />
+                    </label>
+                ))}
+            </div>
         </div>
     );
 }
