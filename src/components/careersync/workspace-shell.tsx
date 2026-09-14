@@ -3789,6 +3789,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
     const [candidateProfileSaved, setCandidateProfileSaved] = useState<CandidateProfileDetails>(candidateProfileDefaults);
     const [candidateProfileEditing, setCandidateProfileEditing] = useState(false);
     useEffect(() => {
+        if (candidateProfileEditing) return;
         if (typeof window === "undefined") {
             setCandidateProfileDraft(candidateProfileDefaults);
             setCandidateProfileSaved(candidateProfileDefaults);
@@ -3808,7 +3809,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
             setCandidateProfileDraft(candidateProfileDefaults);
             setCandidateProfileSaved(candidateProfileDefaults);
         }
-    }, [candidateProfileDefaults, candidateProfileStorageKey]);
+    }, [candidateProfileDefaults, candidateProfileEditing, candidateProfileStorageKey]);
     const updateCandidateProfileDraft = (field: keyof CandidateProfileDetails, value: string) => {
         setCandidateProfileDraft((current) => ({ ...current, [field]: value }));
     };
@@ -3855,16 +3856,17 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
         <div className="space-y-6">
             <section id="dashboard" className="space-y-5">
                 <CareerSyncDashboard />
-                <div className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_42%,#f8fafc_100%)] p-5 shadow-[0_30px_80px_-36px_rgba(37,99,235,0.38)] sm:p-7">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400" />
+                    <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">Candidate launch dashboard</p>
-                            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">Your job search cockpit</h2>
+                            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Your job search cockpit</h2>
                             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
                                 Track applications, keep your resume ready, and act quickly when a recruiter moves your profile.
                             </p>
                         </div>
-                        <a href="#jobs" className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800">
+                        <a href="#jobs" className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700">
                             Browse jobs
                             <ArrowRight className="h-4 w-4" />
                         </a>
@@ -4067,44 +4069,54 @@ function CandidateProfileOverviewCard({
     ];
 
     return (
-        <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 ring-1 ring-blue-100">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex min-w-0 gap-3">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black text-white shadow-lg shadow-blue-200">
-                        {(profile.fullName || "CS").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+        <div className="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-[0_22px_60px_-32px_rgba(37,99,235,0.45)] ring-1 ring-blue-100">
+            <div className="bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_58%,#0891b2_100%)] p-5 text-white">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 gap-4">
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-white text-2xl font-black text-blue-700 shadow-xl shadow-slate-950/20">
+                            {(profile.fullName || "CS").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-100">Candidate profile</p>
+                            <h3 className="mt-2 text-3xl font-black tracking-tight text-white">{profile.fullName || "Candidate name not saved"}</h3>
+                            <p className="mt-1 text-sm font-bold text-blue-100">{profile.headline || "Candidate profile"}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black text-white ring-1 ring-white/20">{applicationsCount} applications</span>
+                                <span className={`rounded-full px-3 py-1 text-xs font-black ring-1 ${resumeReady ? "bg-emerald-400/20 text-emerald-50 ring-emerald-200/40" : "bg-amber-300/20 text-amber-50 ring-amber-200/40"}`}>
+                                    {resumeReady ? "Resume ready" : "Resume pending"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-600">Candidate profile</p>
-                        <h3 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950">{profile.fullName || "Candidate name not saved"}</h3>
-                        <p className="mt-1 text-sm font-bold text-slate-600">{profile.headline || "Candidate profile"}</p>
+                    <button
+                        type="button"
+                        onClick={onEdit}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg shadow-slate-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50"
+                    >
+                        <UserRound className="h-4 w-4" />
+                        Edit profile
+                    </button>
+                </div>
+                <div className="mt-5">
+                    <div className="flex items-center justify-between gap-3 text-xs font-black text-blue-50">
+                        <span>Profile strength</span>
+                        <span>{profileCompletion}%</span>
+                    </div>
+                    <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/20">
+                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-white" style={{ width: `${profileCompletion}%` }} />
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={onEdit}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
-                >
-                    <UserRound className="h-4 w-4" />
-                    Edit profile
-                </button>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 bg-gradient-to-b from-white to-slate-50 p-4 sm:grid-cols-2 xl:grid-cols-4">
                 {infoItems.map((item) => (
-                    <div key={item.label} className="rounded-2xl bg-white p-3 ring-1 ring-blue-100">
-                        <div className="flex items-center gap-2 text-slate-400">
+                    <div key={item.label} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-2 text-blue-500">
                             {item.icon}
-                            <span className="text-[10px] font-black uppercase tracking-wide">{item.label}</span>
+                            <span className="text-[10px] font-black uppercase tracking-wide text-slate-500">{item.label}</span>
                         </div>
-                        <p className="mt-2 break-words text-sm font-black text-slate-900">{item.value}</p>
+                        <p className="mt-2 break-words text-sm font-black text-slate-950">{item.value}</p>
                     </div>
                 ))}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-blue-700 ring-1 ring-blue-100">{profileCompletion}% profile complete</span>
-                <span className={`rounded-full px-3 py-1.5 text-xs font-black ring-1 ${resumeReady ? "bg-emerald-50 text-emerald-700 ring-emerald-100" : "bg-amber-50 text-amber-700 ring-amber-100"}`}>
-                    {resumeReady ? "Resume ready" : "Resume pending"}
-                </span>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-100">{applicationsCount} applications</span>
             </div>
         </div>
     );
@@ -4131,10 +4143,10 @@ function CandidateProfileEditForm({
     ];
 
     return (
-        <div className="mt-4 rounded-3xl border border-slate-100 bg-white p-4 ring-1 ring-slate-100">
+        <div className="mt-4 rounded-[2rem] border border-blue-100 bg-white p-4 shadow-[0_18px_45px_-30px_rgba(37,99,235,0.45)] ring-1 ring-blue-100">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 className="text-sm font-black text-slate-900">Edit profile details</h3>
+                    <h3 className="text-base font-black text-slate-950">Edit profile details</h3>
                     <p className="mt-1 text-xs font-semibold text-slate-500">These details stay visible on the candidate dashboard.</p>
                 </div>
                 <div className="flex gap-2">
@@ -4154,6 +4166,8 @@ function CandidateProfileEditForm({
                             value={profile[field.key]}
                             onChange={(event) => onChange(field.key, event.target.value)}
                             placeholder={field.placeholder}
+                            inputMode={field.key === "phone" ? "tel" : undefined}
+                            autoComplete={field.key === "phone" ? "tel" : field.key === "email" ? "email" : field.key === "fullName" ? "name" : undefined}
                             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
                         />
                     </label>
@@ -4165,10 +4179,14 @@ function CandidateProfileEditForm({
 
 function CandidateMetricCard({ label, value, helper, icon }: { label: string; value: string; helper: string; icon: ReactNode }) {
     return (
-        <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
-            <div className="flex items-center gap-2 text-slate-500">
-                {icon}
-                <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+        <div className="group rounded-3xl border border-white bg-white p-4 shadow-sm ring-1 ring-blue-100/80 transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_-30px_rgba(37,99,235,0.6)]">
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-slate-500">
+                    <span className="grid h-9 w-9 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition group-hover:bg-blue-600 group-hover:text-white">
+                        {icon}
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+                </div>
             </div>
             <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{value}</p>
             <p className="mt-1 text-xs font-semibold text-slate-500">{helper}</p>
