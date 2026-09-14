@@ -3881,6 +3881,30 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
     const updateCandidateProfileDraft = (field: keyof CandidateProfileDetails, value: string) => {
         setCandidateProfileDraft((current) => ({ ...current, [field]: value }));
     };
+    const liveCandidateProgress = useMemo(() => {
+        const hasName = candidateProfileDraft.fullName.trim().length > 1;
+        const hasPhone = candidateProfileDraft.phone.replace(/\D/g, "").length >= 8;
+        const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateProfileDraft.email.trim());
+        const hasCity = candidateProfileDraft.city.trim().length > 1 && candidateProfileDraft.city.trim().toLowerCase() !== "not shared";
+        const hasExperience = candidateProfileDraft.experience.trim().length > 0 && candidateProfileDraft.experience.trim().toLowerCase() !== "not shared";
+        const completion =
+            (hasName ? 15 : 0) +
+            (hasPhone ? 15 : 0) +
+            (hasEmail ? 10 : 0) +
+            (hasCity ? 10 : 0) +
+            (hasExperience ? 15 : 0) +
+            (candidateProgress.hasResume ? 20 : 0) +
+            (candidateProgress.totalApplications > 0 ? 15 : 0);
+        return {
+            ...candidateProgress,
+            profileCompletion: Math.max(0, Math.min(100, completion)),
+            hasName,
+            hasPhone,
+            hasEmail,
+            hasCity,
+            hasExperience,
+        };
+    }, [candidateProfileDraft, candidateProgress]);
     const saveCandidateProfileDraft = () => {
         const normalizedProfile = {
             fullName: candidateProfileDraft.fullName.trim() || candidateProfileDefaults.fullName,
@@ -3904,19 +3928,24 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
         .slice(0, 4);
     const profileTasks = [
         {
-            done: candidateProgress.hasResume,
+            done: liveCandidateProgress.hasResume,
             label: "Resume uploaded",
-            helper: candidateProgress.hasResume ? "Recruiters can review your profile." : "Upload a resume before applying to more jobs.",
+            helper: liveCandidateProgress.hasResume ? "Recruiters can review your profile." : "Upload a resume before applying to more jobs.",
         },
         {
-            done: candidateProgress.hasPhone,
+            done: liveCandidateProgress.hasPhone,
             label: "Phone available",
-            helper: candidateProgress.hasPhone ? "Companies can contact you after approval." : "Add your phone so HR can reach you after unlock.",
+            helper: liveCandidateProgress.hasPhone ? "Companies can contact you after approval." : "Add your phone so HR can reach you after unlock.",
         },
         {
-            done: candidateProgress.totalApplications > 0,
+            done: liveCandidateProgress.hasExperience,
+            label: "Experience added",
+            helper: liveCandidateProgress.hasExperience ? "Your experience is included in matching." : "Add total experience so recruiters can shortlist faster.",
+        },
+        {
+            done: liveCandidateProgress.totalApplications > 0,
             label: "First application sent",
-            helper: candidateProgress.totalApplications > 0 ? "Your application journey has started." : "Apply to one launch role to enter the pipeline.",
+            helper: liveCandidateProgress.totalApplications > 0 ? "Your application journey has started." : "Apply to one launch role to enter the pipeline.",
         },
     ];
 
@@ -3943,14 +3972,14 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         <CandidateMetricCard label="Active applications" value={String(activeApplications.length)} helper="still in hiring pipeline" icon={<Briefcase className="h-4 w-4" />} />
                         <CandidateMetricCard label="Interviews / offers" value={String(interviewApplications.length)} helper="high-priority follow-ups" icon={<CalendarDays className="h-4 w-4" />} />
                         <CandidateMetricCard label="Saved jobs" value={String(savedJobs.length)} helper="roles on your shortlist" icon={<Star className="h-4 w-4" />} />
-                        <CandidateMetricCard label="Profile strength" value={`${candidateProgress.profileCompletion}%`} helper="resume, phone, applications" icon={<ShieldCheck className="h-4 w-4" />} />
+                        <CandidateMetricCard label="Profile strength" value={`${liveCandidateProgress.profileCompletion}%`} helper="name, phone, experience, resume" icon={<ShieldCheck className="h-4 w-4" />} />
                     </div>
                     <div className="mt-5">
                         <CandidateProfileOverviewCard
                             profile={candidateProfileDraft}
                             applicationsCount={myApplications.length}
-                            profileCompletion={candidateProgress.profileCompletion}
-                            resumeReady={candidateProgress.hasResume}
+                            profileCompletion={liveCandidateProgress.profileCompletion}
+                            resumeReady={liveCandidateProgress.hasResume}
                             onEdit={() => setCandidateProfileEditing(true)}
                         />
                         {candidateProfileEditing ? (
@@ -3976,9 +4005,9 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                             </div>
                             <div className="mt-4 grid gap-3 md:grid-cols-3">
                                 <CandidateActionCard
-                                    title={candidateProgress.hasResume ? "Apply to fresh roles" : "Upload resume first"}
-                                    text={candidateProgress.hasResume ? "Your resume is available. Apply to one of the recommended jobs below." : "A resume improves matching and makes recruiter review faster."}
-                                    href={candidateProgress.hasResume ? "#jobs" : "#profile-improvements"}
+                                    title={liveCandidateProgress.hasResume ? "Apply to fresh roles" : "Upload resume first"}
+                                    text={liveCandidateProgress.hasResume ? "Your resume is available. Apply to one of the recommended jobs below." : "A resume improves matching and makes recruiter review faster."}
+                                    href={liveCandidateProgress.hasResume ? "#jobs" : "#profile-improvements"}
                                 />
                                 <CandidateActionCard
                                     title={latestApplication ? "Track latest application" : "Start first application"}
@@ -3995,9 +4024,9 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                         <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4">
                             <h3 className="text-sm font-black text-slate-900">Profile readiness</h3>
                             <div className="mt-4 h-3 w-full rounded-full bg-white ring-1 ring-emerald-100">
-                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style={{ width: `${candidateProgress.profileCompletion}%` }} />
+                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-500" style={{ width: `${liveCandidateProgress.profileCompletion}%` }} />
                             </div>
-                            <p className="mt-2 text-xs font-black text-emerald-700">{candidateProgress.profileCompletion}% complete</p>
+                            <p className="mt-2 text-xs font-black text-emerald-700">{liveCandidateProgress.profileCompletion}% complete</p>
                             <div className="mt-4 space-y-2">
                                 {profileTasks.map((task) => <CandidateProfileTask key={task.label} {...task} />)}
                             </div>
@@ -4045,7 +4074,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                     <ReportChartCard
                         title="Applications by Stage"
                         subtitle="Submitted, review, interview, and beyond"
-                        data={toChartData(candidateProgress.statusBreakdown)}
+                        data={toChartData(liveCandidateProgress.statusBreakdown)}
                         tone="blue"
                     />
                     <div className="rounded-3xl border border-indigo-100 bg-indigo-50/40 p-5">
@@ -4054,9 +4083,9 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                             <p className="text-sm font-bold">Profile Strength</p>
                         </div>
                         <div className="mt-4 h-3 w-full rounded-full bg-white ring-1 ring-indigo-100">
-                            <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500" style={{ width: `${candidateProgress.profileCompletion}%` }} />
+                            <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500" style={{ width: `${liveCandidateProgress.profileCompletion}%` }} />
                         </div>
-                        <p className="mt-2 text-xs font-semibold text-indigo-700">{candidateProgress.profileCompletion}% complete</p>
+                        <p className="mt-2 text-xs font-semibold text-indigo-700">{liveCandidateProgress.profileCompletion}% complete</p>
                         <div className="mt-5 space-y-3">
                             {latestApplication ? getCandidateApplicationTimeline(latestApplication).map((item) => (
                                 <div key={item.title} className="flex gap-3 rounded-2xl bg-white p-3 ring-1 ring-indigo-100">
@@ -4095,8 +4124,8 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                     <CandidateProfileOverviewCard
                         profile={candidateProfileDraft}
                         applicationsCount={myApplications.length}
-                        profileCompletion={candidateProgress.profileCompletion}
-                        resumeReady={candidateProgress.hasResume}
+                        profileCompletion={liveCandidateProgress.profileCompletion}
+                        resumeReady={liveCandidateProgress.hasResume}
                         onEdit={() => setCandidateProfileEditing(true)}
                     />
                     {candidateProfileEditing ? (
@@ -4171,7 +4200,7 @@ function CandidateProfileOverviewCard({
                         <span>{profileCompletion}%</span>
                     </div>
                     <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/20">
-                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-white" style={{ width: `${profileCompletion}%` }} />
+                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-white transition-all duration-500" style={{ width: `${profileCompletion}%` }} />
                     </div>
                 </div>
             </div>
