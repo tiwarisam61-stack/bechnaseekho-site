@@ -328,6 +328,7 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
     const storageOnlyResumeLog = getStorageOnlyResumeLog(storageInsight, knownResumeUploadLog);
     const combinedResumeUploadLog = [...knownResumeUploadLog, ...storageOnlyResumeLog]
         .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
+    const todaysResumeUploadLog = combinedResumeUploadLog.filter((entry) => isKolkataToday(entry.uploadedAt));
     const duplicateGroups = getDuplicateCandidateGroups(allApplications);
     const qualityRankings = allApplications
         .map((application) => ({ application, score: getCandidateQualityScore(application) }))
@@ -696,9 +697,10 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
 
             <section id="resume-intelligence" className={adminSectionClass("resume-intelligence", "rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.2)] sm:p-7")}>
                 <SectionHeading title="Resume Intelligence" subtitle="Storage count, upload log, duplicate candidates, failed upload alerts, and quality scores." />
-                <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                     <SummaryCard label="Storage Count" value={String(resumeStorageCount)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Unique Resumes" value={String(resumeUniqueCount)} icon={<FileClock className="h-4 w-4" />} />
+                    <SummaryCard label="Today's Resumes" value={String(todaysResumeUploadLog.length)} icon={<CalendarDays className="h-4 w-4" />} />
                     <SummaryCard label="Upload Logs" value={String(combinedResumeUploadLog.length)} icon={<FileClock className="h-4 w-4" />} />
                     <SummaryCard label="Failed Alerts" value={String(resumeInsights.failedAlerts.length)} icon={<X className="h-4 w-4" />} />
                     <SummaryCard label="Duplicates" value={String(duplicateGroups.length)} icon={<Users className="h-4 w-4" />} />
@@ -710,6 +712,34 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                             ? `Storage count fallback: ${storageInsightError}`
                             : "Checking Supabase Storage count..."}
                 </p>
+
+                <div className="mt-5 rounded-3xl border border-indigo-100 bg-indigo-50/40 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-900">Today's Resume Uploads</h3>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">Resumes uploaded today from applications, homepage, ATS, templates, and admin WhatsApp upload.</p>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-indigo-700 ring-1 ring-indigo-100">{todaysResumeUploadLog.length} today</span>
+                    </div>
+                    <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                        {todaysResumeUploadLog.length === 0 ? (
+                            <EmptyState title="No resumes today" message="Today's uploads will appear here as soon as a resume reaches Supabase or the application log." />
+                        ) : todaysResumeUploadLog.slice(0, 6).map((entry) => (
+                            <div key={`today-${entry.id}`} className="rounded-2xl bg-white p-3 ring-1 ring-indigo-100">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-900">{entry.candidateName}</p>
+                                        <p className="mt-1 text-xs text-slate-500">{entry.role} · {entry.company}</p>
+                                        <p className="mt-1 break-all text-xs font-black text-indigo-700">{entry.fileName}</p>
+                                    </div>
+                                    <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-indigo-700 ring-1 ring-indigo-100">
+                                        {new Date(entry.uploadedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
                 <div className="mt-5 rounded-3xl border border-sky-100 bg-sky-50/50 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -4061,6 +4091,25 @@ function formatDateTime(value: string | null | undefined) {
         timeStyle: "short",
         timeZone: "Asia/Kolkata",
     });
+}
+
+function getKolkataDateKey(value: string | Date) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+    }).formatToParts(date);
+    const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+    return `${getPart("year")}-${getPart("month")}-${getPart("day")}`;
+}
+
+function isKolkataToday(value: string | null | undefined) {
+    if (!value) return false;
+    const todayKey = getKolkataDateKey(new Date());
+    return getKolkataDateKey(value) === todayKey;
 }
 
 function ReportChartCard({
