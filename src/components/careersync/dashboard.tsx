@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, CircleAlert, Clock3, FileText, Layers3, MessageSquareText, PlusCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
@@ -20,13 +20,34 @@ import {
     type DemoJobRecord,
 } from "@/services/careersync/careersync-service";
 import { buildJobSheetPayload, submitToGoogleSheet } from "@/lib/google-sheet-submit";
-import { reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
+import { fetchSharedCareerSyncResumeInsights, reviewSharedCareerSyncJob } from "@/lib/careersync-jobs-api";
 
 export function CareerSyncDashboard() {
     const { user } = useAuth();
     const { role, isAdmin, isCompany, isEmployee, isCandidate } = useRole();
     const snapshot = useDemoSnapshot();
     const summary = useMemo(() => getDashboardSummary(user?.id ?? null), [snapshot, user?.id]);
+    const [adminResumeStorageCount, setAdminResumeStorageCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!user?.id || !isAdmin) {
+            setAdminResumeStorageCount(null);
+            return;
+        }
+
+        let cancelled = false;
+        void fetchSharedCareerSyncResumeInsights({ role: "admin", userId: user.id, email: user.email })
+            .then((insight) => {
+                if (!cancelled) setAdminResumeStorageCount(insight?.storageCount ?? null);
+            })
+            .catch(() => {
+                if (!cancelled) setAdminResumeStorageCount(null);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAdmin, user?.email, user?.id]);
 
     if (!user || !role) return null;
     const notifications = summary.notifications.slice(0, 4);
@@ -57,7 +78,7 @@ export function CareerSyncDashboard() {
                     <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
                     <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
                     {isAdmin ? (
-                        <MetricCard title="Total resumes" value={String(summary.totalResumes)} note="Saved in Supabase applications" icon={<FileText className="h-4 w-4" />} />
+                        <MetricCard title="Total resumes" value={String(adminResumeStorageCount ?? summary.totalResumes)} note="Saved in Supabase Storage" icon={<FileText className="h-4 w-4" />} />
                     ) : (
                         <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
                     )}
