@@ -1271,6 +1271,23 @@ type CandidateProfileDetails = {
     phone: string;
     city: string;
     experience: string;
+    currentlyWorking: string;
+    currentCompany: string;
+    workingSince: string;
+    previousCompany: string;
+    noticePeriod: string;
+    preferredCities: string;
+    languages: string;
+    skills: string;
+    currentSalary: string;
+    expectedSalary: string;
+    preferredRole: string;
+    workMode: string;
+    summary: string;
+    resumeName: string;
+    resumeUrl: string;
+    resumePath: string;
+    resumeUpdatedAt: string;
 };
 type ResumeStorageInsight = {
     bucket: string;
@@ -3843,9 +3860,13 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
     const activeApplications = myApplications.filter((application) => !RECRUITER_CLOSED_STAGES.includes(recruiterStage(application.status) as (typeof RECRUITER_CLOSED_STAGES)[number]));
     const interviewApplications = myApplications.filter((application) => ["Interview", "Selected", "Offered"].includes(recruiterStage(application.status)));
     const latestApplication = myApplications[0] ?? null;
+    const latestResumeApplication = myApplications.find((application) => application.resume_url || application.resume_path) ?? null;
     const candidateProfileDefaults = useMemo<CandidateProfileDetails>(() => {
         const parsed = latestApplication ? getParsedResumeSummary(latestApplication) : null;
         const latestProfile = latestApplication ? latestApplication as RecruiterApplicationView : null;
+        const latestResumeName = latestResumeApplication
+            ? getApplicationMetaLine(latestResumeApplication, "Resume File") || latestResumeApplication.resume_path?.split("/").pop() || "Current resume"
+            : "";
         return {
             fullName: parsed?.name || latestApplication?.full_name || candidateUser?.full_name || getDemoDisplayName(userId),
             headline: parsed?.lastRole || latestApplication?.job?.role || "Candidate profile",
@@ -3853,12 +3874,31 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
             phone: parsed?.phone || latestApplication?.phone || candidateUser?.phone || "",
             city: latestProfile ? extractCity(latestProfile) : "",
             experience: latestProfile ? extractCandidateExperience(latestProfile) : "",
+            currentlyWorking: "",
+            currentCompany: parsed?.companies?.[0] || "",
+            workingSince: "",
+            previousCompany: parsed?.companies?.[1] || "",
+            noticePeriod: parsed?.noticePeriod || "",
+            preferredCities: latestProfile ? extractCity(latestProfile) : "",
+            languages: parsed?.languages?.join(", ") || "",
+            skills: parsed?.skills?.join(", ") || "",
+            currentSalary: parsed?.currentCtc || "",
+            expectedSalary: parsed?.expectedCtc || "",
+            preferredRole: parsed?.lastRole || latestApplication?.job?.role || "",
+            workMode: "",
+            summary: parsed?.summary || "",
+            resumeName: latestResumeName,
+            resumeUrl: latestResumeApplication?.resume_url || "",
+            resumePath: latestResumeApplication?.resume_path || "",
+            resumeUpdatedAt: latestResumeApplication?.updated_at || latestResumeApplication?.created_at || "",
         };
-    }, [candidateUser?.email, candidateUser?.full_name, candidateUser?.phone, latestApplication, userId]);
+    }, [candidateUser?.email, candidateUser?.full_name, candidateUser?.phone, latestApplication, latestResumeApplication, userId]);
     const candidateProfileStorageKey = `careersync-candidate-profile-${userId}`;
     const [candidateProfileDraft, setCandidateProfileDraft] = useState<CandidateProfileDetails>(candidateProfileDefaults);
     const [candidateProfileSaved, setCandidateProfileSaved] = useState<CandidateProfileDetails>(candidateProfileDefaults);
     const [candidateProfileEditing, setCandidateProfileEditing] = useState(false);
+    const [candidateResumeUploading, setCandidateResumeUploading] = useState(false);
+    const [candidateResumeUploadMessage, setCandidateResumeUploadMessage] = useState("");
     useEffect(() => {
         if (candidateProfileEditing) return;
         if (typeof window === "undefined") {
@@ -3884,28 +3924,53 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
     const updateCandidateProfileDraft = (field: keyof CandidateProfileDetails, value: string) => {
         setCandidateProfileDraft((current) => ({ ...current, [field]: value }));
     };
+    const persistCandidateProfile = (profile: CandidateProfileDetails) => {
+        setCandidateProfileDraft(profile);
+        setCandidateProfileSaved(profile);
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem(candidateProfileStorageKey, JSON.stringify(profile));
+            window.dispatchEvent(new CustomEvent("careersync-candidate-profile-updated"));
+        }
+    };
     const liveCandidateProgress = useMemo(() => {
         const hasName = candidateProfileDraft.fullName.trim().length > 1;
         const hasPhone = candidateProfileDraft.phone.replace(/\D/g, "").length >= 8;
         const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateProfileDraft.email.trim());
         const hasCity = candidateProfileDraft.city.trim().length > 1 && candidateProfileDraft.city.trim().toLowerCase() !== "not shared";
         const hasExperience = candidateProfileDraft.experience.trim().length > 0 && candidateProfileDraft.experience.trim().toLowerCase() !== "not shared";
+        const hasResume = candidateProgress.hasResume || Boolean(candidateProfileDraft.resumeUrl || candidateProfileDraft.resumePath);
+        const hasNoticePeriod = candidateProfileDraft.noticePeriod.trim().length > 0;
+        const hasPreferredCities = candidateProfileDraft.preferredCities.trim().length > 0;
+        const hasLanguages = candidateProfileDraft.languages.trim().length > 0;
+        const hasSkills = candidateProfileDraft.skills.trim().length > 0;
+        const hasEmploymentStatus = candidateProfileDraft.currentlyWorking.trim().length > 0;
         const completion =
-            (hasName ? 15 : 0) +
-            (hasPhone ? 15 : 0) +
+            (hasName ? 10 : 0) +
+            (hasPhone ? 10 : 0) +
             (hasEmail ? 10 : 0) +
             (hasCity ? 10 : 0) +
             (hasExperience ? 15 : 0) +
-            (candidateProgress.hasResume ? 20 : 0) +
-            (candidateProgress.totalApplications > 0 ? 15 : 0);
+            (hasResume ? 15 : 0) +
+            (candidateProgress.totalApplications > 0 ? 10 : 0) +
+            (hasEmploymentStatus ? 5 : 0) +
+            (hasNoticePeriod ? 5 : 0) +
+            (hasPreferredCities ? 5 : 0) +
+            (hasLanguages ? 5 : 0) +
+            (hasSkills ? 5 : 0);
         return {
             ...candidateProgress,
+            hasResume,
             profileCompletion: Math.max(0, Math.min(100, completion)),
             hasName,
             hasPhone,
             hasEmail,
             hasCity,
             hasExperience,
+            hasEmploymentStatus,
+            hasNoticePeriod,
+            hasPreferredCities,
+            hasLanguages,
+            hasSkills,
         };
     }, [candidateProfileDraft, candidateProgress]);
     const saveCandidateProfileDraft = () => {
@@ -3916,15 +3981,98 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
             phone: candidateProfileDraft.phone.trim(),
             city: candidateProfileDraft.city.trim(),
             experience: candidateProfileDraft.experience.trim(),
+            currentlyWorking: candidateProfileDraft.currentlyWorking.trim(),
+            currentCompany: candidateProfileDraft.currentCompany.trim(),
+            workingSince: candidateProfileDraft.workingSince.trim(),
+            previousCompany: candidateProfileDraft.previousCompany.trim(),
+            noticePeriod: candidateProfileDraft.noticePeriod.trim(),
+            preferredCities: candidateProfileDraft.preferredCities.trim(),
+            languages: candidateProfileDraft.languages.trim(),
+            skills: candidateProfileDraft.skills.trim(),
+            currentSalary: candidateProfileDraft.currentSalary.trim(),
+            expectedSalary: candidateProfileDraft.expectedSalary.trim(),
+            preferredRole: candidateProfileDraft.preferredRole.trim(),
+            workMode: candidateProfileDraft.workMode.trim(),
+            summary: candidateProfileDraft.summary.trim(),
+            resumeName: candidateProfileDraft.resumeName.trim(),
+            resumeUrl: candidateProfileDraft.resumeUrl.trim(),
+            resumePath: candidateProfileDraft.resumePath.trim(),
+            resumeUpdatedAt: candidateProfileDraft.resumeUpdatedAt.trim(),
         };
-        setCandidateProfileDraft(normalizedProfile);
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem(candidateProfileStorageKey, JSON.stringify(normalizedProfile));
-            window.dispatchEvent(new CustomEvent("careersync-candidate-profile-updated"));
-        }
-        setCandidateProfileSaved(normalizedProfile);
+        persistCandidateProfile(normalizedProfile);
         setCandidateProfileEditing(false);
         toast.success("Candidate profile updated.");
+    };
+    const handleCandidateLatestResume = async (file: File | null) => {
+        if (!file) return;
+        const isAllowedFile = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type) || /\.(pdf|docx?)$/i.test(file.name);
+        if (!isAllowedFile) {
+            toast.error("Only PDF, DOC, or DOCX resumes are supported.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Resume must be under 5 MB.");
+            return;
+        }
+
+        setCandidateResumeUploading(true);
+        setCandidateResumeUploadMessage("Reading resume and updating profile...");
+        try {
+            const text = await extractResumeText(file);
+            let extracted: SharedResumeParseResult | null = null;
+            try {
+                extracted = await parseSharedCareerSyncResume({ text, fileName: file.name });
+            } catch {
+                extracted = null;
+            }
+            const finalExtract = extracted ?? extractResumeProfile(text);
+            const uploaded = await uploadSharedCareerSyncResume({
+                userId: `candidate-profile-${userId}`,
+                file,
+                candidateName: finalExtract.name || candidateProfileDraft.fullName,
+                candidateEmail: finalExtract.email || candidateProfileDraft.email,
+                candidatePhone: finalExtract.phone || candidateProfileDraft.phone,
+                candidateCity: finalExtract.city || candidateProfileDraft.city,
+                candidateExperience: finalExtract.totalExperience || candidateProfileDraft.experience,
+                candidateLastRole: finalExtract.lastRole || candidateProfileDraft.headline,
+                source: "candidate-profile-resume",
+            });
+            const nextProfile: CandidateProfileDetails = {
+                ...candidateProfileDraft,
+                fullName: finalExtract.name || candidateProfileDraft.fullName || candidateProfileDefaults.fullName,
+                headline: finalExtract.lastRole || candidateProfileDraft.headline || candidateProfileDefaults.headline,
+                email: finalExtract.email || candidateProfileDraft.email,
+                phone: finalExtract.phone || candidateProfileDraft.phone,
+                city: finalExtract.city || candidateProfileDraft.city,
+                experience: finalExtract.totalExperience || candidateProfileDraft.experience,
+                currentCompany: finalExtract.companies?.[0] || candidateProfileDraft.currentCompany,
+                previousCompany: finalExtract.companies?.[1] || candidateProfileDraft.previousCompany,
+                noticePeriod: finalExtract.noticePeriod || candidateProfileDraft.noticePeriod,
+                languages: finalExtract.languages?.length ? finalExtract.languages.join(", ") : candidateProfileDraft.languages,
+                skills: finalExtract.skills?.length ? finalExtract.skills.join(", ") : candidateProfileDraft.skills,
+                currentSalary: finalExtract.currentCtc || candidateProfileDraft.currentSalary,
+                expectedSalary: finalExtract.expectedCtc || candidateProfileDraft.expectedSalary,
+                preferredRole: finalExtract.lastRole || candidateProfileDraft.preferredRole,
+                summary: finalExtract.summary || candidateProfileDraft.summary,
+                resumeName: uploaded.name || file.name,
+                resumeUrl: uploaded.url,
+                resumePath: uploaded.path,
+                resumeUpdatedAt: new Date().toISOString(),
+            };
+            persistCandidateProfile(nextProfile);
+            setCandidateResumeUploadMessage("Latest resume uploaded and profile auto-filled.");
+            toast.success(finalExtract.source === "ai" ? "AI read your resume and updated profile." : "Resume uploaded and profile updated.");
+        } catch (error) {
+            const message = error instanceof ResumeError
+                ? `${error.message}. ${error.hint}`
+                : error instanceof Error
+                    ? error.message
+                    : "Could not upload the latest resume.";
+            setCandidateResumeUploadMessage(message);
+            toast.error(message);
+        } finally {
+            setCandidateResumeUploading(false);
+        }
     };
     const profileTasks = [
         {
@@ -3941,6 +4089,21 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
             done: liveCandidateProgress.hasExperience,
             label: "Experience added",
             helper: liveCandidateProgress.hasExperience ? "Your experience is included in matching." : "Add total experience so recruiters can shortlist faster.",
+        },
+        {
+            done: liveCandidateProgress.hasNoticePeriod,
+            label: "Notice period added",
+            helper: liveCandidateProgress.hasNoticePeriod ? "Recruiters can plan joining timelines." : "Add notice period to improve recruiter response quality.",
+        },
+        {
+            done: liveCandidateProgress.hasSkills,
+            label: "Skills added",
+            helper: liveCandidateProgress.hasSkills ? "Your skills are included in matching." : "Add 5-8 strongest skills from your role.",
+        },
+        {
+            done: liveCandidateProgress.hasPreferredCities,
+            label: "Preferred cities added",
+            helper: liveCandidateProgress.hasPreferredCities ? "Location matching is clearer." : "Add all cities where you can comfortably work.",
         },
         {
             done: liveCandidateProgress.totalApplications > 0,
@@ -3980,7 +4143,7 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
                         <CandidateMetricCard label="Active applications" value={String(activeApplications.length)} helper="still in hiring pipeline" icon={<Briefcase className="h-4 w-4" />} />
                         <CandidateMetricCard label="Interviews / offers" value={String(interviewApplications.length)} helper="high-priority follow-ups" icon={<CalendarDays className="h-4 w-4" />} />
                         <CandidateMetricCard label="Saved jobs" value={String(savedJobs.length)} helper="roles on your shortlist" icon={<Star className="h-4 w-4" />} />
-                        <CandidateMetricCard label="Profile strength" value={`${liveCandidateProgress.profileCompletion}%`} helper="name, phone, experience, resume" icon={<ShieldCheck className="h-4 w-4" />} />
+                        <CandidateMetricCard label="Profile strength" value={`${liveCandidateProgress.profileCompletion}%`} helper="resume, skills, notice, locations" icon={<ShieldCheck className="h-4 w-4" />} />
                     </div>
                     <div className="mt-5">
                         <CandidateProfileOverviewCard
@@ -3988,12 +4151,18 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
                             applicationsCount={myApplications.length}
                             profileCompletion={liveCandidateProgress.profileCompletion}
                             resumeReady={liveCandidateProgress.hasResume}
+                            onResumeUpload={handleCandidateLatestResume}
+                            resumeUploading={candidateResumeUploading}
+                            resumeUploadMessage={candidateResumeUploadMessage}
                             onEdit={() => setCandidateProfileEditing(true)}
                         />
                         {candidateProfileEditing ? (
                             <CandidateProfileEditForm
                                 profile={candidateProfileDraft}
                                 onChange={updateCandidateProfileDraft}
+                                onResumeUpload={handleCandidateLatestResume}
+                                resumeUploading={candidateResumeUploading}
+                                resumeUploadMessage={candidateResumeUploadMessage}
                                 onSave={saveCandidateProfileDraft}
                                 onCancel={() => {
                                     setCandidateProfileDraft(candidateProfileSaved);
@@ -4161,12 +4330,18 @@ function CandidateWorkspace({ userId, snapshot, activeSection }: { userId: strin
                         applicationsCount={myApplications.length}
                         profileCompletion={liveCandidateProgress.profileCompletion}
                         resumeReady={liveCandidateProgress.hasResume}
+                        onResumeUpload={handleCandidateLatestResume}
+                        resumeUploading={candidateResumeUploading}
+                        resumeUploadMessage={candidateResumeUploadMessage}
                         onEdit={() => setCandidateProfileEditing(true)}
                     />
                     {candidateProfileEditing ? (
                         <CandidateProfileEditForm
                             profile={candidateProfileDraft}
                             onChange={updateCandidateProfileDraft}
+                            onResumeUpload={handleCandidateLatestResume}
+                            resumeUploading={candidateResumeUploading}
+                            resumeUploadMessage={candidateResumeUploadMessage}
                             onSave={saveCandidateProfileDraft}
                             onCancel={() => {
                                 setCandidateProfileDraft(candidateProfileSaved);
@@ -4185,19 +4360,36 @@ function CandidateProfileOverviewCard({
     applicationsCount,
     profileCompletion,
     resumeReady,
+    onResumeUpload,
+    resumeUploading,
+    resumeUploadMessage,
     onEdit,
 }: {
     profile: CandidateProfileDetails;
     applicationsCount: number;
     profileCompletion: number;
     resumeReady: boolean;
+    onResumeUpload: (file: File | null) => void;
+    resumeUploading: boolean;
+    resumeUploadMessage: string;
     onEdit: () => void;
 }) {
-    const infoItems = [
+    const employmentLabel = profile.currentlyWorking.toLowerCase() === "yes"
+        ? `${profile.currentCompany || "Current company not shared"}${profile.workingSince ? ` · since ${profile.workingSince}` : ""}`
+        : profile.currentlyWorking.toLowerCase() === "no"
+            ? `Previous: ${profile.previousCompany || "not shared"}`
+            : "Work status not shared";
+    const languageList = splitCandidateProfileList(profile.languages);
+    const skillList = splitCandidateProfileList(profile.skills);
+    const profileItems = [
         { label: "Email", value: profile.email || "Not shared", icon: <Mail className="h-4 w-4" /> },
         { label: "Phone", value: profile.phone || "Not shared", icon: <Phone className="h-4 w-4" /> },
-        { label: "City", value: profile.city || "Not shared", icon: <MapPin className="h-4 w-4" /> },
-        { label: "Experience", value: profile.experience || "Not shared", icon: <Briefcase className="h-4 w-4" /> },
+        { label: "Current city", value: profile.city || "Not shared", icon: <MapPin className="h-4 w-4" /> },
+        { label: "Total experience", value: profile.experience || "Not shared", icon: <Briefcase className="h-4 w-4" /> },
+        { label: "Notice period", value: profile.noticePeriod || "Not shared", icon: <Clock3 className="h-4 w-4" /> },
+        { label: "Preferred cities", value: profile.preferredCities || "Not shared", icon: <MapPin className="h-4 w-4" /> },
+        { label: "Current salary", value: profile.currentSalary || "Not shared", icon: <Wallet className="h-4 w-4" /> },
+        { label: "Expected salary", value: profile.expectedSalary || "Not shared", icon: <Wallet className="h-4 w-4" /> },
     ];
 
     return (
@@ -4229,6 +4421,36 @@ function CandidateProfileOverviewCard({
                         Edit profile
                     </button>
                 </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {profile.resumeUrl ? (
+                        <a href={profile.resumeUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/25 transition hover:bg-white/25">
+                            <Eye className="h-4 w-4" />
+                            See current resume
+                        </a>
+                    ) : (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-300/20 px-4 py-2 text-xs font-black text-amber-50 ring-1 ring-amber-200/30">
+                            <FileClock className="h-4 w-4" />
+                            Current resume not linked
+                        </span>
+                    )}
+                    <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-black ring-1 transition ${resumeUploading ? "bg-white/10 text-blue-100 ring-white/20" : "bg-white text-blue-700 ring-white hover:-translate-y-0.5 hover:bg-blue-50"}`}>
+                        <Upload className="h-4 w-4" />
+                        {resumeUploading ? "Uploading resume..." : "Upload latest resume"}
+                        <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            disabled={resumeUploading}
+                            className="sr-only"
+                            onChange={(event) => {
+                                const file = event.target.files?.[0] ?? null;
+                                void onResumeUpload(file);
+                                event.currentTarget.value = "";
+                            }}
+                        />
+                    </label>
+                    {profile.resumeName ? <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/15 px-4 py-2 text-xs font-black text-cyan-50 ring-1 ring-cyan-200/30">{profile.resumeName}</span> : null}
+                </div>
+                {resumeUploadMessage ? <p className="mt-2 text-xs font-bold text-blue-50">{resumeUploadMessage}</p> : null}
                 <div className="mt-5">
                     <div className="flex items-center justify-between gap-3 text-xs font-black text-blue-50">
                         <span>Profile strength</span>
@@ -4240,7 +4462,7 @@ function CandidateProfileOverviewCard({
                 </div>
             </div>
             <div className="grid gap-3 bg-gradient-to-b from-white to-slate-50 p-4 sm:grid-cols-2 xl:grid-cols-4">
-                {infoItems.map((item) => (
+                {profileItems.map((item) => (
                     <div key={item.label} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                         <div className="flex items-center gap-2 text-blue-500">
                             {item.icon}
@@ -4250,28 +4472,76 @@ function CandidateProfileOverviewCard({
                     </div>
                 ))}
             </div>
+            <div className="grid gap-3 border-t border-slate-100 bg-white p-4 lg:grid-cols-[1fr_1fr_1.2fr]">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Work status</p>
+                    <p className="mt-2 text-sm font-black text-slate-950">{employmentLabel}</p>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">{profile.workMode || "Work mode not shared"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Preferred role</p>
+                    <p className="mt-2 text-sm font-black text-slate-950">{profile.preferredRole || profile.headline || "Not shared"}</p>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">{profile.summary || "Add a short career summary so recruiters understand your fit faster."}</p>
+                </div>
+                <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-wide text-blue-600">Languages</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {languageList.length ? languageList.map((language) => <span key={language} className="rounded-full bg-white px-3 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-100">{language}</span>) : <span className="text-xs font-semibold text-slate-500">Not shared</span>}
+                    </div>
+                    <p className="mt-4 text-[10px] font-black uppercase tracking-wide text-blue-600">Skills</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {skillList.length ? skillList.slice(0, 10).map((skill) => <span key={skill} className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-blue-100">{skill}</span>) : <span className="text-xs font-semibold text-slate-500">Not shared</span>}
+                    </div>
+                </div>
+            </div>
         </div>
     );
+}
+
+function splitCandidateProfileList(value: string) {
+    return value
+        .split(/[,;\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
 }
 
 function CandidateProfileEditForm({
     profile,
     onChange,
+    onResumeUpload,
+    resumeUploading,
+    resumeUploadMessage,
     onSave,
     onCancel,
 }: {
     profile: CandidateProfileDetails;
     onChange: (field: keyof CandidateProfileDetails, value: string) => void;
+    onResumeUpload: (file: File | null) => void;
+    resumeUploading: boolean;
+    resumeUploadMessage: string;
     onSave: () => void;
     onCancel: () => void;
 }) {
-    const fields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string }> = [
+    const basicFields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string; inputMode?: "tel" | "email" }> = [
         { key: "fullName", label: "Full name", placeholder: "Candidate name" },
         { key: "headline", label: "Headline / role", placeholder: "Sales associate, HR recruiter..." },
-        { key: "email", label: "Email", placeholder: "candidate@email.com" },
-        { key: "phone", label: "Phone", placeholder: "98XXXXXXXX" },
-        { key: "city", label: "City", placeholder: "Gurgaon, Delhi..." },
-        { key: "experience", label: "Experience", placeholder: "3 years, Fresher..." },
+        { key: "email", label: "Email", placeholder: "candidate@email.com", inputMode: "email" },
+        { key: "phone", label: "Phone", placeholder: "98XXXXXXXX", inputMode: "tel" },
+        { key: "city", label: "Current city", placeholder: "Gurgaon, Delhi..." },
+        { key: "experience", label: "Total experience", placeholder: "3 years, Fresher..." },
+    ];
+    const careerFields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string }> = [
+        { key: "currentCompany", label: "Current company", placeholder: "Company name if working currently" },
+        { key: "workingSince", label: "Working since", placeholder: "Jan 2024" },
+        { key: "previousCompany", label: "Previous company", placeholder: "Last company if not working currently" },
+        { key: "noticePeriod", label: "Notice period", placeholder: "Immediate, 15 days, 30 days..." },
+        { key: "preferredCities", label: "Comfortable work cities", placeholder: "Gurgaon, Delhi NCR, Noida..." },
+        { key: "workMode", label: "Work mode", placeholder: "Office, hybrid, remote, field..." },
+    ];
+    const marketFields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string }> = [
+        { key: "preferredRole", label: "Preferred role", placeholder: "HR recruiter, sales executive..." },
+        { key: "currentSalary", label: "Current salary", placeholder: "4.2 LPA, 30,000/month..." },
+        { key: "expectedSalary", label: "Expected salary", placeholder: "5 LPA, 40,000/month..." },
     ];
 
     return (
@@ -4290,7 +4560,107 @@ function CandidateProfileEditForm({
                     </button>
                 </div>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 rounded-3xl border border-blue-100 bg-blue-50/40 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p className="text-sm font-black text-slate-950">Resume</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">{profile.resumeName || "Upload your latest resume to auto-fill profile details."}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {profile.resumeUrl ? (
+                            <a href={profile.resumeUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-blue-700 ring-1 ring-blue-100">
+                                <Eye className="h-4 w-4" />
+                                See current resume
+                            </a>
+                        ) : null}
+                        <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-black transition ${resumeUploading ? "bg-slate-100 text-slate-500" : "bg-blue-600 text-white shadow-sm hover:bg-blue-700"}`}>
+                            <Upload className="h-4 w-4" />
+                            {resumeUploading ? "Uploading..." : "Upload latest resume"}
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                disabled={resumeUploading}
+                                className="sr-only"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    void onResumeUpload(file);
+                                    event.currentTarget.value = "";
+                                }}
+                            />
+                        </label>
+                    </div>
+                </div>
+                {resumeUploadMessage ? <p className="mt-3 text-xs font-bold text-blue-700">{resumeUploadMessage}</p> : null}
+            </div>
+            <CandidateProfileFieldGroup title="Basic details" fields={basicFields} profile={profile} onChange={onChange} />
+            <div className="mt-4 rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">Working currently?</span>
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {["Yes", "No", "Open to discuss"].map((option) => (
+                        <button
+                            key={option}
+                            type="button"
+                            onClick={() => onChange("currentlyWorking", option)}
+                            className={`rounded-full px-4 py-2 text-xs font-black transition ${profile.currentlyWorking === option ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-blue-50"}`}
+                        >
+                            {option}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <CandidateProfileFieldGroup title="Career details" fields={careerFields} profile={profile} onChange={onChange} />
+            <CandidateProfileFieldGroup title="Salary and preferences" fields={marketFields} profile={profile} onChange={onChange} />
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                <label className="block">
+                    <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">Languages</span>
+                    <textarea
+                        value={profile.languages}
+                        onChange={(event) => onChange("languages", event.target.value)}
+                        placeholder="Hindi, English, Punjabi..."
+                        rows={3}
+                        className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                </label>
+                <label className="block">
+                    <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">Skills</span>
+                    <textarea
+                        value={profile.skills}
+                        onChange={(event) => onChange("skills", event.target.value)}
+                        placeholder="Recruitment, screening, calling, Excel..."
+                        rows={3}
+                        className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                </label>
+                <label className="block lg:col-span-2">
+                    <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">Short profile summary</span>
+                    <textarea
+                        value={profile.summary}
+                        onChange={(event) => onChange("summary", event.target.value)}
+                        placeholder="2-3 lines about your strengths, target role, industry, and availability."
+                        rows={3}
+                        className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                </label>
+            </div>
+        </div>
+    );
+}
+
+function CandidateProfileFieldGroup({
+    title,
+    fields,
+    profile,
+    onChange,
+}: {
+    title: string;
+    fields: Array<{ key: keyof CandidateProfileDetails; label: string; placeholder: string; inputMode?: "tel" | "email" }>;
+    profile: CandidateProfileDetails;
+    onChange: (field: keyof CandidateProfileDetails, value: string) => void;
+}) {
+    return (
+        <div className="mt-4">
+            <p className="text-sm font-black text-slate-950">{title}</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {fields.map((field) => (
                     <label key={field.key} className="block">
                         <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">{field.label}</span>
@@ -4298,7 +4668,7 @@ function CandidateProfileEditForm({
                             value={profile[field.key]}
                             onChange={(event) => onChange(field.key, event.target.value)}
                             placeholder={field.placeholder}
-                            inputMode={field.key === "phone" ? "tel" : undefined}
+                            inputMode={field.inputMode}
                             autoComplete={field.key === "phone" ? "tel" : field.key === "email" ? "email" : field.key === "fullName" ? "name" : undefined}
                             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
                         />
