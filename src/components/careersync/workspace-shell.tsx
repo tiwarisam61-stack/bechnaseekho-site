@@ -2170,6 +2170,29 @@ function getCandidateApplicationTimeline(application: DemoApplicationRecord & { 
     ];
 }
 
+function getCandidateStageProgress(stage: string) {
+    const order = ["Applied", "Screening", "Shortlisted", "Interview", "Selected", "Offered", "Joined"];
+    if (RECRUITER_CLOSED_STAGES.includes(stage as (typeof RECRUITER_CLOSED_STAGES)[number])) return 100;
+    const index = Math.max(0, order.indexOf(stage));
+    return Math.round(((index + 1) / order.length) * 100);
+}
+
+function getCandidateNextStep(stage: string) {
+    if (stage === "Applied") return "Next: CareerSync and the company review your resume. Keep your phone available for updates.";
+    if (stage === "Screening") return "Next: Recruiter is checking basic fit. Make sure your resume and contact details are correct.";
+    if (stage === "Shortlisted") return "Next: You are shortlisted. Watch notifications for interview scheduling.";
+    if (stage === "Interview") return "Next: Prepare for the interview and respond quickly to recruiter calls or messages.";
+    if (stage === "Selected") return "Next: Selection is positive. Wait for offer details or joining confirmation.";
+    if (stage === "Offered") return "Next: Review the offer and confirm acceptance as soon as possible.";
+    if (stage === "Joined") return "You are marked joined. Keep your profile updated for future opportunities.";
+    if (stage === "Rejected") return "This application is closed. Use the feedback to apply to better-fit roles.";
+    if (stage === "Withdrawn") return "This application was withdrawn. You can still apply to other matching jobs.";
+    if (stage === "No-show") return "This application is blocked due to no-show. Contact support if this is incorrect.";
+    if (stage === "Offer Declined") return "Offer was declined. Keep browsing roles that match your expectations.";
+    if (stage === "Not Joined") return "This application closed after offer stage. Update availability before applying again.";
+    return "Next update will appear here once the company moves your application.";
+}
+
 function getApplicationDataHealth(applications: Array<DemoApplicationRecord & { job?: DemoJobRecord }>) {
     const issues = applications.flatMap((application) => {
         const applicationIssues: Array<{ application: DemoApplicationRecord & { job?: DemoJobRecord }; label: string }> = [];
@@ -3736,15 +3759,106 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
     const myNotifications = getDemoNotificationsForUser(userId);
     const savedJobs = approvedJobs.filter((job) => savedJobIds.includes(job.id));
     const candidateProgress = getCareerSyncCandidateProgress(userId);
+    const appliedJobIds = new Set(myApplications.map((application) => application.job_id));
+    const activeApplications = myApplications.filter((application) => !RECRUITER_CLOSED_STAGES.includes(recruiterStage(application.status) as (typeof RECRUITER_CLOSED_STAGES)[number]));
+    const interviewApplications = myApplications.filter((application) => ["Interview", "Selected", "Offered"].includes(recruiterStage(application.status)));
+    const latestApplication = myApplications[0] ?? null;
+    const recommendedJobs = approvedJobs
+        .filter((job) => !appliedJobIds.has(job.id))
+        .sort((a, b) => Number(savedJobIds.includes(b.id)) - Number(savedJobIds.includes(a.id)) || a.role.localeCompare(b.role))
+        .slice(0, 4);
+    const profileTasks = [
+        {
+            done: candidateProgress.hasResume,
+            label: "Resume uploaded",
+            helper: candidateProgress.hasResume ? "Recruiters can review your profile." : "Upload a resume before applying to more jobs.",
+        },
+        {
+            done: candidateProgress.hasPhone,
+            label: "Phone available",
+            helper: candidateProgress.hasPhone ? "Companies can contact you after approval." : "Add your phone so HR can reach you after unlock.",
+        },
+        {
+            done: candidateProgress.totalApplications > 0,
+            label: "First application sent",
+            helper: candidateProgress.totalApplications > 0 ? "Your application journey has started." : "Apply to one launch role to enter the pipeline.",
+        },
+    ];
 
     return (
         <div className="space-y-6">
-            <section id="dashboard">
+            <section id="dashboard" className="space-y-5">
                 <CareerSyncDashboard />
+                <div className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">Candidate launch dashboard</p>
+                            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">Your job search cockpit</h2>
+                            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+                                Track applications, keep your resume ready, and act quickly when a recruiter moves your profile.
+                            </p>
+                        </div>
+                        <a href="#jobs" className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800">
+                            Browse jobs
+                            <ArrowRight className="h-4 w-4" />
+                        </a>
+                    </div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <CandidateMetricCard label="Active applications" value={String(activeApplications.length)} helper="still in hiring pipeline" icon={<Briefcase className="h-4 w-4" />} />
+                        <CandidateMetricCard label="Interviews / offers" value={String(interviewApplications.length)} helper="high-priority follow-ups" icon={<CalendarDays className="h-4 w-4" />} />
+                        <CandidateMetricCard label="Saved jobs" value={String(savedJobs.length)} helper="roles on your shortlist" icon={<Star className="h-4 w-4" />} />
+                        <CandidateMetricCard label="Profile strength" value={`${candidateProgress.profileCompletion}%`} helper="resume, phone, applications" icon={<ShieldCheck className="h-4 w-4" />} />
+                    </div>
+                    <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-sm font-black text-slate-900">Next best action</h3>
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">What you should do first today.</p>
+                                </div>
+                                <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100">Launch ready</span>
+                            </div>
+                            <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                <CandidateActionCard
+                                    title={candidateProgress.hasResume ? "Apply to fresh roles" : "Upload resume first"}
+                                    text={candidateProgress.hasResume ? "Your resume is available. Apply to one of the recommended jobs below." : "A resume improves matching and makes recruiter review faster."}
+                                    href={candidateProgress.hasResume ? "#jobs" : "#profile-improvements"}
+                                />
+                                <CandidateActionCard
+                                    title={latestApplication ? "Track latest application" : "Start first application"}
+                                    text={latestApplication ? `${latestApplication.job?.role ?? "Latest role"} is at ${recruiterStage(latestApplication.status)} stage.` : "Pick an approved job and apply to start your CareerSync journey."}
+                                    href={latestApplication ? "#applications" : "#jobs"}
+                                />
+                                <CandidateActionCard
+                                    title={savedJobs.length ? "Review saved jobs" : "Save jobs to compare"}
+                                    text={savedJobs.length ? `${savedJobs.length} saved roles are waiting for a decision.` : "Save roles you like so they are easy to revisit later."}
+                                    href="#saved-jobs"
+                                />
+                            </div>
+                        </div>
+                        <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4">
+                            <h3 className="text-sm font-black text-slate-900">Profile readiness</h3>
+                            <div className="mt-4 h-3 w-full rounded-full bg-white ring-1 ring-emerald-100">
+                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style={{ width: `${candidateProgress.profileCompletion}%` }} />
+                            </div>
+                            <p className="mt-2 text-xs font-black text-emerald-700">{candidateProgress.profileCompletion}% complete</p>
+                            <div className="mt-4 space-y-2">
+                                {profileTasks.map((task) => <CandidateProfileTask key={task.label} {...task} />)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section id="jobs" className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
                 <SectionHeading title="Jobs" subtitle="Browse approved roles and save ones you want to revisit." />
+                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                    {recommendedJobs.length === 0 ? (
+                        <EmptyState title="No new recommendations" message="You have already applied to or saved the currently visible launch jobs." />
+                    ) : recommendedJobs.map((job) => (
+                        <CandidateRecommendedJobCard key={job.id} job={job} userId={userId} saved={savedJobIds.includes(job.id)} />
+                    ))}
+                </div>
                 <div className="mt-5">
                     <CareerSyncJobsSection />
                 </div>
@@ -3762,36 +3876,10 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
 
             <section id="applications" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Applications" subtitle="Your submitted applications and current status." />
-                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                <div className="mt-5 space-y-3">
                     {myApplications.length === 0 ? (
                         <EmptyState title="No applications yet" message="Apply to a role to see it here." />
-                    ) : myApplications.map((application) => (
-                        <div key={application.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
-                            <p className="text-sm font-bold text-slate-900">{application.job?.role ?? "Applied role"}</p>
-                            <p className="mt-1 text-xs text-slate-500">{application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
-                            <p className="mt-1 text-xs text-slate-500">Applied as {application.full_name} · {new Date(application.created_at).toLocaleDateString("en-IN")}</p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {application.resume_url ? (
-                                    <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">Resume</a>
-                                ) : null}
-                                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">{application.email}</span>
-                            </div>
-                            <span className="mt-3 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                                {recruiterStage(application.status)}
-                            </span>
-                            <div className="mt-4 space-y-2">
-                                {getCandidateApplicationTimeline(application).map((item) => (
-                                    <div key={item.title} className="flex gap-2 text-xs">
-                                        <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.done ? "bg-emerald-500" : "bg-amber-400"}`} />
-                                        <div>
-                                            <p className="font-bold text-slate-800">{item.title}</p>
-                                            <p className="mt-0.5 text-slate-500">{item.text}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                    ) : myApplications.map((application) => <CandidateApplicationCard key={application.id} application={application} />)}
                 </div>
             </section>
 
@@ -3813,16 +3901,30 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                             <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500" style={{ width: `${candidateProgress.profileCompletion}%` }} />
                         </div>
                         <p className="mt-2 text-xs font-semibold text-indigo-700">{candidateProgress.profileCompletion}% complete</p>
+                        <div className="mt-5 space-y-3">
+                            {latestApplication ? getCandidateApplicationTimeline(latestApplication).map((item) => (
+                                <div key={item.title} className="flex gap-3 rounded-2xl bg-white p-3 ring-1 ring-indigo-100">
+                                    <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${item.done ? "bg-emerald-500" : "bg-amber-400"}`} />
+                                    <div>
+                                        <p className="text-xs font-black text-slate-900">{item.title}</p>
+                                        <p className="mt-1 text-xs font-semibold text-slate-500">{item.text}</p>
+                                    </div>
+                                </div>
+                            )) : <EmptyState title="No timeline yet" message="Apply to a job and your journey will appear here." />}
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section id="profile-improvements" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
                 <SectionHeading title="Profile Improvements" subtitle="Action checklist to improve response rate." />
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <ImprovementPill label="Phone Verified" done={candidateProgress.hasPhone} />
-                    <ImprovementPill label="Resume Uploaded" done={candidateProgress.hasResume} />
-                    <ImprovementPill label="Applied to Jobs" done={candidateProgress.totalApplications > 0} />
+                <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                    {profileTasks.map((task) => (
+                        <div key={task.label} className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-4">
+                            <ImprovementPill label={task.label} done={task.done} />
+                            <p className="mt-3 text-xs font-semibold leading-5 text-slate-600">{task.helper}</p>
+                        </div>
+                    ))}
                 </div>
             </section>
 
@@ -3839,6 +3941,134 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                     <SummaryCard label="Applications" value={String(myApplications.length)} icon={<ArrowRight className="h-4 w-4" />} />
                 </div>
             </section>
+        </div>
+    );
+}
+
+function CandidateMetricCard({ label, value, helper, icon }: { label: string; value: string; helper: string; icon: ReactNode }) {
+    return (
+        <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
+            <div className="flex items-center gap-2 text-slate-500">
+                {icon}
+                <span className="text-xs font-black uppercase tracking-wide">{label}</span>
+            </div>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{value}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">{helper}</p>
+        </div>
+    );
+}
+
+function CandidateActionCard({ title, text, href }: { title: string; text: string; href: string }) {
+    return (
+        <a href={href} className="block rounded-2xl bg-white p-3 ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-lg">
+            <p className="text-sm font-black text-slate-900">{title}</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{text}</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-blue-700">
+                Open
+                <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+        </a>
+    );
+}
+
+function CandidateProfileTask({ label, helper, done }: { label: string; helper: string; done: boolean }) {
+    return (
+        <div className="flex gap-3 rounded-2xl bg-white p-3 ring-1 ring-emerald-100">
+            <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${done ? "bg-emerald-500 text-white" : "bg-amber-100 text-amber-700"}`}>
+                {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+            </span>
+            <div>
+                <p className="text-xs font-black text-slate-900">{label}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{helper}</p>
+            </div>
+        </div>
+    );
+}
+
+function CandidateRecommendedJobCard({ job, userId, saved }: { job: DemoJobRecord; userId: string; saved: boolean }) {
+    return (
+        <div className="rounded-3xl border border-blue-100 bg-blue-50/40 p-4 ring-1 ring-blue-100">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p className="text-sm font-black text-slate-900">{job.role}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">{job.company} · {job.location ?? "Remote"} · {job.employment_type ?? "Role type"}</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => toggleDemoSavedJob(userId, job.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-black transition ${saved ? "bg-blue-600 text-white" : "bg-white text-blue-700 ring-1 ring-blue-100 hover:bg-blue-50"}`}
+                >
+                    {saved ? "Saved" : "Save"}
+                </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+                {job.salary ? <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{job.salary}</span> : null}
+                {job.experience ? <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{job.experience}</span> : null}
+                {(job.tags ?? []).slice(0, 2).map((tag) => (
+                    <span key={tag} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-blue-100">{tag}</span>
+                ))}
+            </div>
+            <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-slate-600">{job.description ?? "No description yet."}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <Link to="/careersync/jobs" className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white transition hover:bg-slate-800">Apply / View</Link>
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-blue-700 ring-1 ring-blue-100">Recommended</span>
+            </div>
+        </div>
+    );
+}
+
+function CandidateApplicationCard({ application }: { application: DemoApplicationRecord & { job?: DemoJobRecord } }) {
+    const stage = recruiterStage(application.status);
+    const progress = getCandidateStageProgress(stage);
+    const resumeName = getApplicationMetaLine(application, "Resume File") || application.resume_path?.split("/").pop() || "Resume";
+    const nextStep = getCandidateNextStep(stage);
+    const fit = application.job ? getApplicationFit(application, application.job) : application.ai_match_score ?? 0;
+    return (
+        <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+                <div>
+                    <div className="flex flex-wrap items-start gap-3">
+                        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-100 font-display text-sm font-black text-blue-700">
+                            {getCompanyInitials(application.job?.company ?? application.full_name)}
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-base font-black text-slate-900">{application.job?.role ?? "Applied role"}</p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">{application.job?.company ?? "Company"} · {application.job?.location ?? "Location open"}</p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">Applied as {application.full_name} · {formatDateTime(application.created_at)}</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 h-2.5 w-full rounded-full bg-white ring-1 ring-slate-100">
+                        <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500" style={{ width: `${progress}%` }} />
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700 ring-1 ring-blue-100">{stage}</span>
+                        {fit ? <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">{fit}% fit</span> : null}
+                        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">{application.email}</span>
+                        {application.resume_url ? (
+                            <a href={application.resume_url} target="_blank" rel="noopener" className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">Resume</a>
+                        ) : application.resume_path ? (
+                            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700 ring-1 ring-slate-200">{resumeName}</span>
+                        ) : (
+                            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700 ring-1 ring-amber-100">Resume missing</span>
+                        )}
+                    </div>
+                    <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-100">{nextStep}</p>
+                </div>
+                <div className="min-w-[240px] rounded-2xl bg-white p-3 ring-1 ring-slate-100">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Timeline</p>
+                    <div className="mt-3 space-y-2">
+                        {getCandidateApplicationTimeline(application).map((item) => (
+                            <div key={item.title} className="flex gap-2 text-xs">
+                                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.done ? "bg-emerald-500" : "bg-amber-400"}`} />
+                                <div>
+                                    <p className="font-bold text-slate-800">{item.title}</p>
+                                    <p className="mt-0.5 text-slate-500">{item.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
