@@ -168,6 +168,37 @@ export function CareerSyncWorkspaceShell() {
         };
     }, [role, user?.email, user?.id]);
 
+    const navItems = role === "admin" ? ROLE_NAVS.admin : role === "company" ? ROLE_NAVS.company : role === "employee" ? ROLE_NAVS.employee : ROLE_NAVS.candidate;
+    const workspaceSectionIds = useMemo(
+        () => new Set(navItems.filter((item) => item.href.startsWith("#")).map((item) => item.href.slice(1))),
+        [navItems],
+    );
+    const [activeWorkspaceSection, setActiveWorkspaceSection] = useState("dashboard");
+
+    useEffect(() => {
+        if (!role) return;
+        const syncActiveSection = () => {
+            const hash = window.location.hash.replace("#", "");
+            setActiveWorkspaceSection(workspaceSectionIds.has(hash) ? hash : "dashboard");
+        };
+        syncActiveSection();
+        window.addEventListener("hashchange", syncActiveSection);
+        return () => window.removeEventListener("hashchange", syncActiveSection);
+    }, [role, workspaceSectionIds]);
+
+    const openWorkspaceSection = (sectionId: string, href: string) => {
+        setActiveWorkspaceSection(sectionId);
+        window.history.replaceState(null, "", href);
+
+        if (role === "admin" || role === "company") {
+            window.dispatchEvent(new CustomEvent(role === "company" ? "careersync-company-section" : "careersync-admin-section", { detail: sectionId }));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     if (authLoading || roleLoading) {
         return <WorkspaceLoading />;
     }
@@ -175,8 +206,6 @@ export function CareerSyncWorkspaceShell() {
     if (!user || !role) {
         return <WorkspaceLoading />;
     }
-
-    const navItems = role === "admin" ? ROLE_NAVS.admin : role === "company" ? ROLE_NAVS.company : role === "employee" ? ROLE_NAVS.employee : ROLE_NAVS.candidate;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/40 text-[#0F172A]">
@@ -195,20 +224,30 @@ export function CareerSyncWorkspaceShell() {
                     <nav className="flex w-full flex-wrap items-center justify-start gap-2 lg:w-auto lg:flex-1">
                         {navItems.map((item) => (
                             item.href.startsWith("#") ? (
+                                (() => {
+                                    const sectionId = item.href.slice(1);
+                                    const isActive = activeWorkspaceSection === sectionId;
+                                    return (
                                 <a
                                     key={item.label}
                                     href={item.href}
                                     onClick={(event) => {
-                                        if (role !== "company" && role !== "admin") return;
                                         event.preventDefault();
-                                        window.history.replaceState(null, "", item.href);
-                                        window.dispatchEvent(new CustomEvent(role === "company" ? "careersync-company-section" : "careersync-admin-section", { detail: item.href.slice(1) }));
-                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                        openWorkspaceSection(sectionId, item.href);
                                     }}
-                                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-100 transition hover:bg-slate-50 hover:text-slate-900"
+                                    aria-current={isActive ? "page" : undefined}
+                                    className={`group relative inline-flex items-center overflow-hidden rounded-full px-3 py-2 text-xs font-black ring-1 transition duration-300 ${
+                                        isActive
+                                            ? "scale-[1.02] bg-blue-600 text-white shadow-lg shadow-blue-100 ring-blue-200"
+                                            : "bg-white text-slate-600 ring-slate-100 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-slate-900"
+                                    }`}
                                 >
-                                    {item.label}
+                                    <span className={`mr-2 h-1.5 w-1.5 rounded-full transition-all duration-300 ${isActive ? "scale-100 bg-white opacity-100" : "scale-0 bg-blue-500 opacity-0"}`} />
+                                    <span className="relative z-10">{item.label}</span>
+                                    <span className={`absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-white/80 transition-all duration-300 ${isActive ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"}`} />
                                 </a>
+                                    );
+                                })()
                             ) : (
                                 <Link
                                     key={item.label}
@@ -3883,7 +3922,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
 
     return (
         <div className="space-y-6">
-            <section id="dashboard" className="space-y-5">
+            <section id="dashboard" className="scroll-mt-32 space-y-5">
                 <CareerSyncDashboard />
                 <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_42%,#f8fafc_100%)] p-5 shadow-[0_30px_80px_-36px_rgba(37,99,235,0.38)] sm:p-7">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400" />
@@ -3967,7 +4006,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="jobs" className="rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
+            <section id="jobs" className="scroll-mt-32 rounded-[2rem] border border-blue-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(37,99,235,0.28)] sm:p-7">
                 <SectionHeading title="Jobs" subtitle="Browse approved roles and save ones you want to revisit." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {recommendedJobs.length === 0 ? (
@@ -3981,7 +4020,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="saved-jobs" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="saved-jobs" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Saved Jobs" subtitle="Jobs saved to your personal shortlist." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
                     {savedJobs.length === 0 ? (
@@ -3991,7 +4030,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="applications" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="applications" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Applications" subtitle="Your submitted applications and current status." />
                 <div className="mt-5 space-y-3">
                     {myApplications.length === 0 ? (
@@ -4000,7 +4039,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="status-tracking" className="rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7">
+            <section id="status-tracking" className="scroll-mt-32 rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(99,102,241,0.2)] sm:p-7">
                 <SectionHeading title="Status Tracking" subtitle="Visualize your application journey in one view." />
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">
                     <ReportChartCard
@@ -4033,7 +4072,7 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="profile-improvements" className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
+            <section id="profile-improvements" className="scroll-mt-32 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(16,185,129,0.2)] sm:p-7">
                 <SectionHeading title="Profile Improvements" subtitle="Action checklist to improve response rate." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-3">
                     {profileTasks.map((task) => (
@@ -4045,12 +4084,12 @@ function CandidateWorkspace({ userId, snapshot }: { userId: string; snapshot: Re
                 </div>
             </section>
 
-            <section id="notifications" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="notifications" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Notifications" subtitle="Only candidate notifications for this account." />
                 <NotificationList notifications={myNotifications} emptyLabel="No candidate notifications yet." />
             </section>
 
-            <section id="profile" className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
+            <section id="profile" className="scroll-mt-32 rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7">
                 <SectionHeading title="Profile" subtitle="Your candidate profile and contact details." />
                 <div className="mt-5">
                     <CandidateProfileOverviewCard
