@@ -8,7 +8,9 @@ import { useRole } from "@/hooks/use-role";
 import {
     approveDemoJob,
     getDashboardSummary,
+    getCareerSyncCandidateProgress,
     getDemoDisplayName,
+    getDemoSavedJobIds,
     getDemoUserById,
     rejectDemoJob,
     requestDemoJobChanges,
@@ -27,6 +29,8 @@ export function CareerSyncDashboard() {
     const { role, isAdmin, isCompany, isEmployee, isCandidate } = useRole();
     const snapshot = useDemoSnapshot();
     const summary = useMemo(() => getDashboardSummary(user?.id ?? null), [snapshot, user?.id]);
+    const candidateProgress = useMemo(() => user?.id ? getCareerSyncCandidateProgress(user.id) : null, [snapshot, user?.id]);
+    const candidateSavedJobCount = useMemo(() => user?.id ? getDemoSavedJobIds(user.id).length : 0, [snapshot, user?.id]);
     const [adminResumeStorageCount, setAdminResumeStorageCount] = useState<number | null>(null);
 
     useEffect(() => {
@@ -74,16 +78,25 @@ export function CareerSyncDashboard() {
                     </div>
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
-                    <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
-                    {isAdmin ? (
-                        <MetricCard title="Total resumes" value={String(adminResumeStorageCount ?? summary.totalResumes)} note="Saved in Supabase Storage" icon={<FileText className="h-4 w-4" />} />
-                    ) : (
-                        <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
-                    )}
-                    <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="New local updates" icon={<MessageSquareText className="h-4 w-4" />} />
-                </div>
+                {isCandidate ? (
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Jobs you applied for" icon={<UserRound className="h-4 w-4" />} />
+                        <MetricCard title="Saved jobs" value={String(candidateSavedJobCount)} note="Roles on your shortlist" icon={<Sparkles className="h-4 w-4" />} />
+                        <MetricCard title="Profile strength" value={`${candidateProgress?.profileCompletion ?? 0}%`} note="Resume, phone, applications" icon={<ShieldCheck className="h-4 w-4" />} />
+                        <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="Updates from CareerSync" icon={<MessageSquareText className="h-4 w-4" />} />
+                    </div>
+                ) : (
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
+                        <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
+                        {isAdmin ? (
+                            <MetricCard title="Total resumes" value={String(adminResumeStorageCount ?? summary.totalResumes)} note="Saved in Supabase Storage" icon={<FileText className="h-4 w-4" />} />
+                        ) : (
+                            <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
+                        )}
+                        <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="New local updates" icon={<MessageSquareText className="h-4 w-4" />} />
+                    </div>
+                )}
 
                 <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_0.9fr]">
                     <div className="space-y-5">
