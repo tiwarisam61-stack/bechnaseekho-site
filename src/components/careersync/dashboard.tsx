@@ -587,61 +587,83 @@ function AdminDashboardDrilldownPanel({
                 </button>
             </div>
 
-            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+            <div className="mt-4 space-y-2">
                 {active === "approved-jobs" && (
                     approvedJobs.length === 0 ? (
-                        <HorizontalEmptyCard title="No approved jobs" message="Approved job roles will show here." />
+                        <DrilldownEmptyRow title="No approved jobs" message="Approved job roles will show here." />
                     ) : approvedJobs.map((job) => (
-                        <HorizontalDetailCard key={job.id} title={job.role} badge="Approved">
-                            <p>{job.company}</p>
-                            <p>{job.location ?? "Location not shared"}</p>
-                            <p>{[job.salary, job.experience].filter(Boolean).join(" · ") || "Details not shared"}</p>
-                            <p>Updated {formatDashboardDate(job.updated_at)}</p>
-                        </HorizontalDetailCard>
+                        <DrilldownDetailRow
+                            key={job.id}
+                            title={job.company}
+                            subtitle={job.role}
+                            meta={[
+                                job.location ?? "Location not shared",
+                                job.salary,
+                                job.experience,
+                                `Updated ${formatDashboardDate(job.updated_at)}`,
+                            ]}
+                            badge="Approved"
+                        />
                     ))
                 )}
 
                 {active === "pending-jobs" && (
                     pendingJobs.length === 0 ? (
-                        <HorizontalEmptyCard title="No pending jobs" message="Pending job approvals will show here." />
+                        <DrilldownEmptyRow title="No pending jobs" message="Pending job approvals will show here." />
                     ) : pendingJobs.map((job) => (
-                        <HorizontalDetailCard key={job.id} title={job.role} badge="Pending" tone="amber">
-                            <p>{job.company}</p>
-                            <p>{job.location ?? "Location not shared"}</p>
-                            <p>{[job.salary, job.experience].filter(Boolean).join(" · ") || "Details not shared"}</p>
-                            <p>Requested {formatDashboardDate(job.created_at)}</p>
-                        </HorizontalDetailCard>
+                        <DrilldownDetailRow
+                            key={job.id}
+                            title={job.company}
+                            subtitle={job.role}
+                            meta={[
+                                job.location ?? "Location not shared",
+                                job.salary,
+                                job.experience,
+                                `Requested ${formatDashboardDate(job.created_at)}`,
+                            ]}
+                            badge="Pending"
+                            tone="amber"
+                        />
                     ))
                 )}
 
                 {active === "total-resumes" && (
                     resumeLoading && resumeFiles.length === 0 ? (
-                        <HorizontalEmptyCard title="Loading resumes" message="Checking Supabase resume storage." />
+                        <DrilldownEmptyRow title="Loading resumes" message="Checking Supabase resume storage." />
                     ) : resumeFiles.length === 0 ? (
-                        <HorizontalEmptyCard title="No resumes found" message="Uploaded candidate profiles will show here." />
+                        <DrilldownEmptyRow title="No resumes found" message="Uploaded candidate profiles will show here." />
                     ) : resumeFiles.map((file) => (
-                        <HorizontalDetailCard key={file.path} title={file.candidateName || "Candidate name not saved"} badge={file.source || file.folder}>
-                            <p>{[file.candidateLastRole, file.candidateExperience, file.candidateCity].filter(Boolean).join(" · ") || "Profile details not available"}</p>
-                            <p>{file.candidateEmail || file.candidatePhone || "Contact not saved"}</p>
-                            <p className="break-all font-black text-blue-700">{file.originalFileName || file.fileName}</p>
-                            <p>{[file.size ? formatDashboardBytes(file.size) : null, file.uploadedAt ? formatDashboardDate(file.uploadedAt) : null].filter(Boolean).join(" · ") || "Upload date not found"}</p>
-                            {file.downloadUrl ? (
-                                <a href={file.downloadUrl} target="_blank" rel="noreferrer" download={file.fileName} className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100">
+                        <DrilldownDetailRow
+                            key={file.path}
+                            title={file.candidateName || "Candidate name not saved"}
+                            subtitle={file.originalFileName || file.fileName}
+                            meta={[
+                                [file.candidateLastRole, file.candidateExperience, file.candidateCity].filter(Boolean).join(" · ") || "Profile details not available",
+                                file.candidateEmail || file.candidatePhone || "Contact not saved",
+                                file.size ? formatDashboardBytes(file.size) : null,
+                                file.uploadedAt ? formatDashboardDate(file.uploadedAt) : null,
+                            ]}
+                            badge={file.source || file.folder}
+                            action={file.downloadUrl ? (
+                                <a href={file.downloadUrl} target="_blank" rel="noreferrer" download={file.fileName} className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100">
                                     Download
                                 </a>
                             ) : null}
-                        </HorizontalDetailCard>
+                        />
                     ))
                 )}
 
                 {active === "unread-notifications" && (
                     unreadNotifications.length === 0 ? (
-                        <HorizontalEmptyCard title="No unread notifications" message="New updates will show here." />
+                        <DrilldownEmptyRow title="No unread notifications" message="New updates will show here." />
                     ) : unreadNotifications.map((notification) => (
-                        <HorizontalDetailCard key={notification.id} title={notification.title} badge={notification.type}>
-                            <p>{notification.message}</p>
-                            <p>{formatDashboardDate(notification.created_at)}</p>
-                        </HorizontalDetailCard>
+                        <DrilldownDetailRow
+                            key={notification.id}
+                            title={notification.title}
+                            subtitle={notification.message}
+                            meta={[formatDashboardDate(notification.created_at)]}
+                            badge={notification.type}
+                        />
                     ))
                 )}
             </div>
@@ -649,22 +671,46 @@ function AdminDashboardDrilldownPanel({
     );
 }
 
-function HorizontalDetailCard({ title, badge, tone = "blue", children }: { title: string; badge: string; tone?: "blue" | "amber"; children: React.ReactNode; }) {
+function DrilldownDetailRow({
+    title,
+    subtitle,
+    meta,
+    badge,
+    tone = "blue",
+    action,
+}: {
+    title: string;
+    subtitle: string;
+    meta: Array<string | null | undefined>;
+    badge: string;
+    tone?: "blue" | "amber";
+    action?: React.ReactNode;
+}) {
     const badgeClass = tone === "amber" ? "bg-amber-50 text-amber-700 ring-amber-100" : "bg-blue-50 text-blue-700 ring-blue-100";
     return (
-        <article className="min-w-[18rem] max-w-[18rem] rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-blue-100">
-            <div className="flex items-start justify-between gap-3">
-                <h4 className="text-base font-black leading-snug text-[#0F172A]">{title}</h4>
+        <article className="grid gap-3 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-blue-100 sm:grid-cols-[minmax(14rem,1fr)_minmax(16rem,1.5fr)_auto] sm:items-center">
+            <div className="min-w-0">
+                <h4 className="truncate text-base font-black leading-snug text-[#0F172A]">{title}</h4>
+                <p className="mt-1 break-words text-sm font-semibold text-slate-600">{subtitle}</p>
+            </div>
+            <div className="flex min-w-0 flex-wrap gap-2">
+                {meta.filter(Boolean).map((item) => (
+                    <span key={item} className="rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-100">
+                        {item}
+                    </span>
+                ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                {action}
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ring-1 ${badgeClass}`}>{badge}</span>
             </div>
-            <div className="mt-3 space-y-1 font-semibold">{children}</div>
         </article>
     );
 }
 
-function HorizontalEmptyCard({ title, message }: { title: string; message: string; }) {
+function DrilldownEmptyRow({ title, message }: { title: string; message: string; }) {
     return (
-        <div className="min-w-[18rem] rounded-2xl border border-dashed border-blue-200 bg-white/70 p-4">
+        <div className="rounded-2xl border border-dashed border-blue-200 bg-white/70 p-4">
             <p className="text-sm font-black text-[#0F172A]">{title}</p>
             <p className="mt-1 text-sm font-semibold text-slate-500">{message}</p>
         </div>
