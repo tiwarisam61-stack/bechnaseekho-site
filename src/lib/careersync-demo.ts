@@ -272,7 +272,7 @@ const DEFAULT_STATE: DemoState = {
         makeJob({ id: "scaler-academy-counsellor", external_id: "scaler-academy-counsellor", role: "Counsellor", company: "Scaler Academy", location: "Noida, India", salary: "7 LPA - 11 LPA", experience: "1-5 years", employment_type: "Full-time", shift: "Day Shift", open_positions: 18, description: "Guide prospective learners through the program and help them choose the right path.", responsibilities: ["Advise candidates", "Qualify leads", "Maintain funnel hygiene"], required_skills: ["Sales", "Communication", "CRM"], is_verified: true, status: "approved", posted_by: DEFAULT_ADMIN_ID }),
         makeJob({ id: "growthwave-media-digital-marketing-executive", external_id: "growthwave-media-digital-marketing-executive", role: "Digital Marketing Executive", company: "GrowthWave Media", location: "Bengaluru, Karnataka", salary: "25,000 - 35,000 / month", experience: "1-4 Years", employment_type: "Full-time", shift: "10 AM - 6 PM", open_positions: 12, description: "Plan and execute performance marketing campaigns across social and search platforms for D2C brand clients.", responsibilities: ["Plan and run paid campaigns across Meta and Google Ads", "Track campaign performance and optimise spend", "Coordinate with content and design teams"], required_skills: ["Performance Marketing", "Google Ads", "Meta Ads Manager"], preferred_skills: ["SEO Basics", "Analytics Tools", "Canva"], benefits: ["Health Insurance", "Performance Bonus", "Flexible Hours"], office_address: "Indiranagar, Bengaluru, Karnataka", company_overview: "GrowthWave Media runs performance marketing for D2C and retail brands across India.", recruiter_whatsapp: "919810006666", recruiter_notes: "Portfolio of past campaigns preferred but not mandatory.", application_deadline: "2026-09-25", industry: "Advertising", is_verified: true, status: "approved", posted_by: DEFAULT_ADMIN_ID }),
         makeJob({ id: "zenith-fintech-customer-success-associate", external_id: "zenith-fintech-customer-success-associate", role: "Customer Success Associate", company: "Zenith Fintech", location: "Pune, Maharashtra", salary: "20,000 - 28,000 / month", experience: "0-3 Years", employment_type: "Full-time", shift: "Rotational Shifts", open_positions: 25, description: "Support onboarding and day-to-day queries for retail lending customers via calls and chat.", responsibilities: ["Resolve customer queries over calls and chat", "Assist with onboarding and KYC follow-ups", "Escalate unresolved issues to the right team"], required_skills: ["Customer Handling", "Basic Computer Skills", "Hindi + English"], preferred_skills: ["BPO Experience", "CRM Tools"], benefits: ["Health Insurance", "Night Shift Allowance", "Cab Facility"], office_address: "Hinjewadi Phase 1, Pune, Maharashtra", company_overview: "Zenith Fintech provides digital lending and payments infrastructure for retail customers.", recruiter_whatsapp: "919810007777", recruiter_notes: "Rotational shifts including occasional nights. Cab facility provided.", application_deadline: "2026-09-28", industry: "Fintech", is_verified: true, status: "approved", posted_by: DEFAULT_ADMIN_ID }),
-        makeJob({ id: "demo-company-frontend-engineer", role: "Frontend Engineer", company: "Wipro", location: "Bengaluru, India", salary: "16 LPA - 22 LPA", experience: "3-5 years", employment_type: "Full-time", description: "Own internal tools and customer-facing interfaces for a high-scale product org.", tags: ["React", "TypeScript", "Design Systems"], is_verified: false, status: "pending", posted_by: DEFAULT_COMPANY_ID }),
+        makeJob({ id: "demo-company-frontend-engineer", role: "Frontend Engineer", company: "Wipro", location: "Bengaluru, India", salary: "16 LPA - 22 LPA", experience: "3-5 years", employment_type: "Full-time", description: "Own internal tools and customer-facing interfaces for a high-scale product org.", tags: ["React", "TypeScript", "Design Systems"], is_verified: true, status: "approved", posted_by: DEFAULT_COMPANY_ID }),
     ],
     applications: [],
     notifications: [
@@ -378,6 +378,18 @@ function supportsLocalStorage(): boolean {
     return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+function normalizeLoadedState(state: DemoState): { state: DemoState; changed: boolean } {
+    let changed = false;
+    const wiproDemoJob = state.jobs.find((job) => job.id === "demo-company-frontend-engineer");
+    if (wiproDemoJob?.status === "pending") {
+        wiproDemoJob.status = "approved";
+        wiproDemoJob.is_verified = true;
+        wiproDemoJob.updated_at = nowIso();
+        changed = true;
+    }
+    return { state, changed };
+}
+
 function loadState(): DemoState {
     if (!supportsLocalStorage()) return clone(DEFAULT_STATE);
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -391,7 +403,7 @@ function loadState(): DemoState {
     try {
         const parsed = JSON.parse(raw) as Partial<DemoState>;
         cachedStateRaw = raw;
-        cachedStateSnapshot = {
+        const loadedState: DemoState = {
             ...clone(DEFAULT_STATE),
             ...parsed,
             users: Array.isArray(parsed.users) ? parsed.users : clone(DEFAULT_STATE.users),
@@ -409,6 +421,12 @@ function loadState(): DemoState {
             jobDeletionRequests: Array.isArray(parsed.jobDeletionRequests) ? parsed.jobDeletionRequests : clone(DEFAULT_STATE.jobDeletionRequests),
             sessionUserId: parsed.sessionUserId ?? null,
         };
+        const normalized = normalizeLoadedState(loadedState);
+        cachedStateSnapshot = normalized.state;
+        if (normalized.changed) {
+            cachedStateRaw = JSON.stringify(cachedStateSnapshot);
+            window.localStorage.setItem(STORAGE_KEY, cachedStateRaw);
+        }
         return cachedStateSnapshot;
     } catch {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STATE));
