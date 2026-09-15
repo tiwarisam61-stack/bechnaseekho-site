@@ -309,9 +309,9 @@ export function CareerSyncDashboard() {
 
                         <PanelShell title="Quick actions">
                             <div className="grid gap-2">
-                                <Link to="/careersync/jobs" className="inline-flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-[#0F172A] ring-1 ring-slate-100 transition hover:bg-slate-100">
+                                <a href="/careersync/jobs" className="inline-flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-[#0F172A] ring-1 ring-slate-100 transition hover:bg-slate-100">
                                     Browse approved jobs <ArrowRight className="h-4 w-4 text-blue-600" />
-                                </Link>
+                                </a>
                                 {isCompany && (
                                     <Link to="/post-job" className="inline-flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-100 transition hover:bg-emerald-100">
                                         Post a new role <PlusCircle className="h-4 w-4 text-emerald-600" />
@@ -505,7 +505,7 @@ function CandidatePanel({ userId }: { userId: string }) {
             <div className="mt-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
                 <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-bold text-[#0F172A]">Approved jobs to apply now</p>
-                    <Link to="/careersync/jobs" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800">View all</Link>
+                    <a href="/careersync/jobs" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800">View all</a>
                 </div>
                 <div className="mt-3 space-y-2">
                     {approvedJobs.map((job) => (
