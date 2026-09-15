@@ -3684,7 +3684,7 @@ function EmployeeWorkspace({ userId }: { userId: string; snapshot: ReturnType<ty
                         sendAdminApprovalAlert({
                             title: "Leave approval requested",
                             message: `${getDemoDisplayName(userId)} requested casual leave from ${startDate} to ${endDate}.`,
-                            href: "/careersync?workspace=1#employees",
+                            href: "/careersync?workspace=1#user-management",
                             actor: getDemoDisplayName(userId),
                             entity: "Casual leave",
                         });
