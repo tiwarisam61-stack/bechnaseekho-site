@@ -73,7 +73,6 @@ const ROLE_NAVS = {
     admin: [
         { label: "Dashboard", href: "#dashboard" },
         { label: "Jobs Approval", href: "#jobs-approval" },
-        { label: "Platform Stats", href: "#platform-stats" },
         { label: "Reports", href: "#reports" },
         { label: "Approval Inbox", href: "#approval-inbox" },
         { label: "Applications", href: "#applications-admin" },
@@ -612,19 +611,6 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                     {pendingJobs.length === 0 ? (
                         <EmptyState title="No pending jobs" message="HR submissions will appear here for admin approval." />
                     ) : pendingJobs.map((job) => <AdminJobCard key={job.id} job={job} adminUserId={userId} />)}
-                </div>
-            </section>
-
-            <section id="platform-stats" className={adminSectionClass("platform-stats", "rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(139,92,246,0.2)] sm:p-7")}>
-                <SectionHeading title="Platform Statistics" subtitle="Enterprise-wide usage and pipeline counters." />
-                <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-7">
-                    <SummaryCard label="Users" value={String(adminAnalytics.totals.totalUsers)} icon={<Users className="h-4 w-4" />} />
-                    <SummaryCard label="HR" value={String(adminAnalytics.totals.totalHrUsers)} icon={<Building2 className="h-4 w-4" />} />
-                    <SummaryCard label="Employees" value={String(adminAnalytics.totals.totalEmployees)} icon={<UserRound className="h-4 w-4" />} />
-                    <SummaryCard label="Candidates" value={String(adminAnalytics.totals.totalCandidates)} icon={<UserRound className="h-4 w-4" />} />
-                    <SummaryCard label="Applications" value={String(adminAnalytics.totals.totalApplications)} icon={<Briefcase className="h-4 w-4" />} />
-                    <SummaryCard label="Resumes" value={String(adminAnalytics.totals.totalResumes)} icon={<FileClock className="h-4 w-4" />} />
-                    <SummaryCard label="Pending Leaves" value={String(adminAnalytics.totals.pendingLeaves)} icon={<CalendarDays className="h-4 w-4" />} />
                 </div>
             </section>
 
