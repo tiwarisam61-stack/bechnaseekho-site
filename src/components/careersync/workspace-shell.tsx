@@ -85,12 +85,10 @@ const ROLE_NAVS = {
         { label: "All Jobs", href: "#all-jobs" },
         { label: "User Management", href: "#user-management" },
         { label: "Users", href: "#users" },
-        { label: "Employees", href: "#employees" },
         { label: "HR Management", href: "#hr-management" },
         { label: "Candidates", href: "#candidates" },
         { label: "Activity", href: "#activity" },
         { label: "Notifications", href: "#notifications" },
-        { label: "Analytics", href: "#analytics" },
         { label: "Settings", href: "#settings" },
     ],
     company: [
@@ -1119,45 +1117,6 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
                 </div>
             </section>
 
-            <section id="employees" className={adminSectionClass("employees", "rounded-[2rem] border border-amber-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(245,158,11,0.2)] sm:p-7")}>
-                <SectionHeading title="Employee Management" subtitle="Employees, tasks, leave approvals, and enterprise controls." />
-                <div className="mt-5 grid gap-3 md:grid-cols-4">
-                    <SummaryCard label="Employees" value={String(employeeUsers.length)} icon={<Users className="h-4 w-4" />} />
-                    <SummaryCard label="Open tasks" value={String(snapshot.tasks.filter((task) => task.status !== "done").length)} icon={<Briefcase className="h-4 w-4" />} />
-                    <SummaryCard label="Pending leaves" value={String(pendingLeaves.length)} icon={<CalendarDays className="h-4 w-4" />} />
-                    <SummaryCard label="Timesheets" value={String(snapshot.timesheets.length)} icon={<FileClock className="h-4 w-4" />} />
-                </div>
-                <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                    {employeeUsers.map((employee) => (
-                        <div key={employee.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-4 ring-1 ring-slate-100">
-                            <div className="flex items-center justify-between gap-2">
-                                <div>
-                                    <p className="text-sm font-bold text-slate-900">{employee.full_name}</p>
-                                    <p className="text-xs text-slate-500">{employee.email}</p>
-                                </div>
-                                <ActionButton tone="neutral" onClick={() => createDemoTask({ title: "Weekly hiring sync", assigneeUserId: employee.id, createdBy: userId, description: "Prepare weekly hiring metrics.", dueDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) })}>
-                                    Assign task
-                                </ActionButton>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                {pendingLeaves.length > 0 && (
-                    <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                        {pendingLeaves.slice(0, 4).map((leave) => (
-                            <div key={leave.id} className="rounded-3xl border border-amber-100 bg-amber-50/40 p-4 ring-1 ring-amber-100">
-                                <p className="text-sm font-bold text-slate-900">{getDemoDisplayName(leave.user_id)} · {leave.leave_type} leave</p>
-                                <p className="mt-1 text-xs text-slate-500">{leave.start_date} to {leave.end_date}</p>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    <ActionButton tone="success" onClick={() => reviewDemoLeaveRequest(leave.id, userId, true)}>Approve</ActionButton>
-                                    <ActionButton tone="danger" onClick={() => reviewDemoLeaveRequest(leave.id, userId, false)}>Reject</ActionButton>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
-
             <section id="hr-management" className={adminSectionClass("hr-management", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="HR Management" subtitle="Monitor recruiter submissions and approvals." />
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
@@ -1179,16 +1138,6 @@ function AdminWorkspace({ userId, snapshot }: { userId: string; snapshot: Return
             <section id="notifications" className={adminSectionClass("notifications", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
                 <SectionHeading title="Notifications" subtitle="Admin-only notifications remain isolated here." />
                 <NotificationList notifications={adminNotifications} emptyLabel="No admin notifications yet." />
-            </section>
-
-            <section id="analytics" className={adminSectionClass("analytics", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
-                <SectionHeading title="Analytics" subtitle="Track approval workflow health." />
-                <div className="mt-5 grid gap-3 md:grid-cols-4">
-                    <SummaryCard label="Approved jobs" value={String(approvedJobs.length)} icon={<CheckCircle2 className="h-4 w-4" />} />
-                    <SummaryCard label="Pending jobs" value={String(pendingJobs.length)} icon={<Clock3 className="h-4 w-4" />} />
-                    <SummaryCard label="HR accounts" value={String(hrUsers.length)} icon={<Building2 className="h-4 w-4" />} />
-                    <SummaryCard label="Employees" value={String(employeeUsers.length)} icon={<Users className="h-4 w-4" />} />
-                </div>
             </section>
 
             <section id="activity" className={adminSectionClass("activity", "rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.12)] sm:p-7")}>
