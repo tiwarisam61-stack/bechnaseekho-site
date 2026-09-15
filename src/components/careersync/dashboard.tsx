@@ -32,6 +32,25 @@ type CandidateDashboardProfile = {
     experience: string;
 };
 
+type AdminDashboardDrilldown = "approved-jobs" | "pending-jobs" | "total-resumes" | "unread-notifications";
+
+type AdminDashboardResumeFile = {
+    path: string;
+    fileName: string;
+    folder: string;
+    downloadUrl: string | null;
+    uploadedAt: string | null;
+    size: number | null;
+    originalFileName?: string | null;
+    candidateName?: string | null;
+    candidateEmail?: string | null;
+    candidatePhone?: string | null;
+    candidateCity?: string | null;
+    candidateExperience?: string | null;
+    candidateLastRole?: string | null;
+    source?: string | null;
+};
+
 export function CareerSyncDashboard() {
     const { user } = useAuth();
     const { role, isAdmin, isCompany, isEmployee, isCandidate } = useRole();
@@ -43,7 +62,30 @@ export function CareerSyncDashboard() {
     const [candidateProfileVersion, setCandidateProfileVersion] = useState(0);
     const [adminResumeStorageCount, setAdminResumeStorageCount] = useState<number | null>(null);
     const [adminResumeStorageCheckedAt, setAdminResumeStorageCheckedAt] = useState<string | null>(null);
+    const [adminResumeStorageFiles, setAdminResumeStorageFiles] = useState<AdminDashboardResumeFile[]>([]);
     const [adminResumeStorageLoading, setAdminResumeStorageLoading] = useState(false);
+    const [activeAdminDrilldown, setActiveAdminDrilldown] = useState<AdminDashboardDrilldown | null>(null);
+    const adminApprovedJobs = useMemo(() => snapshot.jobs.filter((job) => job.status === "approved" && job.is_active && job.is_verified), [snapshot.jobs]);
+    const adminPendingJobs = useMemo(() => snapshot.jobs.filter((job) => job.status === "pending"), [snapshot.jobs]);
+    const adminUnreadNotifications = useMemo(() => summary.notifications.filter((notification) => !notification.read_at), [summary.notifications]);
+    const adminResumeFallbackFiles = useMemo<AdminDashboardResumeFile[]>(() => snapshot.applications
+        .filter((application) => Boolean(application.resume_url || application.resume_path))
+        .map((application) => ({
+            path: application.resume_path ?? application.resume_url ?? application.id,
+            fileName: getResumeFileName(application.resume_path ?? application.resume_url ?? "Uploaded resume"),
+            folder: "applications",
+            downloadUrl: application.resume_url,
+            uploadedAt: application.created_at,
+            size: null,
+            candidateName: application.full_name,
+            candidateEmail: application.email,
+            candidatePhone: application.phone,
+            candidateCity: null,
+            candidateExperience: null,
+            candidateLastRole: snapshot.jobs.find((job) => job.id === application.job_id)?.role ?? null,
+            source: "application",
+        })), [snapshot.applications, snapshot.jobs]);
+    const adminResumeDetailFiles = adminResumeStorageFiles.length > 0 ? adminResumeStorageFiles : adminResumeFallbackFiles;
     const liveCandidateProgress = useMemo(() => {
         if (!user?.id || !candidateProgress) return candidateProgress;
         const userRecord = getDemoUserById(user.id);
@@ -89,9 +131,11 @@ export function CareerSyncDashboard() {
             const insight = await fetchSharedCareerSyncResumeInsights({ role: "admin", userId: user.id, email: user.email });
             setAdminResumeStorageCount(insight?.storageCount ?? null);
             setAdminResumeStorageCheckedAt(insight?.checkedAt ?? new Date().toISOString());
+            setAdminResumeStorageFiles(insight?.storageFiles ?? []);
             if (showToast) toast.success("Supabase resume count refreshed.");
         } catch (error) {
             setAdminResumeStorageCount(null);
+            setAdminResumeStorageFiles([]);
             if (showToast) toast.error(error instanceof Error ? error.message : "Could not refresh Supabase resume count.");
         } finally {
             setAdminResumeStorageLoading(false);
@@ -112,10 +156,14 @@ export function CareerSyncDashboard() {
                 if (!cancelled) {
                     setAdminResumeStorageCount(insight?.storageCount ?? null);
                     setAdminResumeStorageCheckedAt(insight?.checkedAt ?? new Date().toISOString());
+                    setAdminResumeStorageFiles(insight?.storageFiles ?? []);
                 }
             })
             .catch(() => {
-                if (!cancelled) setAdminResumeStorageCount(null);
+                if (!cancelled) {
+                    setAdminResumeStorageCount(null);
+                    setAdminResumeStorageFiles([]);
+                }
             })
             .finally(() => {
                 if (!cancelled) setAdminResumeStorageLoading(false);
@@ -181,21 +229,56 @@ export function CareerSyncDashboard() {
                     </div>
                 ) : (
                     <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <MetricCard title="Approved jobs" value={String(summary.totalJobs)} note="Visible on the public board" icon={<Sparkles className="h-4 w-4" />} />
-                        <MetricCard title="Pending jobs" value={String(summary.pendingJobs)} note="Waiting for approval" icon={<Clock3 className="h-4 w-4" />} />
+                        <MetricCard
+                            title="Approved jobs"
+                            value={String(summary.totalJobs)}
+                            note="Visible on the public board"
+                            icon={<Sparkles className="h-4 w-4" />}
+                            active={activeAdminDrilldown === "approved-jobs"}
+                            onClick={isAdmin ? () => setActiveAdminDrilldown((current) => current === "approved-jobs" ? null : "approved-jobs") : undefined}
+                        />
+                        <MetricCard
+                            title="Pending jobs"
+                            value={String(summary.pendingJobs)}
+                            note="Waiting for approval"
+                            icon={<Clock3 className="h-4 w-4" />}
+                            active={activeAdminDrilldown === "pending-jobs"}
+                            onClick={isAdmin ? () => setActiveAdminDrilldown((current) => current === "pending-jobs" ? null : "pending-jobs") : undefined}
+                        />
                         {isAdmin ? (
                             <MetricCard
                                 title="Total resumes"
                                 value={String(adminResumeStorageCount ?? summary.totalResumes)}
                                 note={adminResumeStorageCheckedAt ? `Supabase count · ${new Date(adminResumeStorageCheckedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : "Saved in Supabase Storage"}
                                 icon={<FileText className="h-4 w-4" />}
+                                active={activeAdminDrilldown === "total-resumes"}
+                                onClick={() => setActiveAdminDrilldown((current) => current === "total-resumes" ? null : "total-resumes")}
                             />
                         ) : (
                             <MetricCard title="My applications" value={String(summary.myApplications.length)} note="Candidate activity" icon={<UserRound className="h-4 w-4" />} />
                         )}
-                        <MetricCard title="Unread notifications" value={String(summary.unreadNotifications)} note="New local updates" icon={<MessageSquareText className="h-4 w-4" />} />
+                        <MetricCard
+                            title="Unread notifications"
+                            value={String(summary.unreadNotifications)}
+                            note="New local updates"
+                            icon={<MessageSquareText className="h-4 w-4" />}
+                            active={activeAdminDrilldown === "unread-notifications"}
+                            onClick={isAdmin ? () => setActiveAdminDrilldown((current) => current === "unread-notifications" ? null : "unread-notifications") : undefined}
+                        />
                     </div>
                 )}
+
+                {isAdmin && activeAdminDrilldown ? (
+                    <AdminDashboardDrilldownPanel
+                        active={activeAdminDrilldown}
+                        approvedJobs={adminApprovedJobs}
+                        pendingJobs={adminPendingJobs}
+                        resumeFiles={adminResumeDetailFiles}
+                        resumeLoading={adminResumeStorageLoading}
+                        unreadNotifications={adminUnreadNotifications}
+                        onClose={() => setActiveAdminDrilldown(null)}
+                    />
+                ) : null}
 
                 <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_0.9fr]">
                     <div className="space-y-5">
@@ -452,17 +535,203 @@ function PanelShell({ title, description, action, children }: { title: string; d
     );
 }
 
-function MetricCard({ title, value, note, icon }: { title: string; value: string; note: string; icon: React.ReactNode; }) {
+function AdminDashboardDrilldownPanel({
+    active,
+    approvedJobs,
+    pendingJobs,
+    resumeFiles,
+    resumeLoading,
+    unreadNotifications,
+    onClose,
+}: {
+    active: AdminDashboardDrilldown;
+    approvedJobs: DemoJobRecord[];
+    pendingJobs: DemoJobRecord[];
+    resumeFiles: AdminDashboardResumeFile[];
+    resumeLoading: boolean;
+    unreadNotifications: Array<{ id: string; title: string; message: string; created_at: string; type: string; }>;
+    onClose: () => void;
+}) {
+    const titleMap: Record<AdminDashboardDrilldown, string> = {
+        "approved-jobs": "Approved jobs",
+        "pending-jobs": "Pending jobs",
+        "total-resumes": "Uploaded resumes",
+        "unread-notifications": "Unread notifications",
+    };
+    const subtitleMap: Record<AdminDashboardDrilldown, string> = {
+        "approved-jobs": "Live roles visible on the public job board.",
+        "pending-jobs": "HR submissions waiting for admin review.",
+        "total-resumes": "Profiles and resume files stored in Supabase.",
+        "unread-notifications": "New admin updates that still need attention.",
+    };
+
     return (
-        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+        <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mt-4 rounded-[1.75rem] border border-blue-100 bg-blue-50/45 p-4 ring-1 ring-blue-50"
+        >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Selected summary</p>
+                    <h3 className="mt-1 text-lg font-black text-[#0F172A]">{titleMap[active]}</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">{subtitleMap[active]}</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                >
+                    Close
+                </button>
+            </div>
+
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                {active === "approved-jobs" && (
+                    approvedJobs.length === 0 ? (
+                        <HorizontalEmptyCard title="No approved jobs" message="Approved job roles will show here." />
+                    ) : approvedJobs.map((job) => (
+                        <HorizontalDetailCard key={job.id} title={job.role} badge="Approved">
+                            <p>{job.company}</p>
+                            <p>{job.location ?? "Location not shared"}</p>
+                            <p>{[job.salary, job.experience].filter(Boolean).join(" · ") || "Details not shared"}</p>
+                            <p>Updated {formatDashboardDate(job.updated_at)}</p>
+                        </HorizontalDetailCard>
+                    ))
+                )}
+
+                {active === "pending-jobs" && (
+                    pendingJobs.length === 0 ? (
+                        <HorizontalEmptyCard title="No pending jobs" message="Pending job approvals will show here." />
+                    ) : pendingJobs.map((job) => (
+                        <HorizontalDetailCard key={job.id} title={job.role} badge="Pending" tone="amber">
+                            <p>{job.company}</p>
+                            <p>{job.location ?? "Location not shared"}</p>
+                            <p>{[job.salary, job.experience].filter(Boolean).join(" · ") || "Details not shared"}</p>
+                            <p>Requested {formatDashboardDate(job.created_at)}</p>
+                        </HorizontalDetailCard>
+                    ))
+                )}
+
+                {active === "total-resumes" && (
+                    resumeLoading && resumeFiles.length === 0 ? (
+                        <HorizontalEmptyCard title="Loading resumes" message="Checking Supabase resume storage." />
+                    ) : resumeFiles.length === 0 ? (
+                        <HorizontalEmptyCard title="No resumes found" message="Uploaded candidate profiles will show here." />
+                    ) : resumeFiles.map((file) => (
+                        <HorizontalDetailCard key={file.path} title={file.candidateName || "Candidate name not saved"} badge={file.source || file.folder}>
+                            <p>{[file.candidateLastRole, file.candidateExperience, file.candidateCity].filter(Boolean).join(" · ") || "Profile details not available"}</p>
+                            <p>{file.candidateEmail || file.candidatePhone || "Contact not saved"}</p>
+                            <p className="break-all font-black text-blue-700">{file.originalFileName || file.fileName}</p>
+                            <p>{[file.size ? formatDashboardBytes(file.size) : null, file.uploadedAt ? formatDashboardDate(file.uploadedAt) : null].filter(Boolean).join(" · ") || "Upload date not found"}</p>
+                            {file.downloadUrl ? (
+                                <a href={file.downloadUrl} target="_blank" rel="noreferrer" download={file.fileName} className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-blue-700 ring-1 ring-blue-100">
+                                    Download
+                                </a>
+                            ) : null}
+                        </HorizontalDetailCard>
+                    ))
+                )}
+
+                {active === "unread-notifications" && (
+                    unreadNotifications.length === 0 ? (
+                        <HorizontalEmptyCard title="No unread notifications" message="New updates will show here." />
+                    ) : unreadNotifications.map((notification) => (
+                        <HorizontalDetailCard key={notification.id} title={notification.title} badge={notification.type}>
+                            <p>{notification.message}</p>
+                            <p>{formatDashboardDate(notification.created_at)}</p>
+                        </HorizontalDetailCard>
+                    ))
+                )}
+            </div>
+        </motion.div>
+    );
+}
+
+function HorizontalDetailCard({ title, badge, tone = "blue", children }: { title: string; badge: string; tone?: "blue" | "amber"; children: React.ReactNode; }) {
+    const badgeClass = tone === "amber" ? "bg-amber-50 text-amber-700 ring-amber-100" : "bg-blue-50 text-blue-700 ring-blue-100";
+    return (
+        <article className="min-w-[18rem] max-w-[18rem] rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-blue-100">
+            <div className="flex items-start justify-between gap-3">
+                <h4 className="text-base font-black leading-snug text-[#0F172A]">{title}</h4>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ring-1 ${badgeClass}`}>{badge}</span>
+            </div>
+            <div className="mt-3 space-y-1 font-semibold">{children}</div>
+        </article>
+    );
+}
+
+function HorizontalEmptyCard({ title, message }: { title: string; message: string; }) {
+    return (
+        <div className="min-w-[18rem] rounded-2xl border border-dashed border-blue-200 bg-white/70 p-4">
+            <p className="text-sm font-black text-[#0F172A]">{title}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{message}</p>
+        </div>
+    );
+}
+
+function MetricCard({ title, value, note, icon, active = false, onClick }: { title: string; value: string; note: string; icon: React.ReactNode; active?: boolean; onClick?: () => void; }) {
+    const interactiveClass = onClick ? "cursor-pointer text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_18px_40px_-28px_rgba(37,99,235,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" : "";
+    const activeClass = active ? "bg-blue-50 ring-2 ring-blue-400 shadow-[0_18px_45px_-32px_rgba(37,99,235,0.75)]" : "bg-slate-50 ring-1 ring-slate-100";
+    const content = (
+        <>
             <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
                 <span className="grid h-8 w-8 place-items-center rounded-xl bg-white text-blue-600 ring-1 ring-slate-100">{icon}</span>
             </div>
             <div className="mt-3 text-3xl font-black text-[#0F172A]">{value}</div>
             <p className="mt-1 text-xs text-slate-500">{note}</p>
+        </>
+    );
+
+    if (onClick) {
+        return (
+            <button type="button" onClick={onClick} aria-pressed={active} className={`rounded-2xl p-4 ${activeClass} ${interactiveClass}`}>
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <div className={`rounded-2xl p-4 ${activeClass}`}>
+            {content}
         </div>
     );
+}
+
+function getResumeFileName(value: string) {
+    try {
+        return decodeURIComponent(value.split("/").pop() || value);
+    } catch {
+        return value.split("/").pop() || value;
+    }
+}
+
+function formatDashboardDate(value: string | null | undefined) {
+    if (!value) return "Date not available";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Date not available";
+    return date.toLocaleString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Kolkata",
+    });
+}
+
+function formatDashboardBytes(value: number) {
+    if (!Number.isFinite(value) || value <= 0) return "0 KB";
+    const units = ["B", "KB", "MB", "GB"];
+    let size = value;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    return `${Math.round(size)} ${units[unitIndex]}`;
 }
 
 function RolePill({ label, tone }: { label: string; tone: "blue" | "emerald" | "cyan"; }) {
