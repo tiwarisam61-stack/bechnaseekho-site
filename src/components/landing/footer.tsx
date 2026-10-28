@@ -177,6 +177,14 @@ export function Footer() {
                         )}
                       </li>
                     ))}
+                  {col.title === "For companies" && [
+                    { label: "Hire with CareerSync", href: "/employers" },
+                    { label: "For HR teams", href: "/for-hr-teams" },
+                    { label: "For hiring managers", href: "/for-hiring-managers" },
+                    { label: "CareerFeed for recruiters", href: "/careerfeed-for-recruiters" },
+                  ].map((item) => (
+                    <li key={item.href}><a href={item.href} className="text-sm text-ink-soft transition-colors hover:text-ink">{item.label}</a></li>
+                  ))}
                   {col.title === "For companies" && isCareerSyncPage && CAREERSYNC_COMPANY_LINKS.map((item) => (
                     <li key={item.label}>
                       <Link to={item.to} className="text-sm text-ink-soft transition-colors hover:text-ink">
