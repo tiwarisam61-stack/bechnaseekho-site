@@ -11,14 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as AiArenaRouteImport } from './routes/ai-arena'
 import { Route as AtsScoreCheckerRouteImport } from './routes/ats-score-checker'
 import { Route as BechnaseekhoRouteImport } from './routes/bechnaseekho'
+import { Route as CareerfeedForRecruitersRouteImport } from './routes/careerfeed-for-recruiters'
 import { Route as CareersyncRouteImport } from './routes/careersync'
 import { Route as CareersyncAcademyRouteImport } from './routes/careersync-academy'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as EmployersRouteImport } from './routes/employers'
 import { Route as FindJobsRouteImport } from './routes/find-jobs'
+import { Route as ForHiringManagersRouteImport } from './routes/for-hiring-managers'
+import { Route as ForHrTeamsRouteImport } from './routes/for-hr-teams'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PostJobRouteImport } from './routes/post-job'
@@ -29,6 +32,8 @@ import { Route as ResumeTemplatesRouteImport } from './routes/resume-templates'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiCareersyncJobsRouteImport } from './routes/api/careersync-jobs'
+import { Route as ApiCareersyncResumeParseRouteImport } from './routes/api/careersync-resume-parse'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiGoogleSheetSubmitRouteImport } from './routes/api/google-sheet-submit'
 import { Route as ApiMockInterviewAiRouteImport } from './routes/api/mock-interview-ai'
@@ -56,11 +61,6 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiArenaRoute = AiArenaRouteImport.update({
-  id: '/ai-arena',
-  path: '/ai-arena',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AtsScoreCheckerRoute = AtsScoreCheckerRouteImport.update({
   id: '/ats-score-checker',
   path: '/ats-score-checker',
@@ -69,6 +69,11 @@ const AtsScoreCheckerRoute = AtsScoreCheckerRouteImport.update({
 const BechnaseekhoRoute = BechnaseekhoRouteImport.update({
   id: '/bechnaseekho',
   path: '/bechnaseekho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareerfeedForRecruitersRoute = CareerfeedForRecruitersRouteImport.update({
+  id: '/careerfeed-for-recruiters',
+  path: '/careerfeed-for-recruiters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CareersyncRoute = CareersyncRouteImport.update({
@@ -91,9 +96,24 @@ const CookiesRoute = CookiesRouteImport.update({
   path: '/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmployersRoute = EmployersRouteImport.update({
+  id: '/employers',
+  path: '/employers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FindJobsRoute = FindJobsRouteImport.update({
   id: '/find-jobs',
   path: '/find-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForHiringManagersRoute = ForHiringManagersRouteImport.update({
+  id: '/for-hiring-managers',
+  path: '/for-hiring-managers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForHrTeamsRoute = ForHrTeamsRouteImport.update({
+  id: '/for-hr-teams',
+  path: '/for-hr-teams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -146,6 +166,17 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCareersyncJobsRoute = ApiCareersyncJobsRouteImport.update({
+  id: '/api/careersync-jobs',
+  path: '/api/careersync-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCareersyncResumeParseRoute =
+  ApiCareersyncResumeParseRouteImport.update({
+    id: '/api/careersync-resume-parse',
+    path: '/api/careersync-resume-parse',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -234,14 +265,17 @@ const CareersyncAcademyCoursesCourseIdUnitIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
+  '/careerfeed-for-recruiters': typeof CareerfeedForRecruitersRoute
   '/careersync': typeof CareersyncRouteWithChildren
   '/careersync-academy': typeof CareersyncAcademyRouteWithChildren
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
+  '/employers': typeof EmployersRoute
   '/find-jobs': typeof FindJobsRoute
+  '/for-hiring-managers': typeof ForHiringManagersRoute
+  '/for-hr-teams': typeof ForHrTeamsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/post-job': typeof PostJobRoute
@@ -252,6 +286,8 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/api/careersync-jobs': typeof ApiCareersyncJobsRoute
+  '/api/careersync-resume-parse': typeof ApiCareersyncResumeParseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
   '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
@@ -272,13 +308,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
+  '/careerfeed-for-recruiters': typeof CareerfeedForRecruitersRoute
   '/careersync': typeof CareersyncRouteWithChildren
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
+  '/employers': typeof EmployersRoute
   '/find-jobs': typeof FindJobsRoute
+  '/for-hiring-managers': typeof ForHiringManagersRoute
+  '/for-hr-teams': typeof ForHrTeamsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/post-job': typeof PostJobRoute
@@ -289,6 +328,8 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/api/careersync-jobs': typeof ApiCareersyncJobsRoute
+  '/api/careersync-resume-parse': typeof ApiCareersyncResumeParseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
   '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
@@ -309,14 +350,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ai-arena': typeof AiArenaRoute
   '/ats-score-checker': typeof AtsScoreCheckerRoute
   '/bechnaseekho': typeof BechnaseekhoRoute
+  '/careerfeed-for-recruiters': typeof CareerfeedForRecruitersRoute
   '/careersync': typeof CareersyncRouteWithChildren
   '/careersync-academy': typeof CareersyncAcademyRouteWithChildren
   '/contact': typeof ContactRoute
   '/cookies': typeof CookiesRoute
+  '/employers': typeof EmployersRoute
   '/find-jobs': typeof FindJobsRoute
+  '/for-hiring-managers': typeof ForHiringManagersRoute
+  '/for-hr-teams': typeof ForHrTeamsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/post-job': typeof PostJobRoute
@@ -327,6 +371,8 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/api/careersync-jobs': typeof ApiCareersyncJobsRoute
+  '/api/careersync-resume-parse': typeof ApiCareersyncResumeParseRoute
   '/api/chat': typeof ApiChatRoute
   '/api/google-sheet-submit': typeof ApiGoogleSheetSubmitRoute
   '/api/mock-interview-ai': typeof ApiMockInterviewAiRoute
@@ -349,14 +395,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
+    | '/careerfeed-for-recruiters'
     | '/careersync'
     | '/careersync-academy'
     | '/contact'
     | '/cookies'
+    | '/employers'
     | '/find-jobs'
+    | '/for-hiring-managers'
+    | '/for-hr-teams'
     | '/login'
     | '/partners'
     | '/post-job'
@@ -367,6 +416,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/signup'
     | '/terms'
+    | '/api/careersync-jobs'
+    | '/api/careersync-resume-parse'
     | '/api/chat'
     | '/api/google-sheet-submit'
     | '/api/mock-interview-ai'
@@ -387,13 +438,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
+    | '/careerfeed-for-recruiters'
     | '/careersync'
     | '/contact'
     | '/cookies'
+    | '/employers'
     | '/find-jobs'
+    | '/for-hiring-managers'
+    | '/for-hr-teams'
     | '/login'
     | '/partners'
     | '/post-job'
@@ -404,6 +458,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/signup'
     | '/terms'
+    | '/api/careersync-jobs'
+    | '/api/careersync-resume-parse'
     | '/api/chat'
     | '/api/google-sheet-submit'
     | '/api/mock-interview-ai'
@@ -423,14 +479,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
-    | '/ai-arena'
     | '/ats-score-checker'
     | '/bechnaseekho'
+    | '/careerfeed-for-recruiters'
     | '/careersync'
     | '/careersync-academy'
     | '/contact'
     | '/cookies'
+    | '/employers'
     | '/find-jobs'
+    | '/for-hiring-managers'
+    | '/for-hr-teams'
     | '/login'
     | '/partners'
     | '/post-job'
@@ -441,6 +500,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/signup'
     | '/terms'
+    | '/api/careersync-jobs'
+    | '/api/careersync-resume-parse'
     | '/api/chat'
     | '/api/google-sheet-submit'
     | '/api/mock-interview-ai'
@@ -462,14 +523,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AiArenaRoute: typeof AiArenaRoute
   AtsScoreCheckerRoute: typeof AtsScoreCheckerRoute
   BechnaseekhoRoute: typeof BechnaseekhoRoute
+  CareerfeedForRecruitersRoute: typeof CareerfeedForRecruitersRoute
   CareersyncRoute: typeof CareersyncRouteWithChildren
   CareersyncAcademyRoute: typeof CareersyncAcademyRouteWithChildren
   ContactRoute: typeof ContactRoute
   CookiesRoute: typeof CookiesRoute
+  EmployersRoute: typeof EmployersRoute
   FindJobsRoute: typeof FindJobsRoute
+  ForHiringManagersRoute: typeof ForHiringManagersRoute
+  ForHrTeamsRoute: typeof ForHrTeamsRoute
   LoginRoute: typeof LoginRoute
   PartnersRoute: typeof PartnersRoute
   PostJobRoute: typeof PostJobRoute
@@ -480,6 +544,8 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  ApiCareersyncJobsRoute: typeof ApiCareersyncJobsRoute
+  ApiCareersyncResumeParseRoute: typeof ApiCareersyncResumeParseRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGoogleSheetSubmitRoute: typeof ApiGoogleSheetSubmitRoute
   ApiMockInterviewAiRoute: typeof ApiMockInterviewAiRoute
@@ -503,13 +569,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai-arena': {
-      id: '/ai-arena'
-      path: '/ai-arena'
-      fullPath: '/ai-arena'
-      preLoaderRoute: typeof AiArenaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ats-score-checker': {
       id: '/ats-score-checker'
       path: '/ats-score-checker'
@@ -522,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/bechnaseekho'
       fullPath: '/bechnaseekho'
       preLoaderRoute: typeof BechnaseekhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/careerfeed-for-recruiters': {
+      id: '/careerfeed-for-recruiters'
+      path: '/careerfeed-for-recruiters'
+      fullPath: '/careerfeed-for-recruiters'
+      preLoaderRoute: typeof CareerfeedForRecruitersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/careersync': {
@@ -552,11 +618,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/employers': {
+      id: '/employers'
+      path: '/employers'
+      fullPath: '/employers'
+      preLoaderRoute: typeof EmployersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/find-jobs': {
       id: '/find-jobs'
       path: '/find-jobs'
       fullPath: '/find-jobs'
       preLoaderRoute: typeof FindJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-hiring-managers': {
+      id: '/for-hiring-managers'
+      path: '/for-hiring-managers'
+      fullPath: '/for-hiring-managers'
+      preLoaderRoute: typeof ForHiringManagersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-hr-teams': {
+      id: '/for-hr-teams'
+      path: '/for-hr-teams'
+      fullPath: '/for-hr-teams'
+      preLoaderRoute: typeof ForHrTeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -627,6 +714,20 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/careersync-jobs': {
+      id: '/api/careersync-jobs'
+      path: '/api/careersync-jobs'
+      fullPath: '/api/careersync-jobs'
+      preLoaderRoute: typeof ApiCareersyncJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/careersync-resume-parse': {
+      id: '/api/careersync-resume-parse'
+      path: '/api/careersync-resume-parse'
+      fullPath: '/api/careersync-resume-parse'
+      preLoaderRoute: typeof ApiCareersyncResumeParseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -813,14 +914,17 @@ const CareersyncAcademyRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AiArenaRoute: AiArenaRoute,
   AtsScoreCheckerRoute: AtsScoreCheckerRoute,
   BechnaseekhoRoute: BechnaseekhoRoute,
+  CareerfeedForRecruitersRoute: CareerfeedForRecruitersRoute,
   CareersyncRoute: CareersyncRouteWithChildren,
   CareersyncAcademyRoute: CareersyncAcademyRouteWithChildren,
   ContactRoute: ContactRoute,
   CookiesRoute: CookiesRoute,
+  EmployersRoute: EmployersRoute,
   FindJobsRoute: FindJobsRoute,
+  ForHiringManagersRoute: ForHiringManagersRoute,
+  ForHrTeamsRoute: ForHrTeamsRoute,
   LoginRoute: LoginRoute,
   PartnersRoute: PartnersRoute,
   PostJobRoute: PostJobRoute,
@@ -831,6 +935,8 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  ApiCareersyncJobsRoute: ApiCareersyncJobsRoute,
+  ApiCareersyncResumeParseRoute: ApiCareersyncResumeParseRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGoogleSheetSubmitRoute: ApiGoogleSheetSubmitRoute,
   ApiMockInterviewAiRoute: ApiMockInterviewAiRoute,
