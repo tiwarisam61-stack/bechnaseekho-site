@@ -1,0 +1,21 @@
+{
+  "brand": "CareerSync by BechNaSeekho",
+  "website": "https://bechnaseekho.com/careersync",
+  "whatsapp": "9310665960",
+  "items": [
+    {
+      "id": "mumbai-sales",
+      "status": "draft",
+      "title": "Mumbai Sales Hiring",
+      "location": "Andheri East, Mumbai",
+      "salary": "₹20,000–₹35,000 / month",
+      "roles": [
+        "Motor Insurance Sales",
+        "Health Insurance Sales",
+        "Mutual Funds Sales"
+      ],
+      "eligibility": "Freshers & experienced",
+      "approved_until": "2026-11-30"
+    }
+  ]
+}
