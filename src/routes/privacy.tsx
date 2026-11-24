@@ -1,3 +1,4 @@
+import { OFFICE_ADDRESS } from "@/lib/office-address";
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -331,6 +332,8 @@ const SECTIONS = [
         If you have any questions regarding this Privacy Policy or your personal information, please contact us
         through our official Contact Page or Support Email. We aim to respond to all inquiries within 3–5 business
         days.
+        <br />
+        <strong>Office address:</strong> {OFFICE_ADDRESS}
       </p>
     ),
   },

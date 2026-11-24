@@ -1,3 +1,4 @@
+import { OFFICE_POSTAL_ADDRESS } from "@/lib/office-address";
 import type { Blog } from "@/lib/blogs";
 import type { Course } from "@/lib/academy-courses";
 import type { DemoJobRecord } from "@/lib/careersync-demo";
@@ -40,6 +41,7 @@ export function organizationSchema() {
     name: SITE_NAME,
     url: SITE_URL,
     logo: absoluteUrl("/favicon.png"),
+    address: OFFICE_POSTAL_ADDRESS,
     sameAs: [
       "https://www.linkedin.com/company/bechnaseekho",
       "https://www.instagram.com/bechnaseekho",

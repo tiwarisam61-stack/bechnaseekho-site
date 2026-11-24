@@ -1,3 +1,4 @@
+import { OFFICE_ADDRESS } from "@/lib/office-address";
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -305,6 +306,8 @@ const SECTIONS = [
       <p className="text-sm text-gray-600 leading-relaxed">
         If you have any questions about our Cookie Policy or your cookie preferences, please contact us through
         our official Contact Page or Support Email. We aim to respond to all inquiries within 3–5 business days.
+        <br />
+        <strong>Office address:</strong> {OFFICE_ADDRESS}
       </p>
     ),
   },

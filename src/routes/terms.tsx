@@ -1,3 +1,4 @@
+import { OFFICE_ADDRESS } from "@/lib/office-address";
 import { useState, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -312,6 +313,8 @@ const SECTIONS = [
       <p className="text-gray-600 leading-relaxed">
         For any questions regarding these Terms &amp; Conditions, users may contact us through our official Contact
         Page or email support. We aim to respond to all inquiries within 3–5 business days.
+        <br />
+        <strong>Office address:</strong> {OFFICE_ADDRESS}
       </p>
     ),
   },

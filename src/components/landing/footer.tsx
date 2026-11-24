@@ -1,5 +1,6 @@
 import { Twitter, Linkedin, Instagram, Youtube, Facebook } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { OFFICE_ADDRESS } from "@/lib/office-address";
 import { CareerSyncLogo } from "@/components/careersync/logo";
 
 const SOCIAL_LINKS = [
@@ -107,6 +108,11 @@ export function Footer() {
                 ? "The career platform from BechnaSeekho — verified jobs, resume tools and hiring, made human again."
                 : "One AI ecosystem for careers, hiring and professional growth — built with care in India, for the world."}
             </p>
+            <address className="mt-4 text-sm not-italic text-ink-soft">
+              <Link to="/contact" className="hover:text-ink hover:underline">
+                {OFFICE_ADDRESS}
+              </Link>
+            </address>
             <p className="mt-4 text-base font-semibold text-ink">Let’s get social :</p>
             <div className="mt-6 flex gap-2">
               {SOCIAL_LINKS.map(({ Icon, href, label }) => (

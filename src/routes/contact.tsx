@@ -26,6 +26,7 @@ import {
   Briefcase,
   AlertCircle,
 } from "lucide-react";
+import { OFFICE_ADDRESS } from "@/lib/office-address";
 import { breadcrumbSchema, canonicalLink, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
@@ -72,7 +73,7 @@ const CONTACT_INFO = [
   {
     icon: MapPin,
     label: "Office Address",
-    value: "Delhi, India",
+    value: OFFICE_ADDRESS,
     sub: "CareerSync by BechnaSeekho",
     color: "bg-rose-50 text-rose-600",
     href: null,
@@ -474,7 +475,7 @@ function ContactPage() {
           </div>
         </section>
 
-        {/* Google Map placeholder */}
+        {/* Office map */}
         <section className="px-4 pb-10 sm:px-6">
           <div className="mx-auto max-w-6xl">
             <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
@@ -487,7 +488,7 @@ function ContactPage() {
               <div className="relative h-64 bg-gray-100">
                 <iframe
                   title="BechnaSeekho Office Location"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d224357.6470089219!2d76.82494537631543!3d28.64275599999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd5b347eb62d%3A0x52c2b7494e204dce!2sNew%20Delhi%2C%20Delhi!5e0!3m2!1sen!2sin!4v1690000000000"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(OFFICE_ADDRESS)}&output=embed`}
                   className="h-full w-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
