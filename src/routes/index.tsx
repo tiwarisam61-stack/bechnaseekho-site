@@ -32,22 +32,20 @@ const WhatsAppFab = lazy(() =>
 );
 const SectionFallback = () => <div className="min-h-[120px]" aria-hidden="true" />;
 
+const homeTitle = "Verified Jobs & Career Growth in India | BechNaSeekho";
+const homeDescription =
+  "Find verified jobs in India, build an ATS-friendly resume, practise mock interviews and learn career skills. Recruiters can post jobs and manage applicants.";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BechnaSeekho | One Job Platform" },
-      {
-        name: "description",
-        content:
-          "BechnaSeekho is a job platform that helps candidates build resumes, find verified jobs, prepare for interviews, upskill, and connect with recruiters through CareerSync.",
-      },
-      { property: "og:title", content: "BechnaSeekho | One Job Platform" },
-      {
-        property: "og:description",
-        content:
-          "Job platform for resumes, verified jobs, mock interviews, upskilling and recruiter connections via CareerSync.",
-      },
+      { title: homeTitle },
+      { name: "description", content: homeDescription },
+      { property: "og:title", content: homeTitle },
+      { property: "og:description", content: homeDescription },
       { property: "og:url", content: absoluteUrl("/") },
+      { name: "twitter:title", content: homeTitle },
+      { name: "twitter:description", content: homeDescription },
     ],
     links: [
       { rel: "canonical", href: absoluteUrl("/") },

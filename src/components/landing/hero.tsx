@@ -98,10 +98,10 @@ export function Hero() {
               All-in-One Platform for Career & Learners Growth
             </div>
 
-            <h1
-              className="mt-6 font-display text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl xl:text-[4.5rem]"
+            <p
+              aria-hidden="true"
+              className="mt-5 font-display text-lg font-extrabold tracking-tight text-ink sm:text-xl"
             >
-              Your Career.<br />
               Your{" "}
               <span className="relative inline-block text-brand">
                 <span className="inline-block min-w-[1ch]">{typed}</span>
@@ -110,21 +110,25 @@ export function Hero() {
                   <path d="M2 8 Q 50 2, 100 6 T 198 4" stroke="#7C3AED" strokeWidth="3" strokeLinecap="round" fill="none" />
                 </svg>
               </span>
-              <br />
+            </p>
+            <h1
+              className="mt-3 font-display text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-5xl xl:text-[3.75rem]"
+            >
+              Find Verified Jobs, Build Skills &amp;{" "}
               <motion.span
                 animate={{ color: ["#0B1220", "#2563EB", "#0B1220", "#7C3AED", "#0B1220"] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="inline-block"
               >
-                Our Platform.
+                Grow Your Career in India
               </motion.span>
             </h1>
 
             <p
               className="mt-7 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg"
             >
-              Find jobs. Build skills. Learn sales. Get hired.<br />
-              All in one intelligent ecosystem — designed for India's next generation of talent.
+              Browse verified job openings in India on CareerSync, build an ATS-friendly resume,
+              practise mock interviews and learn sales and workplace skills. Recruiters can post jobs
+              and manage applicants in one place.
             </p>
 
             <div
