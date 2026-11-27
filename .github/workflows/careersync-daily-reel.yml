@@ -1,0 +1,30 @@
+name: CareerSync daily reels (approval only)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+permissions:
+  contents: read
+jobs:
+  render:
+    if: github.ref_name == 'staging/careersync-daily-reels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install --disable-pip-version-check Pillow==11.3.0
+      - name: Render today's reel
+        run: python scripts/careersync-reels/render.py
+      - name: Upload MP4 and review copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: careersync-reel-review-${{ github.run_number }}
+          path: reel-output/
+          retention-days: 14
